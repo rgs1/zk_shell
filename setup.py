@@ -10,7 +10,7 @@ setup(name='zk_shell',
       long_description=readme(),
       classifiers=[
         'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: Apache License',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 2.7',
       ],
       keywords='ZooKeeper Kazoo shell',
