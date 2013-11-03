@@ -40,19 +40,25 @@ in a ZooKeeper. Recursively copying from your filesystem to ZK is supported,
 but not from ZK to your local filesystem (since znodes can have content and
 children).
 
+```
 (CONNECTED) /> cp /etc/passwd zk://localhost:2181/passwd
 (CONNECTED) /> get passwd
 (...)
 unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
 haldaemon:x:68:68:HAL daemon:/:/sbin/nologin
+```
 
 Copying from one ZK cluster to another is supported, too:
 
+```
 (CONNECTED) /> cp zk://localhost:2181/passwd zk://othercluster:2183/mypasswd
+```
 
 You can also copy from znodes to a JSON file:
 
+```
 (CONNECTED) /> cp zk://localhost:2181/something json://!tmp!backup.json/ true true
+```
 
 Sometimes you want to debug watches in ZooKeeper - i.e.: how often do watches fire
 under a given path? You can easily do that with the watch command.
@@ -60,6 +66,7 @@ under a given path? You can easily do that with the watch command.
 This allows you to continously monitor all the child watches that, recursively,
 fire under <path>:
 
+```
 (CONNECTED) /> watch start /
 (CONNECTED) /> create /foo 'test'
 (CONNECTED) /> create /bar/foo 'test'
@@ -72,3 +79,4 @@ Watches Stats
 /bar: 2
 /: 1
 (CONNECTED) /> watch stop /
+```
