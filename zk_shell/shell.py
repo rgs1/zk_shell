@@ -39,8 +39,8 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NotEmptyError
 from kazoo.security import make_acl, make_digest_acl
 
-from copy import copy, CopyError
-from watch_manager import get_watch_manager
+from .copy import copy, CopyError
+from .watch_manager import get_watch_manager
 
 
 class ShellParser(argparse.ArgumentParser):
@@ -580,14 +580,3 @@ example:
                               self._zk.get_children(parent)))
 
         return map(lambda x: x[offs:], opts)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("hosts", nargs="*", help="ZK hosts to connect")
-    params = parser.parse_args()
-
-    try:
-        Shell(params.hosts).run()
-    except KeyboardInterrupt:
-        print("\n")

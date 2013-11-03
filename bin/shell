@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import argparse
+
+from zk_shell.shell import Shell
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("hosts", nargs="*", help="ZK hosts to connect")
+    params = parser.parse_args()
+
+    try:
+        Shell(params.hosts).run()
+    except KeyboardInterrupt:
+        print("\n")
