@@ -1,7 +1,7 @@
 zk_shell
 ========
 
-A Python - Kazoo based - shell for ZooKeeper.
+A Python - [Kazoo](https://github.com/python-zk/kazoo "Kazoo") based - shell for ZooKeeper.
 
 This is a clone of the Java ZooKeeper CLI that ships with Apache ZooKeeper
 that I use for similar things. But I prefer to use a Kazoo based one since
