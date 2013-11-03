@@ -9,6 +9,7 @@ Kazoo is what the clients I deal with are using.
 
 It supports the basic ops:
 
+```
 bin/shell localhost:2181
 (CONNECTED) /> ls
 zookeeper
@@ -30,6 +31,7 @@ zookeeper foo temp-0000000001
 ├── zookeeper
 │   ├── config
 │   ├── quota
+```
 
 readline support is enabled (if readline is available).
 
