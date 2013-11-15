@@ -418,7 +418,7 @@ example:
         try:
             self._zk.delete(params.path)
         except NotEmptyError:
-            print("%s is not empty." % (path))
+            print("%s is not empty." % (params.path))
 
     def complete_rm(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
