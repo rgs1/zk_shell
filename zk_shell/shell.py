@@ -310,7 +310,7 @@ example:
 find znodes whose path matches a given text (regardless of the latter's case).
 
 example:
-  find / fOO
+  ifind / fOO
   /foo2
   /FOOish/wayland
   /fooish/xorg

@@ -80,3 +80,22 @@ Watches Stats
 /: 1
 (CONNECTED) /> watch stop /
 ```
+
+You can also search for paths or znodes which match a given text:
+
+```
+(CONNECTED) /> find / foo
+/foo2
+/fooish/wayland
+/fooish/xorg
+/copy/foo
+```
+Or if you want a case-insensitive match try ifind:
+
+```
+(CONNECTED) /> ifind / foo
+/foo2
+/FOOish/wayland
+/fooish/xorg
+/copy/Foo
+```
