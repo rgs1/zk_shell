@@ -99,3 +99,13 @@ Or if you want a case-insensitive match try ifind:
 /fooish/xorg
 /copy/Foo
 ```
+
+Grepping for content in znodes can also be done via grep:
+
+```
+(CONNECTED) /> grep / unbound true
+/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+/copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+```
+
+Or use igrep for a case-insensitive version.
