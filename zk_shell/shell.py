@@ -276,6 +276,61 @@ example:
             self._print_tree(u"%s/%s" % (path, c), indent + 1)
 
     @connected
+    @ensure_params([("path", True), ("match", True)])
+    @check_path_exists
+    def do_find(self, params):
+        self._full_match(params.path, params.match, True, 0)
+
+    def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        return self._complete_path(cmd_param_text, full_cmd)
+
+    def help_find(self):
+        print("""
+find znodes whose path matches a given text.
+
+example:
+  find / foo
+  /foo2
+  /fooish/wayland
+  /fooish/xorg
+  /copy/foo
+""")
+
+    @connected
+    @ensure_params([("path", True), ("match", True)])
+    @check_path_exists
+    def do_ifind(self, params):
+        self._full_match(params.path, params.match, True, re.IGNORECASE)
+
+    def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        return self._complete_path(cmd_param_text, full_cmd)
+
+    def help_ifind(self):
+        print("""
+find znodes whose path matches a given text (regardless of the latter's case).
+
+example:
+  find / fOO
+  /foo2
+  /FOOish/wayland
+  /fooish/xorg
+  /copy/Foo
+""")
+
+    def _full_match(self, path, match, check_match, flags):
+        for c in self._zk.get_children(path):
+            check = check_match
+            full_path = os.path.join(path, c)
+            if not check:
+                print(full_path)
+            else:
+                check = not re.search(match, full_path, flags)
+                if not check:
+                    print(full_path)
+
+            self._full_match(full_path, match, check, flags)
+
+    @connected
     @ensure_params([("path", True)])
     @check_path_exists
     def do_cd(self, params):
