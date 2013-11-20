@@ -66,6 +66,9 @@ class Shell(cmd.Cmd):
         if not self.connected:
             self._update_curdir('/')
 
+    def emptyline(self):
+        pass
+
     def run(self):
         self.cmdloop("")
 
