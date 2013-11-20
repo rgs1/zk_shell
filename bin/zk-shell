@@ -8,10 +8,11 @@ from zk_shell.shell import Shell
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--connect-timeout", type=int, default=10, help="ZK connect timeout")
     parser.add_argument("hosts", nargs="*", help="ZK hosts to connect")
     params = parser.parse_args()
 
     try:
-        Shell(params.hosts).run()
+        Shell(params.hosts, params.connect_timeout).run()
     except KeyboardInterrupt:
         print("\n")

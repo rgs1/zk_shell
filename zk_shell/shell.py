@@ -30,6 +30,7 @@ from __future__ import print_function
 
 import argparse
 import cmd
+import logging
 import os
 import re
 import shlex
@@ -51,9 +52,10 @@ class ShellParser(argparse.ArgumentParser):
 class Shell(cmd.Cmd):
     curdir = '/'
 
-    def __init__(self, hosts=[]):
+    def __init__(self, hosts=[], timeout=10):
         cmd.Cmd.__init__(self)
         self._hosts = hosts
+        self._connect_timeout = timeout
         self._setup_readline()
 
         self._zk = None
@@ -647,8 +649,11 @@ example:
     def _connect(self, hosts):
         self._disconnect()
         self._zk = KazooClient(hosts=",".join(hosts), read_only=self._read_only)
-        self._zk.start()
-        self.connected = True
+        try:
+            self._zk.start(timeout=self._connect_timeout)
+            self.connected = True
+        except Exception as ex:
+            print("Failed to connect: %s" % (ex))
         self._update_curdir('/')
 
     def _update_curdir(self, dirpath):
