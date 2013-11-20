@@ -112,7 +112,7 @@ class Shell(cmd.Cmd):
     def check_path_exists(f):
         def wrapped(self, params):
             path = params.path
-            params.path = self._abspath(path if path != '' else self.curdir)
+            params.path = self._abspath(path if path not in ["", "."] else self.curdir)
             if self._zk.exists(params.path):
                 return f(self, params)
             print("Path %s doesn't exist" % (path))
