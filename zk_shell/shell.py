@@ -273,19 +273,43 @@ example:
 
     @connected
     @interruptible
-    @ensure_params([("path", False)])
+    @ensure_params([("path", False), ("max_depth", False)])
     @check_path_exists
     def do_tree(self, params):
+        max_depth = 0
+        try:
+            max_depth = int(params.max_depth) if params.max_depth != "" else 0
+        except ValueError: pass
+
         print(".")
-        self._print_tree(params.path, 0)
+        self._print_tree(params.path, 0, max_depth)
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def _print_tree(self, path, indent):
+    def help_tree(self):
+        print("""
+print the tree under a given path (optionally only up to a given max depth).
+
+example:
+  tree
+   .
+   ├── zookeeper
+   │   ├── config
+   │   ├── quota
+
+  tree 1
+   .
+   ├── zookeeper
+   ├── foo
+   ├── bar
+""")
+
+    def _print_tree(self, path, level, max_depth):
         for c in self._zk.get_children(path):
-            print(u"%s├── %s" % (u"│   " * indent, c))
-            self._print_tree(u"%s/%s" % (path, c), indent + 1)
+            print(u"%s├── %s" % (u"│   " * level, c))
+            if max_depth == 0 or level + 1 < max_depth:
+                self._print_tree(u"%s/%s" % (path, c), level + 1, max_depth)
 
     @connected
     @ensure_params([("path", True), ("match", True)])
