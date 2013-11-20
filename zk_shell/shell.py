@@ -79,6 +79,14 @@ class Shell(cmd.Cmd):
           print("Not connected.")
         return wrapped
 
+    def interruptible(f):
+        def wrapped(self, args):
+            try:
+                f(self, args)
+            except KeyboardInterrupt:
+                pass
+        return wrapped
+
     def ensure_params(expected_params):
         def wrapper(f):
             parser = ShellParser()
@@ -264,6 +272,7 @@ example:
 """)
 
     @connected
+    @interruptible
     @ensure_params([("path", False)])
     @check_path_exists
     def do_tree(self, params):
