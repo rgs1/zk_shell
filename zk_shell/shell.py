@@ -230,12 +230,13 @@ example:
 
     @connected
     @ensure_params([("command", True),
-                    ("path", True)])
+                    ("path", True),
+                    ("debug", False)])
     @check_path_exists
     def do_watch(self, params):
         wm = get_watch_manager(self._zk)
         if params.command == "start":
-            wm.add(params.path)
+            wm.add(params.path, params.debug.lower() == "true")
         elif params.command == "stop":
             wm.remove(params.path)
         elif params.command == "stats":

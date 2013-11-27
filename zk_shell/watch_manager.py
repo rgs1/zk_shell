@@ -8,6 +8,12 @@ from kazoo.protocol.states import EventType
 from kazoo.exceptions import NoNodeError
 
 
+class PathStats(object):
+    def __init__(self, debug):
+        self.debug = debug
+        self.paths = defaultdict(int)
+
+
 class WatchManager(object):
     def __init__(self, client):
         self._client = client
@@ -16,7 +22,7 @@ class WatchManager(object):
     PARENT_ERR = "%s is a parent of %s which is already watched"
     CHILD_ERR = "%s is a child of %s which is already watched"
 
-    def add(self, path):
+    def add(self, path, debug):
         if path in self._watching_paths:
             print("%s is already being watched" % (path))
             return
@@ -37,7 +43,7 @@ class WatchManager(object):
                 print(self.CHILD_ERR % (path, epath))
                 return
 
-        self._watching_paths[path] = defaultdict(int)
+        self._watching_paths[path] = PathStats(debug)
         self._set_watches(path)
 
     def remove(self, path):
@@ -52,7 +58,7 @@ class WatchManager(object):
             return
 
         print("\nWatches Stats\n")
-        for path, count in self._watching_paths[path].items():
+        for path, count in self._watching_paths[path].paths.items():
             print("%s: %d" % (path, count))
 
     def _set_watches(self, path):
@@ -69,18 +75,22 @@ class WatchManager(object):
 
     def _watches_stats_watcher(self, watched_event):
         try:
-            if watched_event.type != EventType.CHILD:
-                return
-
             for path, stats in self._watching_paths.items():
-                if watched_event.path.startswith(path):
-                    stats[watched_event.path] += 1
+                if not watched_event.path.startswith(path):
+                    continue
 
-            try:
-                self._client.get_children(watched_event.path,
-                                          self._watches_stats_watcher)
-            except NoNodeError:
-                pass
+                if watched_event.type == EventType.CHILD:
+                    stats.paths[watched_event.path] += 1
+
+                if stats.debug:
+                    print(str(watched_event))
+
+            if watched_event.type == EventType.CHILD:
+                try:
+                    self._client.get_children(watched_event.path,
+                                              self._watches_stats_watcher)
+                except NoNodeError:
+                    pass
 
         except Exception as ex:
             print(str(ex))
