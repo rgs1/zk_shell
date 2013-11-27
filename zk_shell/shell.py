@@ -35,6 +35,7 @@ import os
 import re
 import shlex
 import sys
+import time
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import NotEmptyError
@@ -229,9 +230,11 @@ example:
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
+    @interruptible
     @ensure_params([("command", True),
                     ("path", True),
-                    ("debug", False)])
+                    ("debug", False),
+                    ("sleep", False)])
     @check_path_exists
     def do_watch(self, params):
         wm = get_watch_manager(self._zk)
@@ -240,7 +243,20 @@ example:
         elif params.command == "stop":
             wm.remove(params.path)
         elif params.command == "stats":
-            wm.stats(params.path)
+            repeat = 1
+            sleep = 1
+            try:
+                repeat = int(params.debug)
+                sleep = int(params.sleep)
+            except ValueError: pass
+            if repeat == 0:
+                while True:
+                    wm.stats(params.path)
+                    time.sleep(sleep)
+            else:
+                for i in xrange(0, repeat):
+                    wm.stats(params.path)
+                    time.sleep(sleep)
         else:
             print("watch <start|stop> <path> [verbose]")
 
@@ -249,9 +265,9 @@ example:
 Recursively watch for all changes under a path.
 
 examples:
-  watch start /foo/bar
+  watch start /foo/bar [debug]
   watch stop /foo/bar
-  watch stats /foo/bar
+  watch stats /foo/bar [repeatN] [sleepN]
 """)
 
     @ensure_params([("src", True), ("dst", True),
