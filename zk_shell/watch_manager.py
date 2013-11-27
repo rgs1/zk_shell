@@ -5,6 +5,7 @@ from __future__ import print_function
 from collections import defaultdict
 
 from kazoo.protocol.states import EventType
+from kazoo.exceptions import NoNodeError
 
 
 class WatchManager(object):
@@ -55,8 +56,16 @@ class WatchManager(object):
             print("%s: %d" % (path, count))
 
     def _set_watches(self, path):
-        for c in self._client.get_children(path, self._watches_stats_watcher):
-            self._set_watches("%s/%s" % (path, c))
+        """
+        we need to catch ZNONODE because children might be removed whilst we
+        are iterating (specially ephemeral znodes)
+        """
+        try:
+            children = self._client.get_children(path, self._watches_stats_watcher)
+            for c in children:
+                self._set_watches("%s/%s" % (path, c))
+        except NoNodeError:
+            pass
 
     def _watches_stats_watcher(self, watched_event):
         try:
@@ -67,8 +76,12 @@ class WatchManager(object):
                 if watched_event.path.startswith(path):
                     stats[watched_event.path] += 1
 
-            self._client.get_children(watched_event.path,
-                                      self._watches_stats_watcher)
+            try:
+                self._client.get_children(watched_event.path,
+                                          self._watches_stats_watcher)
+            except NoNodeError:
+                pass
+
         except Exception as ex:
             print(str(ex))
 
