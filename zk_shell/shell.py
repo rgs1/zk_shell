@@ -685,6 +685,8 @@ example:
         sys.exit(0)
 
     def _abspath(self, path):
+        if path != '/': path = path.rstrip('/')
+
         if path == '..':
             return os.path.dirname(self.curdir)
         elif path.startswith('/'):
