@@ -38,7 +38,7 @@ import sys
 import time
 
 from kazoo.client import KazooClient
-from kazoo.exceptions import NotEmptyError
+from kazoo.exceptions import NoNodeError, NotEmptyError
 from kazoo.security import make_acl, make_digest_acl
 
 from .copy import copy, CopyError
@@ -325,7 +325,12 @@ example:
 """)
 
     def _print_tree(self, path, level, max_depth):
-        for c in self._zk.get_children(path):
+        try:
+            children = self._zk.get_children(path)
+        except NoNodeError:
+            return
+
+        for c in children:
             print(u"%s├── %s" % (u"│   " * level, c))
             if max_depth == 0 or level + 1 < max_depth:
                 self._print_tree(u"%s/%s" % (path, c), level + 1, max_depth)
