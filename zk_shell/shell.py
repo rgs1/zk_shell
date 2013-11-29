@@ -37,12 +37,13 @@ import shlex
 import sys
 import time
 
-from kazoo.client import KazooClient
 from kazoo.exceptions import NoNodeError, NotEmptyError
 from kazoo.security import make_acl, make_digest_acl
 
+from .augumented_client import AugumentedClient
 from .copy import copy, CopyError
 from .watch_manager import get_watch_manager
+from .util import pretty_bytes
 
 
 class ShellParser(argparse.ArgumentParser):
@@ -68,6 +69,10 @@ class Shell(cmd.Cmd):
 
         if not self.connected:
             self._update_curdir('/')
+
+    def default(self, line):
+        args = shlex.split(line)
+        print("Unknown command: %s" % (args[0]))
 
     def emptyline(self):
         pass
@@ -336,6 +341,12 @@ example:
                 self._print_tree(u"%s/%s" % (path, c), level + 1, max_depth)
 
     @connected
+    @ensure_params([("path", False)])
+    @check_path_exists
+    def do_du(self, params):
+        print(pretty_bytes(self._zk.du(params.path)))
+
+    @connected
     @ensure_params([("path", True), ("match", True)])
     @check_path_exists
     def do_find(self, params):
@@ -597,14 +608,7 @@ example:
     @ensure_params([("path", True)])
     @check_path_exists
     def do_rmr(self, params):
-        self._delete_recursive(params.path)
-
-    def _delete_recursive(self, path):
-        for c in self._zk.get_children(path):
-            child_path = os.path.join(path, c)
-            self._delete_recursive(child_path)
-
-        self._zk.delete(path)
+        self._zk.rmr(params.path)
 
     def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -670,7 +674,8 @@ example:
 
     def _connect(self, hosts):
         self._disconnect()
-        self._zk = KazooClient(hosts=",".join(hosts), read_only=self._read_only)
+        self._zk = AugumentedClient(",".join(hosts),
+                                    read_only=self._read_only)
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
@@ -697,9 +702,7 @@ example:
             self.prompt = "(%s) %s> " % (self._state(), dirpath)
 
     def _state(self):
-        if self._zk:
-            return self._zk.state
-        return "DISCONNECTED"
+        return self._zk.state if self._zk else "DISCONNECTED"
 
     def _exit(self, newline=True):
         if newline:
