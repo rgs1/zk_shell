@@ -28,8 +28,6 @@
 
 from __future__ import print_function
 
-import argparse
-import cmd
 import logging
 import os
 import re
@@ -38,47 +36,26 @@ import sys
 import time
 
 from kazoo.exceptions import NoNodeError, NotEmptyError
-from kazoo.security import make_acl, make_digest_acl
 
+from .acl import ACLReader
 from .augumented_client import AugumentedClient
+from .augumented_cmd import AugumentedCmd
 from .copy import copy, CopyError
 from .watch_manager import get_watch_manager
 from .util import pretty_bytes
 
 
-class ShellParser(argparse.ArgumentParser):
-    def error(self, message):
-        raise Exception(message)
-
-
-class Shell(cmd.Cmd):
-    curdir = '/'
-
+class Shell(AugumentedCmd):
     def __init__(self, hosts=[], timeout=10):
-        cmd.Cmd.__init__(self)
+        AugumentedCmd.__init__(self, ".kz-shell-history")
         self._hosts = hosts
         self._connect_timeout = timeout
-        self._setup_readline()
-
         self._zk = None
         self._read_only = False
         self.connected = False
 
-        if len(self._hosts) > 0:
-            self._connect(self._hosts)
-
-        if not self.connected:
-            self._update_curdir('/')
-
-    def default(self, line):
-        args = shlex.split(line)
-        print("Unknown command: %s" % (args[0]))
-
-    def emptyline(self):
-        pass
-
-    def run(self):
-        self.cmdloop("")
+        if len(self._hosts) > 0: self._connect(self._hosts)
+        if not self.connected: self.update_curdir("/")
 
     def connected(f):
         def wrapped(self, args):
@@ -87,40 +64,10 @@ class Shell(cmd.Cmd):
           print("Not connected.")
         return wrapped
 
-    def interruptible(f):
-        def wrapped(self, args):
-            try:
-                f(self, args)
-            except KeyboardInterrupt:
-                pass
-        return wrapped
-
-    def ensure_params(expected_params):
-        def wrapper(f):
-            parser = ShellParser()
-            for p, optional in expected_params:
-                if optional is True:
-                    parser.add_argument(p)
-                elif optional is False:
-                    parser.add_argument(p, nargs="?", default="")
-                elif optional is "+":
-                    parser.add_argument(p, nargs="+")
-
-            def wrapped(self, args):
-                try:
-                    params = parser.parse_args(shlex.split(args))
-                    return f(self, params)
-                except Exception as ex:
-                    valid_params = " ".join(
-                        e[0] if e[1] else "<%s>" % (e[0]) for e in expected_params)
-                    print("Wrong params: %s. Expected: %s" % (str(ex), valid_params))
-            return wrapped
-        return wrapper
-
     def check_path_exists(f):
         def wrapped(self, params):
             path = params.path
-            params.path = self._abspath(path if path not in ["", "."] else self.curdir)
+            params.path = self.abspath(path if path not in ["", "."] else self.curdir)
             if self._zk.exists(params.path):
                 return f(self, params)
             print("Path %s doesn't exist" % (path))
@@ -129,14 +76,14 @@ class Shell(cmd.Cmd):
     def check_path_absent(f):
         def wrapped(self, params):
             path = params.path
-            params.path = self._abspath(path if path != '' else self.curdir)
+            params.path = self.abspath(path if path != '' else self.curdir)
             if not self._zk.exists(params.path):
                 return f(self, params)
             print("Path %s already exists" % (path))
         return wrapped
 
     @connected
-    @ensure_params([("scheme", True), ("credential", True)])
+    @AugumentedCmd.ensure_params([("scheme", True), ("credential", True)])
     def do_add_auth(self, params):
         self._zk.add_auth(params.scheme, params.credential)
 
@@ -148,13 +95,11 @@ example:
   add_auth digest super:s3cr3t
 """)
 
-    class BadACL(Exception): pass
-
     @connected
-    @ensure_params([("path", True), ("acls", "+")])
+    @AugumentedCmd.ensure_params([("path", True), ("acls", "+")])
     @check_path_exists
     def do_set_acls(self, params):
-        acls = self._extract_acls(params.acls)
+        acls = ACLReader.extract(params.acls)
         try:
             self._zk.set_acls(params.path, acls)
         except Exception as ex:
@@ -169,45 +114,8 @@ example:
   set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
 """)
 
-    def _extract_acls(self, acls):
-        return map(self._extract_acl, acls)
-
-    valid_schemes = [
-        "world",
-        "auth",
-        "digest",
-        "host",
-        "ip",
-        "username_password",  # internal-only: gen digest from user:password
-    ]
-
-    def _extract_acl(self, acl):
-        try:
-            scheme, rest = acl.split(":", 1)
-            credential = ":".join(rest.split(":")[0:-1])
-            cdrwa = rest.split(":")[-1]
-        except ValueError:
-            raise self.BadACL("Bad ACL: %s. Format is scheme:id:perms" % (acl))
-
-        if scheme not in self.valid_schemes:
-            raise self.BadACL("Invalid scheme: %s" % (acl))
-
-        create = True if "c" in cdrwa else False
-        read = True if "r" in cdrwa else False
-        write = True if "w" in cdrwa else False
-        delete = True if "d" in cdrwa else False
-        admin = True if "a" in cdrwa else False
-
-        if scheme == "username_password":
-            username, password = credential.split(":", 1)
-            return make_digest_acl(username, password, read, write, create,
-                                   delete, admin)
-        else:
-            return make_acl(scheme, credential, read, write,
-                            create, delete, admin)
-
     @connected
-    @ensure_params([("path", True)])
+    @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_get_acls(self, params):
         print(self._zk.get_acls(params.path)[0])
@@ -222,7 +130,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", False), ("watch", False)])
+    @AugumentedCmd.ensure_params([("path", False), ("watch", False)])
     @check_path_exists
     def do_ls(self, params):
         if params.watch.lower() == "true":
@@ -235,8 +143,8 @@ example:
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
-    @interruptible
-    @ensure_params([("command", True),
+    @AugumentedCmd.interruptible
+    @AugumentedCmd.ensure_params([("command", True),
                     ("path", True),
                     ("debug", False),
                     ("sleep", False)])
@@ -275,7 +183,7 @@ examples:
   watch stats /foo/bar [repeatN] [sleepN]
 """)
 
-    @ensure_params([("src", True), ("dst", True),
+    @AugumentedCmd.ensure_params([("src", True), ("dst", True),
                     ("recursive", False), ("overwrite", False),
                     ("verbose", False)])
     def do_cp(self, params):
@@ -296,8 +204,8 @@ example:
 """)
 
     @connected
-    @interruptible
-    @ensure_params([("path", False), ("max_depth", False)])
+    @AugumentedCmd.interruptible
+    @AugumentedCmd.ensure_params([("path", False), ("max_depth", False)])
     @check_path_exists
     def do_tree(self, params):
         max_depth = 0
@@ -332,13 +240,13 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", False)])
+    @AugumentedCmd.ensure_params([("path", False)])
     @check_path_exists
     def do_du(self, params):
         print(pretty_bytes(self._zk.du(params.path)))
 
     @connected
-    @ensure_params([("path", True), ("match", True)])
+    @AugumentedCmd.ensure_params([("path", True), ("match", True)])
     @check_path_exists
     def do_find(self, params):
         self._zk.find(params.path,
@@ -363,7 +271,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True), ("match", True)])
+    @AugumentedCmd.ensure_params([("path", True), ("match", True)])
     @check_path_exists
     def do_ifind(self, params):
         self._zk.find(params.path,
@@ -388,7 +296,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True), ("content", True), ("show_matches", False)])
+    @AugumentedCmd.ensure_params([("path", True), ("content", True), ("show_matches", False)])
     @check_path_exists
     def do_grep(self, params):
         show_matches = params.show_matches.lower() == "true"
@@ -412,7 +320,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True), ("content", True), ("show_matches", False)])
+    @AugumentedCmd.ensure_params([("path", True), ("content", True), ("show_matches", False)])
     @check_path_exists
     def do_igrep(self, params):
         show_matches = params.show_matches.lower() == "true"
@@ -436,16 +344,16 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True)])
+    @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_cd(self, params):
-        self._update_curdir(params.path)
+        self.update_curdir(params.path)
 
     def complete_cd(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
-    @ensure_params([("path", True), ("watch", False)])
+    @AugumentedCmd.ensure_params([("path", True), ("watch", False)])
     @check_path_exists
     def do_get(self, params):
         if params.watch.lower() == "true":
@@ -474,7 +382,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True), ("watch", False)])
+    @AugumentedCmd.ensure_params([("path", True), ("watch", False)])
     @check_path_exists
     def do_exists(self, params):
         if params.watch.lower() == "true":
@@ -506,7 +414,7 @@ example:
         print((str(watched_event)))
 
     @connected
-    @ensure_params([("path", True),
+    @AugumentedCmd.ensure_params([("path", True),
                     ("value", True),
                     ("ephemeral", False),
                     ("sequence", False),
@@ -555,7 +463,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True), ("value", True)])
+    @AugumentedCmd.ensure_params([("path", True), ("value", True)])
     @check_path_exists
     def do_set(self, params):
         self._zk.set(params.path, params.value)
@@ -572,7 +480,7 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True)])
+    @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_rm(self, params):
         try:
@@ -584,7 +492,7 @@ example:
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
-    @ensure_params([("path", True)])
+    @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_rmr(self, params):
         self._zk.rmr(params.path)
@@ -601,12 +509,12 @@ example:
 """)
 
     @connected
-    @ensure_params([("path", True)])
+    @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_sync(self, params):
         self._zk.sync(params.path)
 
-    @ensure_params([("hosts", True)])
+    @AugumentedCmd.ensure_params([("hosts", True)])
     def do_connect(self, params):
         self._connect(params.hosts.split(","))
 
@@ -621,7 +529,7 @@ example:
     @connected
     def do_disconnect(self, args):
         self._disconnect()
-        self._update_curdir('/')
+        self.update_curdir("/")
 
     def help_disconnect(self):
         print("""
@@ -645,11 +553,10 @@ example:
         self._exit(False)
 
     def _disconnect(self):
-        if self._zk:
-            try:
-                self._zk.stop()
-            except:
-                pass
+        if self._zk: return
+
+        try: self._zk.stop()
+        except Exception: pass
 
     def _connect(self, hosts):
         self._disconnect()
@@ -658,61 +565,13 @@ example:
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
-        except Exception as ex:
-            print("Failed to connect: %s" % (ex))
-        self._update_curdir('/')
+        except Exception as ex: print("Failed to connect: %s" % (ex))
 
-    def _update_curdir(self, dirpath):
-        if dirpath == '..':
-            if self.curdir == '/':
-                dirpath = '/'
-            else:
-                dirpath = os.path.dirname(self.curdir)
-        elif not dirpath.startswith('/'):
-            prefix = self.curdir
-            if prefix != '/':
-                prefix += '/'
-            dirpath = prefix + dirpath
+        self.update_curdir("/")
 
-        if dirpath != '/' and not self._zk.exists(dirpath):
-            print("Path %s doesn't exist." % dirpath)
-        else:
-            self.curdir = dirpath
-            self.prompt = "(%s) %s> " % (self._state(), dirpath)
-
-    def _state(self):
-        return self._zk.state if self._zk else "DISCONNECTED"
-
-    def _exit(self, newline=True):
-        if newline:
-            print("")
-        sys.exit(0)
-
-    def _abspath(self, path):
-        if path != '/': path = path.rstrip('/')
-
-        if path == '..':
-            return os.path.dirname(self.curdir)
-        elif path.startswith('/'):
-            return path
-        elif self.curdir == '/':
-            return "/%s" % (path)
-        else:
-            return "%s/%s" % (self.curdir, path)
-
-    def _setup_readline(self):
-        try:
-            import readline
-            import atexit
-        except ImportError:
-            return
-
-        histfile = os.path.join(os.environ['HOME'], '.kz-shell-history')
-        try:
-            readline.read_history_file(histfile)
-        except IOError:
-            pass
-        atexit.register(readline.write_history_file, histfile)
+    @property
+    def state(self):
+        return "(%s) " % (self._zk.state if self._zk else "DISCONNECTED")
 
     def _complete_path(self, cmd_param_text, full_cmd):
         pieces = shlex.split(full_cmd)
@@ -725,7 +584,7 @@ example:
 
         if self._zk.exists(path):
             opts = map(lambda z: "%s/%s" % (path, z),
-                       self._zk.get_children(self._abspath(path)))
+                       self._zk.get_children(self.abspath(path)))
         elif "/" not in path:
             znodes = self._zk.get_children(self.curdir)
             opts = filter(lambda z: z.startswith(path), znodes)
