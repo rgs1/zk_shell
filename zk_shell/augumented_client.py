@@ -61,3 +61,18 @@ class AugumentedClient(KazooClient):
                     callback(full_path)
 
             self.grep(full_path, content, show_matches, flags, callback)
+
+    def tree(self, path, max_depth, callback):
+        self.do_tree(path, max_depth, callback, 0)
+
+    def do_tree(self, path, max_depth, callback, level):
+        try:
+            children = self.get_children(path)
+        except NoNodeError:
+            return
+
+        for c in children:
+            callback(c, level)
+            if max_depth == 0 or level + 1 < max_depth:
+                cpath = u"%s/%s" % (path, c)
+                self.do_tree(cpath, max_depth, callback, level + 1)

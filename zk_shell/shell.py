@@ -306,7 +306,9 @@ example:
         except ValueError: pass
 
         print(".")
-        self._print_tree(params.path, 0, max_depth)
+        self._zk.tree(params.path,
+                      max_depth,
+                      lambda c,l: print(u"%s├── %s" % (u"│   " * l, c)))
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -328,17 +330,6 @@ example:
    ├── foo
    ├── bar
 """)
-
-    def _print_tree(self, path, level, max_depth):
-        try:
-            children = self._zk.get_children(path)
-        except NoNodeError:
-            return
-
-        for c in children:
-            print(u"%s├── %s" % (u"│   " * level, c))
-            if max_depth == 0 or level + 1 < max_depth:
-                self._print_tree(u"%s/%s" % (path, c), level + 1, max_depth)
 
     @connected
     @ensure_params([("path", False)])
