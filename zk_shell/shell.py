@@ -401,7 +401,11 @@ example:
     @check_path_exists
     def do_grep(self, params):
         show_matches = params.show_matches.lower() == "true"
-        self._full_grep(params.path, params.content, show_matches, 0)
+        self._.zk.grep(params.path,
+                       params.content,
+                       show_matches,
+                       0,
+                       lambda p: print(p))
 
     def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -421,7 +425,11 @@ example:
     @check_path_exists
     def do_igrep(self, params):
         show_matches = params.show_matches.lower() == "true"
-        self._full_grep(params.path, params.content, show_matches, re.IGNORECASE)
+        self._zk.grep(params.path,
+                      params.content,
+                      show_matches,
+                      re.IGNORECASE,
+                      lambda p: print(p))
 
     def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -435,21 +443,6 @@ example:
   /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
   /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
 """)
-
-    def _full_grep(self, path, content, show_matches, flags):
-        for c in self._zk.get_children(path):
-            full_path = os.path.join(path, c)
-            value, _ = self._zk.get(full_path)
-
-            if show_matches:
-                for line in value.split("\n"):
-                    if re.search(content, line, flags):
-                        print("%s: %s" % (full_path, line))
-            else:
-                if re.search(content, value, flags):
-                    print(full_path)
-
-            self._full_grep(full_path, content, show_matches, flags)
 
     @connected
     @ensure_params([("path", True)])

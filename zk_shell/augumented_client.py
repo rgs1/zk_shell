@@ -46,3 +46,18 @@ class AugumentedClient(KazooClient):
                 if not check: callback(full_path)
 
             self.find(full_path, match, check, flags, callback)
+
+    def grep(self, path, content, show_matches, flags, callback):
+        for c in self.get_children(path):
+            full_path = os.path.join(path, c)
+            value, _ = self.get(full_path)
+
+            if show_matches:
+                for line in value.split("\n"):
+                    if re.search(content, line, flags):
+                        callback("%s: %s" % (full_path, line))
+            else:
+                if re.search(content, value, flags):
+                    callback(full_path)
+
+            self.grep(full_path, content, show_matches, flags, callback)
