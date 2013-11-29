@@ -350,7 +350,11 @@ example:
     @ensure_params([("path", True), ("match", True)])
     @check_path_exists
     def do_find(self, params):
-        self._full_match(params.path, params.match, True, 0)
+        self._zk.find(params.path,
+                      params.match,
+                      True,
+                      0,
+                      lambda p: print(p))
 
     def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -371,7 +375,11 @@ example:
     @ensure_params([("path", True), ("match", True)])
     @check_path_exists
     def do_ifind(self, params):
-        self._full_match(params.path, params.match, True, re.IGNORECASE)
+        self._zk.find(params.path,
+                      params.match,
+                      True,
+                      re.IGNORECASE,
+                      lambda p: print(p))
 
     def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -387,19 +395,6 @@ example:
   /fooish/xorg
   /copy/Foo
 """)
-
-    def _full_match(self, path, match, check_match, flags):
-        for c in self._zk.get_children(path):
-            check = check_match
-            full_path = os.path.join(path, c)
-            if not check:
-                print(full_path)
-            else:
-                check = not re.search(match, full_path, flags)
-                if not check:
-                    print(full_path)
-
-            self._full_match(full_path, match, check, flags)
 
     @connected
     @ensure_params([("path", True), ("content", True), ("show_matches", False)])
