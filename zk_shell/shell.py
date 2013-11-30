@@ -42,7 +42,7 @@ from .augumented_client import AugumentedClient
 from .augumented_cmd import AugumentedCmd
 from .copy import copy, CopyError
 from .watch_manager import get_watch_manager
-from .util import pretty_bytes
+from .util import pretty_bytes, to_bool
 
 
 class Shell(AugumentedCmd):
@@ -71,6 +71,7 @@ class Shell(AugumentedCmd):
             if self._zk.exists(params.path):
                 return f(self, params)
             print("Path %s doesn't exist" % (path))
+            return False
         return wrapped
 
     def check_path_absent(f):
@@ -133,10 +134,8 @@ example:
     @AugumentedCmd.ensure_params([("path", False), ("watch", False)])
     @check_path_exists
     def do_ls(self, params):
-        if params.watch.lower() == "true":
-            znodes = self._zk.get_children(params.path, watch=self._default_watcher)
-        else:
-            znodes = self._zk.get_children(params.path)
+        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
+        znodes = self._zk.get_children(params.path, **kwargs)
         print(" ".join(znodes))
 
     def complete_ls(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -356,10 +355,8 @@ example:
     @AugumentedCmd.ensure_params([("path", True), ("watch", False)])
     @check_path_exists
     def do_get(self, params):
-        if params.watch.lower() == "true":
-            value, stat = self._zk.get(params.path, watch=self._default_watcher)
-        else:
-            value, stat = self._zk.get(params.path)
+        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
+        value, stat = self._zk.get(params.path, **kwargs)
         print(value)
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -385,10 +382,8 @@ example:
     @AugumentedCmd.ensure_params([("path", True), ("watch", False)])
     @check_path_exists
     def do_exists(self, params):
-        if params.watch.lower() == "true":
-            stat = self._zk.exists(params.path, watch=self._default_watcher)
-        else:
-            stat = self._zk.exists(params.path)
+        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
+        stat = self._zk.exists(params.path, watch=self.watcher, **kwargs)
         print(stat)
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -410,7 +405,7 @@ example:
   WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
 """)
 
-    def _default_watcher(self, watched_event):
+    def watcher(self, watched_event):
         print((str(watched_event)))
 
     @connected

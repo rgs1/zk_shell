@@ -109,3 +109,12 @@ Grepping for content in znodes can also be done via grep:
 ```
 
 Or use igrep for a case-insensitive version.
+
+
+You can also use zk-shell in non-interactive mode:
+
+```
+$ zk-shell localhost --run-once "create /foo 'bar'"
+$ zk-shell localhost --run-once "get /foo"
+bar
+```
