@@ -23,18 +23,6 @@ class AugumentedClient(KazooClient):
 
         return total
 
-    def rmr(self, path):
-        """ recursively removes a path doing a DFS """
-        try:
-            for c in self.get_children(path):
-                cpath = os.path.join(path, c)
-                self.rmr(cpath)
-        except NoNodeError: pass
-
-        try:
-            self.delete(path)
-        except NoNodeError: pass
-
     def find(self, path, match, check_match, flags, callback):
         for c in self.get_children(path):
             check = check_match

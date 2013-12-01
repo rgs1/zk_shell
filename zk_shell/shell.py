@@ -490,7 +490,7 @@ example:
     @AugumentedCmd.ensure_params([("path", True)])
     @check_path_exists
     def do_rmr(self, params):
-        self._zk.rmr(params.path)
+        self._zk.delete(params.path, recursive=True)
 
     def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
