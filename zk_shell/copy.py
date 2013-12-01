@@ -39,18 +39,24 @@ class Netloc(namedtuple("Netloc", "username password host")):
         return cls(username, password, host)
 
 
-scheme_registry = {}
-def scheme_handler(scheme):
-    def class_wrapper(cls):
-        scheme_registry[scheme] = cls
-        return cls
-    return class_wrapper
-
-
 class CopyError(Exception): pass
 
 
-class Proxy(object):
+class ProxyType(type):
+    TYPES = {}
+    SCHEME = ""
+
+    def __new__(cls, clsname, bases, dct):
+        obj = super(SLAType, cls).__new__(cls, clsname, bases, dct)
+        if obj.SCHEME in cls.TYPES:
+            raise ValueError("Duplicate scheme handler: %s" % obj.SCHEME)
+
+        if obj.SCHEME != "": cls.TYPES[obj.SCHEME] = obj
+        return obj
+
+
+class Proxy(ProxyType('ProxyBase', (object,), {})):
+    SCHEME = ""
 
     def __init__(self, parse_result, exists):
         self.parse_result = parse_result
@@ -125,9 +131,10 @@ class Proxy(object):
         raise NotImplementedError, "children_of must be implemented"
 
 
-@scheme_handler("zk")
 class ZKProxy(Proxy):
     """ read/write ZooKeeper paths """
+
+    SCHEME = "zk"
 
     def __init__(self, parse_result, exists):
         super(ZKProxy, self).__init__(parse_result, exists)
@@ -169,8 +176,9 @@ class ZKProxy(Proxy):
         return paths
 
 
-@scheme_handler("file")
 class FileProxy(Proxy):
+    SCHEME = "file"
+
     def __init__(self, parse_result, exists):
         super(FileProxy, self).__init__(parse_result, exists)
 
@@ -217,7 +225,6 @@ class FileProxy(Proxy):
         return all
 
 
-@scheme_handler("json")
 class JSONProxy(Proxy):
     """ read/write from JSON files discovered via:
 
@@ -240,6 +247,8 @@ class JSONProxy(Proxy):
         using a tree like format with children accessible from
         their parent.
     """
+
+    SCHEME = "json"
 
     def __enter__(self):
         self._dirty = False  # tracks writes
