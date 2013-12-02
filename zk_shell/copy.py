@@ -47,7 +47,7 @@ class ProxyType(type):
     SCHEME = ""
 
     def __new__(cls, clsname, bases, dct):
-        obj = super(SLAType, cls).__new__(cls, clsname, bases, dct)
+        obj = super(ProxyType, cls).__new__(cls, clsname, bases, dct)
         if obj.SCHEME in cls.TYPES:
             raise ValueError("Duplicate scheme handler: %s" % obj.SCHEME)
 
