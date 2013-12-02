@@ -15,19 +15,21 @@ class ACLReader:
         "username_password",  # internal-only: gen digest from user:password
     ]
 
-    def extract(self, acls):
-        return map(self.extract_acl, acls)
+    @classmethod
+    def extract(cls, acls):
+        return map(cls.extract_acl, acls)
 
-    def extract_acl(self, acl):
+    @classmethod
+    def extract_acl(cls, acl):
         try:
             scheme, rest = acl.split(":", 1)
             credential = ":".join(rest.split(":")[0:-1])
             cdrwa = rest.split(":")[-1]
         except ValueError:
-            raise self.BadACL("Bad ACL: %s. Format is scheme:id:perms" % (acl))
+            raise cls.BadACL("Bad ACL: %s. Format is scheme:id:perms" % (acl))
 
-        if scheme not in self.valid_schemes:
-            raise self.BadACL("Invalid scheme: %s" % (acl))
+        if scheme not in cls.valid_schemes:
+            raise cls.BadACL("Invalid scheme: %s" % (acl))
 
         create = True if "c" in cdrwa else False
         read = True if "r" in cdrwa else False
