@@ -383,7 +383,7 @@ example:
     @check_path_exists
     def do_exists(self, params):
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
-        stat = self._zk.exists(params.path, watch=self.watcher, **kwargs)
+        stat = self._zk.exists(params.path, **kwargs)
         print(stat)
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
