@@ -492,6 +492,32 @@ example:
     def do_rmr(self, params):
         self._zk.delete(params.path, recursive=True)
 
+    @connected
+    @AugumentedCmd.ensure_params([])
+    def do_session_info(self, params):
+        print(
+"""state=%s
+xid=%d
+last_zxid=%d
+timeout=%d
+server=%s""" % (self._zk.state,
+                self._zk._connection._xid,
+                self._zk.last_zxid,
+                self._zk._session_timeout,
+                self._zk._connection._socket.getpeername()))
+
+    def help_session_info(self):
+        print("""
+shows information about the current session (session id, timeout, etc.)
+
+example:
+  state=CONNECTED
+  xid=4
+  last_zxid=11
+  timeout=10000
+  server=('127.0.0.1', 2181)
+""")
+
     def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
