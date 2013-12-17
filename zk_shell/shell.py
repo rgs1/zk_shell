@@ -42,7 +42,7 @@ from .augumented_client import AugumentedClient
 from .augumented_cmd import AugumentedCmd
 from .copy import copy, CopyError
 from .watch_manager import get_watch_manager
-from .util import cons, dump, mntr, pretty_bytes, to_bool
+from .util import pretty_bytes, to_bool
 
 
 class Shell(AugumentedCmd):
@@ -518,20 +518,20 @@ example:
   server=('127.0.0.1', 2181)
 """)
 
-    @connected
-    @AugumentedCmd.ensure_params([])
+    @AugumentedCmd.ensure_params([("host", False)])
     def do_mntr(self, params):
-        print(mntr(self._zk._connection._socket.getpeername()))
+        host = params.host if params.host != "" else None
+        print(self._zk.mntr(host))
 
-    @connected
-    @AugumentedCmd.ensure_params([])
+    @AugumentedCmd.ensure_params([("host", False)])
     def do_cons(self, params):
-        print(cons(self._zk._connection._socket.getpeername()))
+        host = params.host if params.host != "" else None
+        print(self._zk.cons(host))
 
-    @connected
-    @AugumentedCmd.ensure_params([])
+    @AugumentedCmd.ensure_params([("host", False)])
     def do_dump(self, params):
-        print(dump(self._zk._connection._socket.getpeername()))
+        host = params.host if params.host != "" else None
+        print(self._zk.dump(host))
 
     def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
