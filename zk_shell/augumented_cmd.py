@@ -3,14 +3,58 @@ from __future__ import print_function
 
 import argparse
 import cmd
+from functools import partial, wraps
 import os
 import shlex
 import sys
 
 
 class ShellParser(argparse.ArgumentParser):
+    class ParserException(Exception): pass
+
+    @classmethod
+    def from_params(cls, expected_params):
+        parser = cls()
+        for p, optional in expected_params:
+            if optional is True:
+                parser.add_argument(p)
+            elif optional is False:
+                parser.add_argument(p, nargs="?", default="")
+            elif optional is "+":
+                parser.add_argument(p, nargs="+")
+        vps = " ".join(e[0] if e[1] else "<%s>" % (e[0]) for e in expected_params)
+        parser.__dict__["valid_params"] = vps
+        return parser
+
     def error(self, message):
-        raise Exception(message)
+        full_msg = "Wrong params: %s, expected: %s" % (message, self.valid_params)
+        raise self.ParserException(full_msg)
+
+
+def interruptible(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except KeyboardInterrupt:
+            pass
+    return wrapper
+
+
+def ensure_params_with_parser(parser, func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            params = parser.parse_args(shlex.split(args[1]))
+            return func(args[0], params)
+        except ShellParser.ParserException as ex:
+            print(ex)
+    return wrapper
+
+
+def ensure_params(expected_params):
+    parser = ShellParser.from_params(expected_params)
+    return partial(ensure_params_with_parser, parser)
 
 
 class AugumentedCmd(cmd.Cmd):
@@ -28,38 +72,6 @@ class AugumentedCmd(cmd.Cmd):
 
     def run(self):
         self.cmdloop("")
-
-    @staticmethod
-    def ensure_params(expected_params):
-        def wrapper(f):
-            parser = ShellParser()
-            for p, optional in expected_params:
-                if optional is True:
-                    parser.add_argument(p)
-                elif optional is False:
-                    parser.add_argument(p, nargs="?", default="")
-                elif optional is "+":
-                    parser.add_argument(p, nargs="+")
-
-            def wrapped(self, args):
-                try:
-                    params = parser.parse_args(shlex.split(args))
-                    return f(self, params)
-                except Exception as ex:
-                    valid_params = " ".join(
-                        e[0] if e[1] else "<%s>" % (e[0]) for e in expected_params)
-                    print("Wrong params: %s. Expected: %s" % (str(ex), valid_params))
-            return wrapped
-        return wrapper
-
-    @staticmethod
-    def interruptible(f):
-        def wrapped(self, args):
-            try:
-                f(self, args)
-            except KeyboardInterrupt:
-                pass
-        return wrapped
 
     def _exit(self, newline=True):
         if newline:

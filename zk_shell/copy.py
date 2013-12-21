@@ -99,10 +99,10 @@ class Proxy(ProxyType('ProxyBase', (object,), {})):
         """
         result = cls.parse(string)
 
-        if result.scheme not in scheme_registry:
+        if result.scheme not in cls.TYPES:
             raise CopyError("Invalid scheme: %s" % (result.scheme))
 
-        return scheme_registry[result.scheme](result, exists)
+        return cls.TYPES[result.scheme](result, exists)
 
     @classmethod
     def parse(cls, url_string):
