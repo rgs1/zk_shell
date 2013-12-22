@@ -167,10 +167,14 @@ class ZKProxy(Proxy):
         return self.zk_walk(self.path, "")
 
     def zk_walk(self, root_path, path):
+        """ skip ephemeral znodes since there's no point in copying those """
         paths = []
         full_path = "%s/%s" % (root_path, path) if path != "" else root_path
         for c in self.client.get_children(full_path):
             child_path = "%s/%s" % (path, c) if path != "" else c
+            stat = self.client.exists("%s/%s" % (full_path, child_path))
+            if stat is None or stat.ephemeralOwner != 0:
+                continue
             paths.append(child_path)
             paths += self.zk_walk(root_path, child_path)
         return paths
@@ -292,7 +296,7 @@ class JSONProxy(Proxy):
 
 def do_copy(src, dst, verbose=False):
     if verbose:
-        print("Copying from %s to %s" % (src.geturl(), dst.geturl()))
+        print("Copying from %s to %s" % (src.url, dst.url))
 
     try:
         dst.write_path(src.read_path())
