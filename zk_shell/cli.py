@@ -14,10 +14,14 @@ class CLI(object):
 
         if params.run_once != "":
             sys.exit(0 if s.onecmd(params.run_once) == None else 1)
-        else:
+
+        while True:
             try:
                 s.run()
-            except KeyboardInterrupt: print("\n")
+            except KeyboardInterrupt:
+                done = raw_input("\nExit? (y|n) ")
+                if done == "y":
+                    break
 
     def get_params(self):
         parser = argparse.ArgumentParser()
