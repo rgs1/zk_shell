@@ -18,6 +18,8 @@ def connected_socket(address):
 
 
 class AugumentedClient(KazooClient):
+    class CmdFailed(Exception): pass
+
     def du(self, path):
         stat = self.exists(path)
         if stat is None:
@@ -89,15 +91,24 @@ class AugumentedClient(KazooClient):
     def zk_cmd(self, address, cmd):
         """address is a (host, port) tuple"""
         replies = []
-        recs = socket.getaddrinfo(address[0], address[1], socket.AF_INET, socket.SOCK_STREAM)
+        recs = []
+
+        try:
+            recs = socket.getaddrinfo(address[0], address[1], socket.AF_INET, socket.SOCK_STREAM)
+        except socket.gaierror as ex:
+            raise CmdFailed("Failed to resolve: %s" % (ex))
+
         for r in recs:
-            with connected_socket(r[4]) as s:
-                s.send("%s\n" % (cmd))
-                while True:
-                    b = s.recv(1024)
-                    if b == "":
-                        break
-                    replies.append(b)
+            try:
+                with connected_socket(r[4]) as s:
+                    s.send("%s\n" % (cmd))
+                    while True:
+                        b = s.recv(1024)
+                        if b == "":
+                            break
+                        replies.append(b)
+            except socket.error as ex:
+                raise self.CmdFailed("Error: %s" % (ex))
 
         return "".join(replies)
 

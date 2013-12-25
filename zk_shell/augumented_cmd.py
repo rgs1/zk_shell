@@ -9,21 +9,45 @@ import shlex
 import sys
 
 
+class BasicParam(object):
+    def __init__(self, label):
+        self.label = label
+
+    @property
+    def pretty_label(self):
+        return self.label
+
+
+class Required(BasicParam):
+    pass
+
+
+class Optional(BasicParam):
+    @property
+    def pretty_label(self):
+        return "<%s>" % (self.label)
+
+
+class Multi(BasicParam):
+    pass
+
+
 class ShellParser(argparse.ArgumentParser):
     class ParserException(Exception): pass
 
     @classmethod
-    def from_params(cls, expected_params):
+    def from_params(cls, params):
         parser = cls()
-        for p, optional in expected_params:
-            if optional is True:
-                parser.add_argument(p)
-            elif optional is False:
-                parser.add_argument(p, nargs="?", default="")
-            elif optional is "+":
-                parser.add_argument(p, nargs="+")
-        vps = " ".join(e[0] if e[1] else "<%s>" % (e[0]) for e in expected_params)
-        parser.__dict__["valid_params"] = vps
+        for p in params:
+            if isinstance(p, Required):
+                parser.add_argument(p.label)
+            elif isinstance(p, Optional):
+                parser.add_argument(p.label, nargs="?", default="")
+            elif isinstance(p, Multi):
+                parser.add_argument(p.label, nargs="+")
+            else:
+                raise ValueError("Unknown parameter type: %s" % (p))
+        parser.__dict__["valid_params"] = " ".join(p.pretty_label for p in params)
         return parser
 
     def error(self, message):
@@ -52,8 +76,8 @@ def ensure_params_with_parser(parser, func):
     return wrapper
 
 
-def ensure_params(expected_params):
-    parser = ShellParser.from_params(expected_params)
+def ensure_params(*params):
+    parser = ShellParser.from_params(params)
     return partial(ensure_params_with_parser, parser)
 
 
