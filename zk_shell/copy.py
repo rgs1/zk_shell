@@ -331,11 +331,12 @@ def copy(src_url, dst_url, recursive=False, overwrite=False, verbose=False):
     if recursive and src.scheme == "zk" and dst.scheme == "file":
         raise CopyError("Recursive copy from zk to fs isn't supported")
 
-    with src, dst:
-        do_copy(src, dst, verbose)
-        if recursive:
-            children = src.children_of()
-            for c in children:
-                src.set_url(url_join(src_url, c))
-                dst.set_url(url_join(dst_url, c))
-                do_copy(src, dst, verbose)
+    with src:
+        with dst:
+            do_copy(src, dst, verbose)
+            if recursive:
+                children = src.children_of()
+                for c in children:
+                    src.set_url(url_join(src_url, c))
+                    dst.set_url(url_join(dst_url, c))
+                    do_copy(src, dst, verbose)
