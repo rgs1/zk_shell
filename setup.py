@@ -2,11 +2,6 @@ from setuptools import setup
 import sys
 
 
-if sys.version_info.major == 2 and sys.version_info.minor < 6:
-    print "Python < 2.6 is not supported."
-    sys.exit(1)
-
-
 def readme():
     with open('README.md') as f:
         return f.read()
