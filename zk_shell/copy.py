@@ -36,7 +36,7 @@ class Netloc(namedtuple("Netloc", "username password host")):
         if not "@" in netloc_string:
             host = netloc_string
         else:
-            username_passwd, host =  netloc_string.split("@", 1)
+            username_passwd, host =  netloc_string.rsplit("@", 1)
             if ":" in username_passwd:
                 username, password = username_passwd.split(":", 1)
             else:
