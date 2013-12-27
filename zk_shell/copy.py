@@ -198,10 +198,14 @@ class ZKProxy(Proxy):
     def zk_walk(self, root_path, path):
         """ skip ephemeral znodes since there's no point in copying those """
         paths = []
-        full_path = "%s/%s" % (root_path, path) if path != "" else root_path
+
+        full_path = root_path.rstrip("/")
+        if path != "":
+            full_path += "/%s" % (path)
+
         for c in self.client.get_children(full_path):
             child_path = "%s/%s" % (path, c) if path != "" else c
-            stat = self.client.exists("%s/%s" % (full_path, child_path))
+            stat = self.client.exists("%s/%s" % (root_path, child_path))
             if stat is None or stat.ephemeralOwner != 0:
                 continue
             paths.append(child_path)
