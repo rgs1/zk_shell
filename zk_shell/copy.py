@@ -48,6 +48,15 @@ class Netloc(namedtuple("Netloc", "username password host")):
 class CopyError(Exception): pass
 
 
+class PathValue(object):
+    def __init__(self, value):
+        self._value = value
+
+    @property
+    def value(self):
+        return self._value
+
+
 class ProxyType(type):
     TYPES = {}
     SCHEME = ""
@@ -61,7 +70,7 @@ class ProxyType(type):
         return obj
 
 
-class Proxy(ProxyType('ProxyBase', (object,), {})):
+class Proxy(ProxyType("ProxyBase", (object,), {})):
     SCHEME = ""
 
     def __init__(self, parse_result, exists):
@@ -130,7 +139,7 @@ class Proxy(ProxyType('ProxyBase', (object,), {})):
     def read_path(self):
         raise NotImplementedError, "read_path must be implemented"
 
-    def write_path(self, content):
+    def write_path(self, path_value):
         raise NotImplementedError, "write_path must be implemented"
 
     def children_of(self):
@@ -141,6 +150,15 @@ class ZKProxy(Proxy):
     """ read/write ZooKeeper paths """
 
     SCHEME = "zk"
+
+    class ZKPathValue(PathValue):
+        def __init__(self, value, acl=None):
+            PathValue.__init__(self, value)
+            self._acl = acl
+
+        @property
+        def acl(self):
+            return self._acl
 
     def __init__(self, parse_result, exists):
         super(ZKProxy, self).__init__(parse_result, exists)
@@ -161,13 +179,20 @@ class ZKProxy(Proxy):
             raise CopyError(m)
 
     def read_path(self):
-        return self.client.get(self.path)[0]
+        # TODO: propose a new ZK opcode (GetWithACLs) so we can do this in 1 rt
+        value, _ = self.client.get(self.path)
+        acl, _ = self.client.get_acls(self.path)
+        return self.ZKPathValue(value, acl)
 
-    def write_path(self, content):
+    def write_path(self, path_value):
+        acl = path_value.acl if isinstance(path_value, self.ZKPathValue) else None
+
         if self.client.exists(self.path):
-            self.client.set(self.path, content)
+            self.client.set(self.path, path_value.value)
+            if acl:
+                self.client.set_acls(self.path, acl)
         else:
-            self.client.create(self.path, content, makepath=True)
+            self.client.create(self.path, path_value.value, acl=acl, makepath=True)
 
     def children_of(self):
         return self.zk_walk(self.path, "")
@@ -204,13 +229,13 @@ class FileProxy(Proxy):
     def read_path(self):
         if os.path.isfile(self.path):
             with open(self.path, "r") as fp:
-                return "".join(fp.readlines())
+                return PathValue("".join(fp.readlines()))
         elif os.path.isdir(self.path):
-            return ""
-        else:
-            raise CopyError("%s is of unknown file type" % (self.path))
+            return PathValue("")
 
-    def write_path(self, content):
+        raise CopyError("%s is of unknown file type" % (self.path))
+
+    def write_path(self, path_value):
         """ this will overwrite dst path - be careful """
 
         parent_dir = os.path.dirname(self.path)
@@ -219,7 +244,7 @@ class FileProxy(Proxy):
         except OSError as ex:
             pass
         with open(self.path, "w") as fp:
-            fp.write(content)
+            fp.write(path_value.value)
 
     def children_of(self):
         root_path = self.path[0:-1] if self.path.endswith("/") else self.path
@@ -286,7 +311,7 @@ class JSONProxy(Proxy):
             raise CopyError(m)
 
     def read_path(self):
-        return self._tree[self.path]["content"].encode('utf-8')
+        return PathValue(self._tree[self.path]["content"].encode("utf-8"))
 
     def write_path(self, content):
         self._tree[self.path]["content"] = content
