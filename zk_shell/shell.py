@@ -35,7 +35,7 @@ import shlex
 import sys
 import time
 
-from kazoo.exceptions import NoNodeError, NotEmptyError
+from kazoo.exceptions import NoAuthError, NoNodeError, NotEmptyError
 
 from .acl import ACLReader
 from .augumented_client import AugumentedClient
@@ -66,9 +66,13 @@ class Shell(AugumentedCmd):
 
     def connected(f):
         def wrapped(self, args):
-          if self.connected:
-                return f(self, args)
-          print("Not connected.")
+            if not self.connected:
+                print("Not connected.")
+            else:
+                try:
+                    return f(self, args)
+                except NoAuthError as ex:
+                    print("Not authenticated.")
         return wrapped
 
     def check_path_exists(f):
