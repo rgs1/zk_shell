@@ -113,6 +113,9 @@ example:
         except Exception as ex:
             print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)))
 
+    def complete_set_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        return self._complete_path(cmd_param_text, full_cmd)
+
     def help_set_acls(self):
         print("""
 sets ACLs for a given path.
@@ -127,6 +130,9 @@ example:
     @check_path_exists
     def do_get_acls(self, params):
         print(self._zk.get_acls(params.path)[0])
+
+    def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        return self._complete_path(cmd_param_text, full_cmd)
 
     def help_get_acls(self):
         print("""
