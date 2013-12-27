@@ -162,11 +162,20 @@ class ZKProxy(Proxy):
 
     def __init__(self, parse_result, exists):
         super(ZKProxy, self).__init__(parse_result, exists)
+        self.client = None
 
+    def connect(self):
         self.client = zk_client(self.host, self.username, self.password)
 
-        if exists is not None:
+        if self.exists is not None:
             self.check_path()
+
+    def __enter__(self):
+        self.connect()
+
+    def __exit__(self, type, value, traceback):
+        if self.client:
+            self.client.stop()
 
     def check_path(self):
         retval = True if self.client.exists(self.path) else False
