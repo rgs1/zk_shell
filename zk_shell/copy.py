@@ -197,7 +197,9 @@ class ZKProxy(Proxy):
         acl = path_value.acl if isinstance(path_value, self.ZKPathValue) else None
 
         if self.client.exists(self.path):
-            self.client.set(self.path, path_value.value)
+            value, _ = self.client.get(self.path)
+            if path_value.value != value:
+                self.client.set(self.path, path_value.value)
         else:
             self.client.create(self.path, path_value.value, acl=acl, makepath=True)
 
