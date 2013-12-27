@@ -20,6 +20,12 @@ def zk_client(host, username, password):
 
     client = KazooClient(hosts=host)
     client.start()
+
+    # TODO: handle more than just digest
+    # TODO: add_auth() isn't truly synchronous!
+    if username != "":
+        client.add_auth("digest", "%s:%s" % (username, password))
+
     return client
 
 
@@ -30,7 +36,7 @@ class Netloc(namedtuple("Netloc", "username password host")):
         if not "@" in netloc_string:
             host = netloc_string
         else:
-            username_passwd, host =  netloc.split("@")
+            username_passwd, host =  netloc_string.split("@")
             if ":" in username_passwd:
                 username, password = username_passwd.split(":", 1)
             else:
