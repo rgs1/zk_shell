@@ -6,9 +6,12 @@ from collections import defaultdict, namedtuple
 import json
 import os
 import re
+import time
 import urlparse
 
 from kazoo.client import KazooClient
+
+from .async_walker import AsyncWalker
 
 
 DEFAULT_ZK_PORT = 2181
@@ -142,7 +145,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def write_path(self, path_value):
         raise NotImplementedError, "write_path must be implemented"
 
-    def children_of(self):
+    def children_of(self, async):
         raise NotImplementedError, "children_of must be implemented"
 
 
@@ -203,25 +206,26 @@ class ZKProxy(Proxy):
         else:
             self.client.create(self.path, path_value.value, acl=acl, makepath=True)
 
-    def children_of(self):
-        return self.zk_walk(self.path, "")
+    def children_of(self, async):
+        if async:
+            return AsyncWalker(self.client).walk(self.path.rstrip("/"))
+        else:
+            return self.zk_walk(self.path, None)
 
-    def zk_walk(self, root_path, path):
-        """ skip ephemeral znodes since there's no point in copying those """
-        paths = []
-
-        full_path = root_path.rstrip("/")
-        if path != "":
-            full_path += "/%s" % (path)
+    def zk_walk(self, root_path, branch_path):
+        """
+        skip ephemeral znodes since there's no point in copying those
+        """
+        full_path = "%s/%s" % (root_path, branch_path) if branch_path else root_path
 
         for c in self.client.get_children(full_path):
-            child_path = "%s/%s" % (path, c) if path != "" else c
+            child_path = "%s/%s" % (branch_path, c) if branch_path else c
             stat = self.client.exists("%s/%s" % (root_path, child_path))
             if stat is None or stat.ephemeralOwner != 0:
                 continue
-            paths.append(child_path)
-            paths += self.zk_walk(root_path, child_path)
-        return paths
+            yield child_path
+            for new_path in self.zk_walk(root_path, child_path):
+                yield new_path
 
 
 class FileProxy(Proxy):
@@ -259,7 +263,7 @@ class FileProxy(Proxy):
         with open(self.path, "w") as fp:
             fp.write(path_value.value)
 
-    def children_of(self):
+    def children_of(self, async):
         root_path = self.path[0:-1] if self.path.endswith("/") else self.path
         all = []
         for path, dirs, files in os.walk(root_path):
@@ -331,16 +335,19 @@ class JSONProxy(Proxy):
         self._tree[self.path]["acls"] = []  # not implemented (yet)
         self._dirty = True
 
-    def children_of(self):
+    def children_of(self, async):
         offs = 1 if self.path == "/" else len(self.path) + 1
         return map(lambda c: c[offs:],
                    filter(lambda k: k != self.path and k.startswith(self.path),
                           self._tree.keys()))
 
 
-def do_copy(src, dst, verbose=False):
+def do_copy(src, dst, async=False, verbose=False):
     if verbose:
-        print("Copying from %s to %s" % (src.url, dst.url))
+        if async:
+            print("Copying (asynchronously) from %s to %s" % (src.url, dst.url))
+        else:
+            print("Copying from %s to %s" % (src.url, dst.url))
 
     try:
         dst.write_path(src.read_path())
@@ -355,7 +362,7 @@ def url_join(url_root, child_path):
         return "%s/%s" % (url_root, child_path)
 
 
-def copy(src_url, dst_url, recursive=False, overwrite=False, verbose=False):
+def copy(src_url, dst_url, recursive=False, overwrite=False, async=False, verbose=False):
     """
        src and dst can be any of:
 
@@ -375,12 +382,18 @@ def copy(src_url, dst_url, recursive=False, overwrite=False, verbose=False):
     if recursive and src.scheme == "zk" and dst.scheme == "file":
         raise CopyError("Recursive copy from zk to fs isn't supported")
 
+    start = time.time()
+
     with src:
         with dst:
-            do_copy(src, dst, verbose)
+            do_copy(src, dst, async, verbose)
             if recursive:
-                children = src.children_of()
+                children = src.children_of(async)
                 for c in children:
                     src.set_url(url_join(src_url, c))
                     dst.set_url(url_join(dst_url, c))
-                    do_copy(src, dst, verbose)
+                    do_copy(src, dst, async, verbose)
+
+    end = time.time()
+
+    print("Copying took %.2f secs" % (round(end - start, 2)))

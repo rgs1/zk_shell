@@ -197,13 +197,15 @@ examples:
 """)
 
     @ensure_params(Required("src"), Required("dst"),
-                   Optional("recursive"), Optional("overwrite"), Optional("verbose"))
+                   Optional("recursive"), Optional("overwrite"),
+                   Optional("async"), Optional("verbose"))
     def do_cp(self, params):
         try:
             recursive = params.recursive.lower() == "true"
             overwrite = params.overwrite.lower() == "true"
             verbose = params.verbose.lower() == "true"
-            copy(params.src, params.dst, recursive, overwrite, verbose)
+            async = params.async.lower() == "true"
+            copy(params.src, params.dst, recursive, overwrite, async, verbose)
         except CopyError as ex:
             print(str(ex))
 
@@ -212,7 +214,7 @@ examples:
 copy from/to local/remote or remote/remote paths.
 
 example:
-  cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <verbose>
+  cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose>
 """)
 
     @connected
