@@ -41,6 +41,8 @@ from .acl import ACLReader
 from .augumented_client import AugumentedClient
 from .augumented_cmd import (
     AugumentedCmd,
+    BooleanOptional,
+    IntegerOptional,
     interruptible,
     ensure_params,
     Multi,
@@ -197,15 +199,16 @@ examples:
 """)
 
     @ensure_params(Required("src"), Required("dst"),
-                   Optional("recursive"), Optional("overwrite"),
-                   Optional("async"), Optional("verbose"))
+                   BooleanOptional("recursive"), BooleanOptional("overwrite"),
+                   BooleanOptional("async"), BooleanOptional("verbose"))
     def do_cp(self, params):
         try:
-            recursive = params.recursive.lower() == "true"
-            overwrite = params.overwrite.lower() == "true"
-            verbose = params.verbose.lower() == "true"
-            async = params.async.lower() == "true"
-            copy(params.src, params.dst, recursive, overwrite, async, verbose)
+            copy(params.src,
+                 params.dst,
+                 params.recursive,
+                 params.overwrite,
+                 params.async,
+                 params.verbose)
         except CopyError as ex:
             print(str(ex))
 
@@ -219,17 +222,12 @@ example:
 
     @connected
     @interruptible
-    @ensure_params(Optional("path"), Optional("max_depth"))
+    @ensure_params(Optional("path"), IntegerOptional("max_depth"))
     @check_path_exists
     def do_tree(self, params):
-        max_depth = 0
-        try:
-            max_depth = int(params.max_depth) if params.max_depth != "" else 0
-        except ValueError: pass
-
         print(".")
         self._zk.tree(params.path,
-                      max_depth,
+                      params.max_depth,
                       lambda c,l: print(u"%s├── %s" % (u"│   " * l, c)))
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -310,15 +308,14 @@ example:
 """)
 
     @connected
-    @ensure_params(Required("path"), Required("content"), Optional("show_matches"))
+    @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_grep(self, params):
-        show_matches = params.show_matches.lower() == "true"
         self._.zk.grep(params.path,
                        params.content,
-                       show_matches,
-                       0,
-                       lambda p: print(p))
+                       params.show_matches,
+                       flags=0,
+                       callback=lambda p: print(p))
 
     def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -334,15 +331,14 @@ example:
 """)
 
     @connected
-    @ensure_params(Required("path"), Required("content"), Optional("show_matches"))
+    @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_igrep(self, params):
-        show_matches = params.show_matches.lower() == "true"
         self._zk.grep(params.path,
                       params.content,
-                      show_matches,
-                      re.IGNORECASE,
-                      lambda p: print(p))
+                      params.show_matches,
+                      flags=re.IGNORECASE,
+                      callback=lambda p: print(p))
 
     def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -426,20 +422,17 @@ example:
     @connected
     @ensure_params(Required("path"),
                    Required("value"),
-                   Optional("ephemeral"),
-                   Optional("sequence"),
-                   Optional("recursive"))
+                   BooleanOptional("ephemeral"),
+                   BooleanOptional("sequence"),
+                   BooleanOptional("recursive"))
     @check_path_absent
     def do_create(self, params):
-        ephemeral = params.ephemeral.lower() == "true"
-        sequence = params.sequence.lower() == "true"
-        makepath = params.recursive.lower() == "true"
         self._zk.create(params.path,
                         params.value,
                         acl=None,
-                        ephemeral=ephemeral,
-                        sequence=sequence,
-                        makepath=makepath)
+                        ephemeral=params.ephemeral,
+                        sequence=params.sequence,
+                        makepath=params.recursive)
 
     def complete_create(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

@@ -32,6 +32,21 @@ class Multi(BasicParam):
     pass
 
 
+class BooleanOptional(BasicParam):
+    pass
+
+
+class IntegerOptional(BasicParam):
+    def __init__(self, label, default=0):
+        super(IntegerOptional, self).__init__(label)
+        self.default = default
+
+
+class BooleanAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values.lower() == "true")
+
+
 class ShellParser(argparse.ArgumentParser):
     class ParserException(Exception): pass
 
@@ -43,6 +58,10 @@ class ShellParser(argparse.ArgumentParser):
                 parser.add_argument(p.label)
             elif isinstance(p, Optional):
                 parser.add_argument(p.label, nargs="?", default="")
+            elif isinstance(p, BooleanOptional):
+                parser.add_argument(p.label, nargs="?", default="", action=BooleanAction)
+            elif isinstance(p, IntegerOptional):
+                parser.add_argument(p.label, nargs="?", default=p.default, type=int)
             elif isinstance(p, Multi):
                 parser.add_argument(p.label, nargs="+")
             else:
