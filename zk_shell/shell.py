@@ -55,10 +55,11 @@ from .util import pretty_bytes, to_bool
 
 
 class Shell(AugumentedCmd):
-    def __init__(self, hosts=[], timeout=10):
-        AugumentedCmd.__init__(self, ".kz-shell-history")
+    def __init__(self, hosts=[], timeout=10, output=sys.stdout, setup_readline=True):
+        AugumentedCmd.__init__(self, ".kz-shell-history", setup_readline)
         self._hosts = hosts
         self._connect_timeout = timeout
+        self._output = output
         self._zk = None
         self._read_only = False
         self.connected = False
@@ -84,7 +85,7 @@ class Shell(AugumentedCmd):
             params.path = self.abspath(path if path not in ["", "."] else self.curdir)
             if self._zk.exists(params.path):
                 return f(self, params)
-            print("Path %s doesn't exist" % (path))
+            print("Path %s doesn't exist" % (path), file=self._output)
             return False
         wrapped.__doc__ = f.__doc__
         return wrapped
@@ -149,7 +150,7 @@ class Shell(AugumentedCmd):
     def do_ls(self, params):
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
-        print(" ".join(znodes))
+        print(" ".join(znodes), file=self._output)
 
     def complete_ls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -355,7 +356,7 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
-        print(value.decode(encoding="utf-8"))
+        print(value.decode(encoding="utf-8"), file=self._output)
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -380,7 +381,7 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         stat = self._zk.exists(params.path, **kwargs)
-        print(stat)
+        print(stat, file=self._output)
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

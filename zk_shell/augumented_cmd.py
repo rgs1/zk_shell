@@ -103,9 +103,11 @@ def ensure_params(*params):
 class AugumentedCmd(cmd.Cmd):
     curdir = "/"
 
-    def __init__(self, hist_file_name=None):
+    def __init__(self, hist_file_name=None, setup_readline=True):
         cmd.Cmd.__init__(self)
-        self._setup_readline(hist_file_name)
+
+        if setup_readline:
+            self._setup_readline(hist_file_name)
 
     def default(self, line):
         args = shlex.split(line)

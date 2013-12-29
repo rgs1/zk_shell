@@ -23,9 +23,12 @@ setup(name='zk_shell',
       author_email='rgs@itevenworks.net',
       license='Apache',
       packages=find_packages(),
+      test_suite="zk_shell.tests",
       scripts=['bin/zk-shell'],
-      install_requires=[
-          'kazoo',
-      ],
+      install_requires=['kazoo'],
+      tests_require=['kazoo', 'nose'],
+      extras_require={
+          'test': ['kazoo', 'nose'],
+      },
       include_package_data=True,
       zip_safe=False)
