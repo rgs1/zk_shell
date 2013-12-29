@@ -17,7 +17,7 @@ class ACLReader:
 
     @classmethod
     def extract(cls, acls):
-        return map(cls.extract_acl, acls)
+        return list(map(cls.extract_acl, acls))
 
     @classmethod
     def extract_acl(cls, acl):

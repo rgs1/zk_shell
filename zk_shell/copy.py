@@ -342,9 +342,9 @@ class JSONProxy(Proxy):
 
     def children_of(self, async):
         offs = 1 if self.path == "/" else len(self.path) + 1
-        return map(lambda c: c[offs:],
-                   filter(lambda k: k != self.path and k.startswith(self.path),
-                          self._tree.keys()))
+        def good(k):
+            return k != self.path and k.startswith(self.path)
+        return list(map(lambda c: c[offs:], list(filter(good, self._tree.keys()))))
 
 
 def do_copy(src, dst, async=False, verbose=False):

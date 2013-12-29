@@ -592,16 +592,15 @@ server=%s""" % (self._zk.state,
             return self._zk.get_children(self.curdir)
 
         if self._zk.exists(path):
-            opts = map(lambda z: "%s/%s" % (path, z),
-                       self._zk.get_children(self.abspath(path)))
+            children = self._zk.get_children(self.abspath(path))
+            opts = list(map(lambda z: "%s/%s" % (path, z), children))
         elif "/" not in path:
             znodes = self._zk.get_children(self.curdir)
-            opts = filter(lambda z: z.startswith(path), znodes)
+            opts = list(filter(lambda z: z.startswith(path), znodes))
         else:
             parent = os.path.dirname(path)
             child = os.path.basename(path)
-            opts = map(lambda z: "%s/%s" % (parent, z),
-                       filter(lambda z: z.startswith(child),
-                              self._zk.get_children(parent)))
+            matching = list(filter(lambda z: z.startswith(child), self._zk.get_children(parent)))
+            opts = list(map(lambda z: "%s/%s" % (parent, z), matching))
 
-        return map(lambda x: x[offs:], opts)
+        return list(map(lambda x: x[offs:], opts))
