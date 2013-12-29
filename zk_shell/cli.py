@@ -6,6 +6,11 @@ import sys
 
 from .shell import Shell
 
+try:
+    raw_input
+except NameError:
+    raw_input = input
+
 
 class CLI(object):
     def run(self):
