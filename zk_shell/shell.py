@@ -355,7 +355,7 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
-        print(value)
+        print(value.decode(encoding="utf-8"))
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -423,7 +423,7 @@ class Shell(AugumentedCmd):
         │   │   │   ├── here
         """
         self._zk.create(params.path,
-                        params.value,
+                        str.encode(params.value),
                         acl=None,
                         ephemeral=params.ephemeral,
                         sequence=params.sequence,
@@ -442,7 +442,7 @@ class Shell(AugumentedCmd):
         example:
         set /foo 'bar'
         """
-        self._zk.set(params.path, params.value)
+        self._zk.set(params.path, str.encode(params.value))
 
     def complete_set(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
