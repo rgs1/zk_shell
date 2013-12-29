@@ -7,7 +7,12 @@ import json
 import os
 import re
 import time
-import urlparse
+
+try:
+    from urlparse import urlparse
+except ImportError:
+    # Python 3.3?
+    from urllib.parse import urlparse
 
 from kazoo.client import KazooClient
 
@@ -128,7 +133,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         if not re.match("^\w+://", url_string):
             url_string = "file://%s" % (url_string)
 
-        return urlparse.urlparse(url_string)
+        return urlparse(url_string)
 
     def __enter__(self):
         pass
