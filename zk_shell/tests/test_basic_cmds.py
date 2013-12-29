@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 
 try:
@@ -64,3 +66,13 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("rmr %s" % (self.tests_path))
         self.shell.onecmd("exists %s" % (self.tests_path))
         self.assertEqual("Path %s doesn't exist\n" % (self.tests_path), self.output.getvalue())
+
+    def test_create_tree(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("create %s/two 'goodbye'" % (self.tests_path))
+        self.shell.onecmd("tree %s" % (self.tests_path))
+        expected_output = u""".
+├── two
+├── one
+"""
+        self.assertEqual(expected_output, self.output.getvalue())

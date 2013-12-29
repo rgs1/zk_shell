@@ -229,10 +229,10 @@ class Shell(AugumentedCmd):
         ├── foo
         ├── bar
         """
-        print(".")
-        self._zk.tree(params.path,
-                      params.max_depth,
-                      lambda c,l: print(u"%s├── %s" % (u"│   " * l, c)))
+        print(".", file=self._output)
+        def print_node(c, l):
+            print(u"%s├── %s" % (u"│   " * l, c), file=self._output)
+        self._zk.tree(params.path, params.max_depth, print_node)
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
