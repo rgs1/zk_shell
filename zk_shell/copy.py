@@ -137,16 +137,16 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         pass
 
     def check_path(self):
-        raise NotImplementedError, "check_path must be implemented"
+        raise NotImplementedError("check_path must be implemented")
 
     def read_path(self):
-        raise NotImplementedError, "read_path must be implemented"
+        raise NotImplementedError("read_path must be implemented")
 
     def write_path(self, path_value):
-        raise NotImplementedError, "write_path must be implemented"
+        raise NotImplementedError("write_path must be implemented")
 
     def children_of(self, async):
-        raise NotImplementedError, "children_of must be implemented"
+        raise NotImplementedError("children_of must be implemented")
 
 
 class ZKProxy(Proxy):
