@@ -75,6 +75,7 @@ class Shell(AugumentedCmd):
                     return f(self, args)
                 except NoAuthError as ex:
                     print("Not authenticated.")
+        wrapped.__doc__ = f.__doc__
         return wrapped
 
     def check_path_exists(f):
@@ -85,6 +86,7 @@ class Shell(AugumentedCmd):
                 return f(self, params)
             print("Path %s doesn't exist" % (path))
             return False
+        wrapped.__doc__ = f.__doc__
         return wrapped
 
     def check_path_absent(f):
@@ -94,25 +96,29 @@ class Shell(AugumentedCmd):
             if not self._zk.exists(params.path):
                 return f(self, params)
             print("Path %s already exists" % (path))
+        wrapped.__doc__ = f.__doc__
         return wrapped
 
     @connected
     @ensure_params(Required("scheme"), Required("credential"))
     def do_add_auth(self, params):
+        """
+        allows you to authenticate your session.
+        example:
+        add_auth digest super:s3cr3t
+        """
         self._zk.add_auth(params.scheme, params.credential)
-
-    def help_add_auth(self):
-        print("""
-allows you to authenticate your session.
-
-example:
-  add_auth digest super:s3cr3t
-""")
 
     @connected
     @ensure_params(Required("path"), Multi("acls"))
     @check_path_exists
     def do_set_acls(self, params):
+        """
+        sets ACLs for a given path.
+        example:
+        set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
+        set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
+        """
         acls = ACLReader.extract(params.acls)
         try:
             self._zk.set_acls(params.path, acls)
@@ -122,32 +128,20 @@ example:
     def complete_set_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_set_acls(self):
-        print("""
-sets ACLs for a given path.
-
-example:
-  set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
-  set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
-""")
-
     @connected
     @ensure_params(Required("path"))
     @check_path_exists
     def do_get_acls(self, params):
+        """
+        gets ACLs for a given path.
+        example:
+        get_acls /zookeeper
+        [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
+        """
         print(self._zk.get_acls(params.path)[0])
 
     def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_get_acls(self):
-        print("""
-gets ACLs for a given path.
-
-example:
-  get_acls /zookeeper
-  [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
-""")
 
     @connected
     @ensure_params(Optional("path"), Optional("watch"))
@@ -165,6 +159,13 @@ example:
     @ensure_params(Required("command"), Required("path"), Optional("debug"), Optional("sleep"))
     @check_path_exists
     def do_watch(self, params):
+        """
+        Recursively watch for all changes under a path.
+        examples:
+        watch start /foo/bar [debug]
+        watch stop /foo/bar
+        watch stats /foo/bar [repeatN] [sleepN]
+        """
         wm = get_watch_manager(self._zk)
         if params.command == "start":
             wm.add(params.path, params.debug.lower() == "true")
@@ -188,20 +189,15 @@ example:
         else:
             print("watch <start|stop> <path> [verbose]")
 
-    def help_watch(self):
-        print("""
-Recursively watch for all changes under a path.
-
-examples:
-  watch start /foo/bar [debug]
-  watch stop /foo/bar
-  watch stats /foo/bar [repeatN] [sleepN]
-""")
-
     @ensure_params(Required("src"), Required("dst"),
                    BooleanOptional("recursive"), BooleanOptional("overwrite"),
                    BooleanOptional("async"), BooleanOptional("verbose"))
     def do_cp(self, params):
+        """
+        copy from/to local/remote or remote/remote paths.
+        example:
+        cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose>
+        """
         try:
             copy(params.src,
                  params.dst,
@@ -212,19 +208,26 @@ examples:
         except CopyError as ex:
             print(str(ex))
 
-    def help_cp(self):
-        print("""
-copy from/to local/remote or remote/remote paths.
-
-example:
-  cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose>
-""")
-
     @connected
     @interruptible
     @ensure_params(Optional("path"), IntegerOptional("max_depth"))
     @check_path_exists
     def do_tree(self, params):
+        """
+        print the tree under a given path (optionally only up to a given max depth).
+        examples:
+        tree
+        .
+        ├── zookeeper
+        │   ├── config
+        │   ├── quota
+
+        tree 1
+        .
+        ├── zookeeper
+        ├── foo
+        ├── bar
+        """
         print(".")
         self._zk.tree(params.path,
                       params.max_depth,
@@ -232,24 +235,6 @@ example:
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_tree(self):
-        print("""
-print the tree under a given path (optionally only up to a given max depth).
-
-example:
-  tree
-   .
-   ├── zookeeper
-   │   ├── config
-   │   ├── quota
-
-  tree 1
-   .
-   ├── zookeeper
-   ├── foo
-   ├── bar
-""")
 
     @connected
     @ensure_params(Optional("path"))
@@ -261,6 +246,15 @@ example:
     @ensure_params(Optional("path"), Required("match"))
     @check_path_exists
     def do_find(self, params):
+        """
+        find znodes whose path matches a given text.
+        example:
+        find / foo
+        /foo2
+        /fooish/wayland
+        /fooish/xorg
+        /copy/foo
+        """
         self._zk.find(params.path,
                       params.match,
                       True,
@@ -270,22 +264,19 @@ example:
     def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_find(self):
-        print("""
-find znodes whose path matches a given text.
-
-example:
-  find / foo
-  /foo2
-  /fooish/wayland
-  /fooish/xorg
-  /copy/foo
-""")
-
     @connected
     @ensure_params(Required("path"), Required("match"))
     @check_path_exists
     def do_ifind(self, params):
+        """
+        find znodes whose path matches a given text (regardless of the latter's case).
+        example:
+        ifind / fOO
+        /foo2
+        /FOOish/wayland
+        /fooish/xorg
+        /copy/Foo
+        """
         self._zk.find(params.path,
                       params.match,
                       True,
@@ -295,22 +286,17 @@ example:
     def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_ifind(self):
-        print("""
-find znodes whose path matches a given text (regardless of the latter's case).
-
-example:
-  ifind / fOO
-  /foo2
-  /FOOish/wayland
-  /fooish/xorg
-  /copy/Foo
-""")
-
     @connected
     @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_grep(self, params):
+        """
+        find znodes whose value matches a given text.
+        example:
+        grep / unbound true
+        /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+        /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+        """
         self._.zk.grep(params.path,
                        params.content,
                        params.show_matches,
@@ -320,20 +306,17 @@ example:
     def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_grep(self):
-        print("""
-find znodes whose value matches a given text.
-
-example:
-  grep / unbound true
-  /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
-  /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
-""")
-
     @connected
     @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_igrep(self, params):
+        """
+        find znodes whose value matches a given text (case-insensite).
+        example:
+        igrep / UNBound true
+        /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+        /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+        """
         self._zk.grep(params.path,
                       params.content,
                       params.show_matches,
@@ -342,16 +325,6 @@ example:
 
     def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_igrep(self):
-        print("""
-find znodes whose value matches a given text (case-insensite).
-
-example:
-  igrep / UNBound true
-  /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
-  /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
-""")
 
     @connected
     @ensure_params(Required("path"))
@@ -366,6 +339,20 @@ example:
     @ensure_params(Required("path"), Optional("watch"))
     @check_path_exists
     def do_get(self, params):
+        """
+        gets the value for a given znode. a watch can be set.
+
+        example:
+        get /foo
+        bar
+
+        # sets a watch
+        get /foo true
+
+        # trigger the watch
+        set /foo 'notbar'
+        WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
+        """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
         print(value)
@@ -373,48 +360,30 @@ example:
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_get(self):
-        print("""
-gets the value for a given znode. a watch can be set.
-
-example:
-  get /foo
-  bar
-
-  # sets a watch
-  get /foo true
-
-  # trigger the watch
-  set /foo 'notbar'
-  WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
-""")
-
     @connected
     @ensure_params(Required("path"), Optional("watch"))
     @check_path_exists
     def do_exists(self, params):
+        """
+        checks if path exists and returns the stat for the znode. a watch can be set.
+
+        example:
+        exists /foo
+        ZnodeStat(czxid=101, mzxid=102, ctime=1382820644375, mtime=1382820693801, version=1, cversion=0, aversion=0, ephemeralOwner=0, dataLength=6, numChildren=0, pzxid=101)
+
+        # sets a watch
+        exists /foo true
+
+        # trigger the watch
+        rm /foo
+        WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
+        """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         stat = self._zk.exists(params.path, **kwargs)
         print(stat)
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_exists(self):
-        print("""
-checks if path exists and returns the stat for the znode. a watch can be set.
-
-example:
-  exists /foo
-  ZnodeStat(czxid=101, mzxid=102, ctime=1382820644375, mtime=1382820693801, version=1, cversion=0, aversion=0, ephemeralOwner=0, dataLength=6, numChildren=0, pzxid=101)
-
-  # sets a watch
-  exists /foo true
-
-  # trigger the watch
-  rm /foo
-  WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
-""")
 
     def watcher(self, watched_event):
         print((str(watched_event)))
@@ -427,6 +396,32 @@ example:
                    BooleanOptional("recursive"))
     @check_path_absent
     def do_create(self, params):
+        """
+        creates a znode in a given path. it can also be ephemeral and/or sequential. it can also be created recursively.
+
+        example:
+        create /foo 'bar'
+
+        # create an ephemeral znode
+        create /foo1 '' true
+
+        # create an ephemeral|sequential znode
+        create /foo1 '' true true
+
+        # recursively create a path
+        create /very/long/path/here '' false false true
+
+        # check the new subtree
+        tree
+        .
+        ├── zookeeper
+        │   ├── config
+        │   ├── quota
+        ├── very
+        │   ├── long
+        │   │   ├── path
+        │   │   │   ├── here
+        """
         self._zk.create(params.path,
                         params.value,
                         acl=None,
@@ -437,50 +432,20 @@ example:
     def complete_create(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
-    def help_create(self):
-        print("""
-creates a znode in a given path. it can also be ephemeral and/or sequential. it can also be created recursively.
-
-example:
-  create /foo 'bar'
-
-  # create an ephemeral znode
-  create /foo1 '' true
-
-  # create an ephemeral|sequential znode
-  create /foo1 '' true true
-
-  # recursively create a path
-  create /very/long/path/here '' false false true
-
-  # check the new subtree
-  tree
-  .
-  ├── zookeeper
-  │   ├── config
-  │   ├── quota
-  ├── very
-  │   ├── long
-  │   │   ├── path
-  │   │   │   ├── here
-""")
-
     @connected
     @ensure_params(Required("path"), Required("value"))
     @check_path_exists
     def do_set(self, params):
+        """
+        sets the value for a znode.
+
+        example:
+        set /foo 'bar'
+        """
         self._zk.set(params.path, params.value)
 
     def complete_set(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_set(self):
-        print("""
-sets the value for a znode.
-
-example:
-  set /foo 'bar'
-""")
 
     @connected
     @ensure_params(Required("path"))
@@ -495,14 +460,18 @@ example:
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
-    @ensure_params(Required("path"))
-    @check_path_exists
-    def do_rmr(self, params):
-        self._zk.delete(params.path, recursive=True)
-
-    @connected
     @ensure_params()
     def do_session_info(self, params):
+        """
+        shows information about the current session (session id, timeout, etc.)
+
+        example:
+        state=CONNECTED
+        xid=4
+        last_zxid=11
+        timeout=10000
+        server=('127.0.0.1', 2181)
+        """
         print(
 """state=%s
 xid=%d
@@ -513,18 +482,6 @@ server=%s""" % (self._zk.state,
                 self._zk.last_zxid,
                 self._zk._session_timeout,
                 self._zk._connection._socket.getpeername()))
-
-    def help_session_info(self):
-        print("""
-shows information about the current session (session id, timeout, etc.)
-
-example:
-  state=CONNECTED
-  xid=4
-  last_zxid=11
-  timeout=10000
-  server=('127.0.0.1', 2181)
-""")
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
@@ -550,16 +507,20 @@ example:
         except AugumentedClient.CmdFailed as ex:
             print(ex)
 
+    @connected
+    @ensure_params(Required("path"))
+    @check_path_exists
+    def do_rmr(self, params):
+        """
+        recursively deletes a path.
+
+        example:
+        rmr /foo
+        """
+        self._zk.delete(params.path, recursive=True)
+
     def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def help_rmr(self):
-        print("""
-recursively deletes a path.
-
-example:
-  rmr /foo
-""")
 
     @connected
     @ensure_params(Required("path"))
@@ -569,28 +530,23 @@ example:
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
+        """
+        connects to a host from a list of hosts given.
+
+        example:
+        connect host1:2181,host2:2181
+        """
+
+        # TODO: we should offer autocomplete based on prev hosts.
         self._connect(params.hosts.split(","))
-
-    def help_connect(self):
-        print("""
-connects to a host from a list of hosts given.
-
-example:
-  connect host1:2181,host2:2181
-""")
 
     @connected
     def do_disconnect(self, args):
+        """
+        disconnects from the currently connected host.
+        """
         self._disconnect()
         self.update_curdir("/")
-
-    def help_disconnect(self):
-        print("""
-disconnects from the currently connected host.
-
-example:
-  disconnect
-""")
 
     @connected
     def do_pwd(self, args):
