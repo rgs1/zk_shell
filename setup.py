@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def readme():
@@ -22,7 +22,7 @@ setup(name='zk_shell',
       author='Raul Gutierrez Segales',
       author_email='rgs@itevenworks.net',
       license='Apache',
-      packages=['zk_shell'],
+      packages=find_packages(),
       scripts=['bin/zk-shell'],
       install_requires=[
           'kazoo',
