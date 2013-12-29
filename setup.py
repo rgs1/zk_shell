@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='zk_shell',
-      version='0.9.11',
+      version='0.92',
       description='A Python - Kazoo based - shell for ZooKeeper',
       long_description=readme(),
       classifiers=[
