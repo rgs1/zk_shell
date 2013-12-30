@@ -37,6 +37,10 @@ def zk_client(host, username, password):
     return client
 
 
+def url_join(url_root, child_path):
+    return "%s/%s" % (url_root.rstrip("/"), child_path)
+
+
 class Netloc(namedtuple("Netloc", "username password host")):
     @classmethod
     def from_string(cls, netloc_string):
@@ -152,6 +156,45 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
     def children_of(self, async):
         raise NotImplementedError("children_of must be implemented")
+
+    def copy(self, dst, recursive, async, verbose):
+        # basic sanity check
+        if recursive and self.scheme == "zk" and dst.scheme == "file":
+            raise CopyError("Recursive copy from zk to fs isn't supported")
+
+        start = time.time()
+
+        src_url = self.url
+        dst_url = dst.url
+
+        with self:
+            with dst:
+                self.do_copy(dst, async, verbose)
+                if recursive:
+                    for c in self.children_of(async):
+                        self.set_url(url_join(src_url, c))
+                        dst.set_url(url_join(dst_url, c))
+                        self.do_copy(dst, async, verbose)
+
+                    # reset to base urls
+                    self.set_url(src_url)
+                    dst.set_url(dst_url)
+
+        end = time.time()
+
+        print("Copying took %.2f secs" % (round(end - start, 2)))
+
+    def do_copy(self, dst, async=False, verbose=False):
+        if verbose:
+            if async:
+                print("Copying (asynchronously) from %s to %s" % (src.url, dst.url))
+            else:
+                print("Copying from %s to %s" % (src.url, dst.url))
+
+        try:
+            dst.write_path(self.read_path())
+        except Exception as ex:
+            raise CopyError("Failed to copy: %s" % (str(ex)))
 
 
 class ZKProxy(Proxy):
@@ -347,26 +390,6 @@ class JSONProxy(Proxy):
         return list(map(lambda c: c[offs:], list(filter(good, self._tree.keys()))))
 
 
-def do_copy(src, dst, async=False, verbose=False):
-    if verbose:
-        if async:
-            print("Copying (asynchronously) from %s to %s" % (src.url, dst.url))
-        else:
-            print("Copying from %s to %s" % (src.url, dst.url))
-
-    try:
-        dst.write_path(src.read_path())
-    except Exception as ex:
-        raise CopyError("Failed to copy: %s" % (str(ex)))
-
-
-def url_join(url_root, child_path):
-    if url_root.endswith("/"):
-        return "%s%s" % (url_root, child_path)
-    else:
-        return "%s/%s" % (url_root, child_path)
-
-
 def copy(src_url, dst_url, recursive=False, overwrite=False, async=False, verbose=False):
     """
        src and dst can be any of:
@@ -383,22 +406,4 @@ def copy(src_url, dst_url, recursive=False, overwrite=False, async=False, verbos
     src = Proxy.from_string(src_url, True)
     dst = Proxy.from_string(dst_url, None if overwrite else False)
 
-    # basic sanity check
-    if recursive and src.scheme == "zk" and dst.scheme == "file":
-        raise CopyError("Recursive copy from zk to fs isn't supported")
-
-    start = time.time()
-
-    with src:
-        with dst:
-            do_copy(src, dst, async, verbose)
-            if recursive:
-                children = src.children_of(async)
-                for c in children:
-                    src.set_url(url_join(src_url, c))
-                    dst.set_url(url_join(dst_url, c))
-                    do_copy(src, dst, async, verbose)
-
-    end = time.time()
-
-    print("Copying took %.2f secs" % (round(end - start, 2)))
+    src.copy(dst, recursive, async, verbose)
