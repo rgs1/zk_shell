@@ -488,7 +488,7 @@ server=%s""" % (self._zk.state,
     def do_mntr(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.mntr(host))
+            print(self._zk.mntr(host), file=self._output)
         except AugumentedClient.CmdFailed as ex:
             print(ex)
 
@@ -496,7 +496,7 @@ server=%s""" % (self._zk.state,
     def do_cons(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.cons(host))
+            print(self._zk.cons(host), file=self._output)
         except AugumentedClient.CmdFailed as ex:
             print(ex)
 
@@ -504,7 +504,7 @@ server=%s""" % (self._zk.state,
     def do_dump(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.dump(host))
+            print(self._zk.dump(host), file=self._output)
         except AugumentedClient.CmdFailed as ex:
             print(ex)
 

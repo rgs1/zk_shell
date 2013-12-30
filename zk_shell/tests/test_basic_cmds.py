@@ -76,3 +76,15 @@ class BasicCmdsTestCase(unittest.TestCase):
 ├── one
 """
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_mntr(self):
+        self.shell.onecmd("mntr")
+        self.assertIn("zk_server_state", self.output.getvalue())
+
+    def test_cons(self):
+        self.shell.onecmd("cons")
+        self.assertIn("127.0.0.1", self.output.getvalue())
+
+    def test_dump(self):
+        self.shell.onecmd("dump")
+        self.assertIn("127.0.0.1", self.output.getvalue())

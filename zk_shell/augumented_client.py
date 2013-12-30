@@ -101,9 +101,10 @@ class AugumentedClient(KazooClient):
         for r in recs:
             try:
                 with connected_socket(r[4]) as s:
-                    s.send("%s\n" % (cmd))
+                    buf = "%s\n" % (cmd)
+                    s.send(buf.encode())
                     while True:
-                        b = s.recv(1024)
+                        b = s.recv(1024).decode("utf-8")
                         if b == "":
                             break
                         replies.append(b)
