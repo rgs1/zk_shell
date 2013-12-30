@@ -135,3 +135,16 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("create %s 'HELLO' false false true" % (path))
         self.shell.onecmd("igrep %s hello true" % (self.tests_path))
         self.assertEqual("%s: HELLO\n" % (path), self.output.getvalue())
+
+    def test_cp_zk2zk(self):
+        src_path = "%s/src" % (self.tests_path)
+        dst_path = "%s/dst" % (self.tests_path)
+        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
+        self.shell.onecmd("cp zk://%s%s zk://%s%s true true" % (
+            self.zk_host, src_path, self.zk_host, dst_path))
+        self.shell.onecmd("tree %s" % (dst_path))
+        expected_output = """.
+├── nested
+│   ├── znode
+"""
+        self.assertEqual(expected_output, self.output.getvalue())
