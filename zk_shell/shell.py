@@ -139,7 +139,7 @@ class Shell(AugumentedCmd):
         get_acls /zookeeper
         [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         """
-        print(self._zk.get_acls(params.path)[0])
+        print(self._zk.get_acls(params.path)[0], file=self._output)
 
     def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

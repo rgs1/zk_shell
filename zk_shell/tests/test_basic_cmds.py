@@ -97,3 +97,11 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
         self.shell.onecmd("du %s/one" % (self.tests_path))
         self.assertEqual("5\n", self.output.getvalue())
+
+    def test_set_get_acls(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("set_acls %s/one world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa" % (self.tests_path))
+        self.shell.onecmd("get_acls %s/one" % (self.tests_path))
+        expected_output = """[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]
+"""
+        self.assertEqual(expected_output, self.output.getvalue())
