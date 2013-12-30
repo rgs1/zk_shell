@@ -241,7 +241,7 @@ class Shell(AugumentedCmd):
     @ensure_params(Optional("path"))
     @check_path_exists
     def do_du(self, params):
-        print(pretty_bytes(self._zk.du(params.path)))
+        print(pretty_bytes(self._zk.du(params.path)), file=self._output)
 
     @connected
     @ensure_params(Optional("path"), Required("match"))

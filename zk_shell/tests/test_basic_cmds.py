@@ -88,3 +88,12 @@ class BasicCmdsTestCase(unittest.TestCase):
     def test_dump(self):
         self.shell.onecmd("dump")
         self.assertIn("127.0.0.1", self.output.getvalue())
+
+    def test_add_auth(self):
+        self.shell.onecmd("add_auth digest super:secret")
+        self.assertEqual("", self.output.getvalue())
+
+    def test_du(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("du %s/one" % (self.tests_path))
+        self.assertEqual("5\n", self.output.getvalue())
