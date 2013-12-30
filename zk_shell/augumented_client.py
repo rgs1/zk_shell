@@ -50,6 +50,7 @@ class AugumentedClient(KazooClient):
         for c in self.get_children(path):
             full_path = os.path.join(path, c)
             value, _ = self.get(full_path)
+            value = value.decode("utf-8")
 
             if show_matches:
                 for line in value.split("\n"):

@@ -48,6 +48,12 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("get %s/one" % (self.tests_path))
         self.assertEqual("hello\n", self.output.getvalue())
 
+    def test_create_recursive(self):
+        path = "%s/one/very/long/path" % (self.tests_path)
+        self.shell.onecmd("create %s 'hello' false false true" % (path))
+        self.shell.onecmd("get %s" % (path))
+        self.assertEqual("hello\n", self.output.getvalue())
+
     def test_set_get(self):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
         self.shell.onecmd("set %s/one 'bye'" % (self.tests_path))
@@ -105,3 +111,27 @@ class BasicCmdsTestCase(unittest.TestCase):
         expected_output = """[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]
 """
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_find(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("create %s/two 'goodbye'" % (self.tests_path))
+        self.shell.onecmd("find %s/ one" % (self.tests_path))
+        self.assertEqual("/tests/one\n", self.output.getvalue())
+
+    def test_ifind(self):
+        self.shell.onecmd("create %s/ONE 'hello'" % (self.tests_path))
+        self.shell.onecmd("create %s/two 'goodbye'" % (self.tests_path))
+        self.shell.onecmd("ifind %s/ one" % (self.tests_path))
+        self.assertEqual("/tests/ONE\n", self.output.getvalue())
+
+    def test_grep(self):
+        path = "%s/semi/long/path" % (self.tests_path)
+        self.shell.onecmd("create %s 'hello' false false true" % (path))
+        self.shell.onecmd("grep %s hello" % (self.tests_path))
+        self.assertEqual("%s\n" % (path), self.output.getvalue())
+
+    def test_igrep(self):
+        path = "%s/semi/long/path" % (self.tests_path)
+        self.shell.onecmd("create %s 'HELLO' false false true" % (path))
+        self.shell.onecmd("igrep %s hello true" % (self.tests_path))
+        self.assertEqual("%s: HELLO\n" % (path), self.output.getvalue())

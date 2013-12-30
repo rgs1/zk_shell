@@ -260,7 +260,7 @@ class Shell(AugumentedCmd):
                       params.match,
                       True,
                       0,
-                      lambda p: print(p))
+                      lambda p: print(p, file=self._output))
 
     def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -282,7 +282,7 @@ class Shell(AugumentedCmd):
                       params.match,
                       True,
                       re.IGNORECASE,
-                      lambda p: print(p))
+                      lambda p: print(p, file=self._output))
 
     def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -298,11 +298,11 @@ class Shell(AugumentedCmd):
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         """
-        self._.zk.grep(params.path,
-                       params.content,
-                       params.show_matches,
-                       flags=0,
-                       callback=lambda p: print(p))
+        self._zk.grep(params.path,
+                      params.content,
+                      params.show_matches,
+                      flags=0,
+                      callback=lambda p: print(p, file=self._output))
 
     def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -322,7 +322,7 @@ class Shell(AugumentedCmd):
                       params.content,
                       params.show_matches,
                       flags=re.IGNORECASE,
-                      callback=lambda p: print(p))
+                      callback=lambda p: print(p, file=self._output))
 
     def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
