@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import json
 import os
+import tempfile
+import shutil
 
 try:
     from StringIO import StringIO
@@ -34,9 +37,15 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.output = StringIO()
         self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False)
 
+        # Create an empty test dir (needed for some tests)
+        self.temp_dir = tempfile.mkdtemp()
+
     def tearDown(self):
         self.output = None
         self.shell = None
+
+        if os.path.isdir(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_create_ls(self):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
@@ -148,3 +157,19 @@ class BasicCmdsTestCase(unittest.TestCase):
 │   ├── znode
 """
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_cp_zk2json(self):
+        src_path = "%s/src" % (self.tests_path)
+        json_file = "%s/backup.json" % (self.temp_dir)
+        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
+            self.zk_host, src_path, json_file.replace("/", "!")))
+
+        with open(json_file, "r") as f:
+            copied_znodes = json.load(f)
+            copied_paths = copied_znodes.keys()
+
+        self.assertIn("/backup", copied_paths)
+        self.assertIn("/backup/nested", copied_paths)
+        self.assertIn("/backup/nested/znode", copied_paths)
+        self.assertEqual("HELLO", copied_znodes["/backup/nested/znode"]["content"])

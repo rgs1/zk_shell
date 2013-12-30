@@ -335,8 +335,8 @@ class JSONProxy(Proxy):
     def read_path(self):
         return PathValue(self._tree[self.path]["content"].encode("utf-8"))
 
-    def write_path(self, content):
-        self._tree[self.path]["content"] = content
+    def write_path(self, path_value):
+        self._tree[self.path]["content"] = path_value.value.decode("utf-8")
         self._tree[self.path]["acls"] = []  # not implemented (yet)
         self._dirty = True
 
