@@ -173,3 +173,21 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertIn("/backup/nested", copied_paths)
         self.assertIn("/backup/nested/znode", copied_paths)
         self.assertEqual("HELLO", copied_znodes["/backup/nested/znode"]["content"])
+
+    def test_cp_json2zk(self):
+        src_path = "%s/src" % (self.tests_path)
+        json_file = "%s/backup.json" % (self.temp_dir)
+        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
+            self.zk_host, src_path, json_file.replace("/", "!")))
+        self.shell.onecmd("cp json://%s/backup zk://%s/%s/from-json true true" % (
+            json_file.replace("/", "!"), self.zk_host, self.tests_path))
+        self.shell.onecmd("tree %s/from-json" % (self.tests_path))
+        self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
+
+        expected_output = """.
+├── nested
+│   ├── znode
+HELLO
+"""
+        self.assertEqual(expected_output, self.output.getvalue())
