@@ -36,6 +36,7 @@ import sys
 import time
 
 from kazoo.exceptions import NoAuthError, NoNodeError, NotEmptyError
+from kazoo.handlers.threading import TimeoutError
 
 from .acl import ACLReader
 from .augumented_client import AugumentedClient
@@ -70,12 +71,12 @@ class Shell(AugumentedCmd):
     def connected(f):
         def wrapped(self, args):
             if not self.connected:
-                print("Not connected.")
+                print("Not connected.", file=self._output)
             else:
                 try:
                     return f(self, args)
                 except NoAuthError as ex:
-                    print("Not authenticated.")
+                    print("Not authenticated.", file=self._output)
         wrapped.__doc__ = f.__doc__
         return wrapped
 
@@ -482,7 +483,7 @@ server=%s""" % (self._zk.state,
                 self._zk._connection._xid,
                 self._zk.last_zxid,
                 self._zk._session_timeout,
-                self._zk._connection._socket.getpeername()))
+                self._zk._connection._socket.getpeername()), file=self._output)
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
@@ -563,19 +564,19 @@ server=%s""" % (self._zk.state,
         self._exit(False)
 
     def _disconnect(self):
-        if self._zk: return
-
-        try: self._zk.stop()
-        except Exception: pass
+        if self._zk:
+            self._zk.stop()
+            self._zk = None
+        self.connected = False
 
     def _connect(self, hosts):
         self._disconnect()
-        self._zk = AugumentedClient(",".join(hosts),
-                                    read_only=self._read_only)
+        self._zk = AugumentedClient(",".join(hosts), read_only=self._read_only)
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
-        except Exception as ex: print("Failed to connect: %s" % (ex))
+        except TimeoutError as ex:
+            print("Failed to connect: %s" % (ex), file=self._output)
 
         self.update_curdir("/")
 
