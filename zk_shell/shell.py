@@ -50,7 +50,7 @@ from .augumented_cmd import (
     Optional,
     Required,
 )
-from .copy import copy, CopyError
+from .copy import CopyError, Proxy
 from .watch_manager import get_watch_manager
 from .util import pretty_bytes, to_bool
 
@@ -197,16 +197,51 @@ class Shell(AugumentedCmd):
     def do_cp(self, params):
         """
         copy from/to local/remote or remote/remote paths.
-        example:
+
+        src and dst can be any of:
+
+        /some/path (in the connected server)
+        file://<path>
+        zk://[user:passwd@]host/<path>
+        json://!some!path!backup.json/some/path
+
+        with a few restrictions. bare in mind the semantic differences
+        that znodes have with filesystem directories - so recursive copying
+        from znodes to an fs could lose data, but to a JSON file it would
+        work just fine.
+
+        examples:
+        cp /some/znode /backup/copy-znode  # local
         cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose>
+        cp /some/path json://!home!user!backup.json/ true true
         """
+
+        # default to zk://connected_host, if connected
+        src_connected_zk = dst_connected_zk = False
+        if self.connected:
+            zk_url = self._zk.zk_url()
+
+            # if these are local paths, make them absolute paths
+            if not re.match("^\w+://", params.src):
+                params.src = "%s%s" % (zk_url, self.abspath(params.src))
+                src_connected_zk = True
+
+            if not re.match("^\w+://", params.dst):
+                params.dst = "%s%s" % (zk_url, self.abspath(params.dst))
+                dst_connected_zk = True
+
         try:
-            copy(params.src,
-                 params.dst,
-                 params.recursive,
-                 params.overwrite,
-                 params.async,
-                 params.verbose)
+            src = Proxy.from_string(params.src, True)
+            if src_connected_zk:
+                src.need_client = False
+                src.client = self._zk
+
+            dst = Proxy.from_string(params.dst, None if params.overwrite else False)
+            if dst_connected_zk:
+                dst.need_client = False
+                dst.client = self._zk
+
+            src.copy(dst, params.recursive, params.async, params.verbose)
         except CopyError as ex:
             print(str(ex))
 

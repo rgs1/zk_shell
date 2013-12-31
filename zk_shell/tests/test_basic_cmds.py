@@ -191,3 +191,14 @@ class BasicCmdsTestCase(unittest.TestCase):
 HELLO
 """
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_cp_local(self):
+        self.shell.onecmd("create %s/very/nested/znode 'HELLO' false false true" % (self.tests_path))
+        self.shell.onecmd("cp %s/very %s/backup true true" % (
+            self.tests_path, self.tests_path))
+        self.shell.onecmd("tree %s/backup" % (self.tests_path))
+        expected_output = """.
+├── nested
+│   ├── znode
+"""
+        self.assertEqual(expected_output, self.output.getvalue())

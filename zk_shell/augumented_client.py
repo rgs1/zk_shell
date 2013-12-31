@@ -125,3 +125,11 @@ class AugumentedClient(KazooClient):
             raise ValueError("Not connected and no host given")
 
         return self._connection._socket.getpeername()
+
+    def zk_url(self):
+        """ returns `zk://host:port` for the connected host:port """
+        if self.state != "CONNECTED":
+            raise ValueError("Not connected")
+
+        host, port = self._connection._socket.getpeername()
+        return "zk://%s:%d" % (host, port)

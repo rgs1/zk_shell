@@ -133,10 +133,6 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
     @classmethod
     def parse(cls, url_string):
-        """ default to file:// """
-        if not re.match("^\w+://", url_string):
-            url_string = "file://%s" % (url_string)
-
         return urlparse(url_string)
 
     def __enter__(self):
@@ -214,19 +210,25 @@ class ZKProxy(Proxy):
     def __init__(self, parse_result, exists):
         super(ZKProxy, self).__init__(parse_result, exists)
         self.client = None
+        self.need_client = True  # whether we build a client or one is provided
 
     def connect(self):
-        self.client = zk_client(self.host, self.username, self.password)
+        if self.need_client:
+            self.client = zk_client(self.host, self.username, self.password)
 
-        if self.exists is not None:
-            self.check_path()
+    def disconnect(self):
+        if self.need_client:
+            if self.client:
+                self.client.stop()
 
     def __enter__(self):
         self.connect()
 
+        if self.exists is not None:
+            self.check_path()
+
     def __exit__(self, type, value, traceback):
-        if self.client:
-            self.client.stop()
+        self.disconnect()
 
     def check_path(self):
         retval = True if self.client.exists(self.path) else False
@@ -388,22 +390,3 @@ class JSONProxy(Proxy):
         def good(k):
             return k != self.path and k.startswith(self.path)
         return list(map(lambda c: c[offs:], list(filter(good, self._tree.keys()))))
-
-
-def copy(src_url, dst_url, recursive=False, overwrite=False, async=False, verbose=False):
-    """
-       src and dst can be any of:
-
-       file://<path>
-       zk://[user:passwd@]host/<path>
-       json://!some!path!backup.json/some/path
-
-       with a few restrictions (i.e.: bare in mind the semantic differences
-       that znodes have with filesystem directories - so recursive copying
-       from znodes to an fs could lose data, but to a JSON file it would
-       work just fine.
-    """
-    src = Proxy.from_string(src_url, True)
-    dst = Proxy.from_string(dst_url, None if overwrite else False)
-
-    src.copy(dst, recursive, async, verbose)
