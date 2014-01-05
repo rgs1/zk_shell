@@ -183,9 +183,9 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def do_copy(self, dst, async=False, verbose=False):
         if verbose:
             if async:
-                print("Copying (asynchronously) from %s to %s" % (src.url, dst.url))
+                print("Copying (asynchronously) from %s to %s" % (self.url, dst.url))
             else:
-                print("Copying from %s to %s" % (src.url, dst.url))
+                print("Copying from %s to %s" % (self.url, dst.url))
 
         try:
             dst.write_path(self.read_path())
