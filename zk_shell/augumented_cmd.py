@@ -125,16 +125,13 @@ class AugumentedCmd(cmd.Cmd):
         sys.exit(0)
 
     def abspath(self, path):
-        if path != "/": path = path.rstrip("/")
-
         if path == "..":
-            return os.path.dirname(self.curdir)
-        elif path.startswith("/"):
-            return path
-        elif self.curdir == "/":
-            return "/%s" % (path)
-        else:
-            return "%s/%s" % (self.curdir, path)
+            path = os.path.dirname(self.curdir)
+
+        if not path.startswith("/"):
+            path = "%s/%s" % (self.curdir.rstrip("/"), path.rstrip("/"))
+
+        return os.path.normpath(path)
 
     def update_curdir(self, dirpath):
         if dirpath == "..":
