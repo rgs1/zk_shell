@@ -245,6 +245,9 @@ class Shell(AugumentedCmd):
         except CopyError as ex:
             print(str(ex))
 
+    def complete_cp(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        return self._complete_path(cmd_param_text, full_cmd)
+
     @connected
     @interruptible
     @ensure_params(Optional("path"), IntegerOptional("max_depth"))
