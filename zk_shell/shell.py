@@ -34,6 +34,7 @@ import re
 import shlex
 import sys
 import time
+import zlib
 
 from kazoo.exceptions import NoAuthError, NoNodeError, NotEmptyError
 from kazoo.handlers.threading import TimeoutError
@@ -395,14 +396,21 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
-        print(value.decode(encoding="utf-8"), file=self._output)
+        try:
+            value = value.decode(encoding="utf-8")
+        except UnicodeDecodeError:
+            # maybe it's compressed?
+            try:
+                value = zlib.decompress(value)
+            except:
+                pass
+        print(value, file=self._output)
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
     @ensure_params(Required("path"), Optional("watch"))
-    @check_path_exists
     def do_exists(self, params):
         """
         checks if path exists and returns the stat for the znode. a watch can be set.
@@ -420,7 +428,10 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         stat = self._zk.exists(params.path, **kwargs)
-        print(stat, file=self._output)
+        if stat:
+            print(stat, file=self._output)
+        else:
+            print("Path %s doesn't exist" % (params.path), file=self._output)
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
