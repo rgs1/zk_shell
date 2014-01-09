@@ -125,7 +125,6 @@ class BasicCmdsTestCase(unittest.TestCase):
             expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
         else:
             expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
-        print(self.output.getvalue())
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_find(self):

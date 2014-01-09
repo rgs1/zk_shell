@@ -64,9 +64,7 @@ class AugumentedClient(KazooClient):
         """
         Handle encoding (Py3k)
         """
-        print("Got value: " + str(value))
         value = to_bytes(value)
-        print("Will save: " + str(value))
         super(AugumentedClient, self).create(path,
                                              value,
                                              acl,
