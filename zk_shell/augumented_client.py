@@ -5,6 +5,8 @@ from contextlib import contextmanager
 import os
 import re
 import socket
+import sre_constants
+import zlib
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoNodeError
@@ -17,8 +19,60 @@ def connected_socket(address):
     s.close()
 
 
+def to_bytes(value):
+    vtype = type(value)
+
+    if vtype == bytes:
+        return value
+
+    try:
+        return vtype.encode(value)
+    except UnicodeDecodeError:
+        pass
+    return value
+
+
 class AugumentedClient(KazooClient):
     class CmdFailed(Exception): pass
+
+    def get(self, *args, **kwargs):
+        """
+        Try to figure out what the value is (i.e.: compressed, etc)
+        """
+        value, stat = super(AugumentedClient, self).get(*args, **kwargs)
+
+        try:
+            value = value.decode(encoding="utf-8")
+        except UnicodeDecodeError:
+            # maybe it's compressed?
+            try:
+                value = zlib.decompress(value)
+            except zlib.error:
+                pass
+
+        return (value, stat)
+
+    def set(self, path, value, version=-1):
+        """
+        Handle encoding (Py3k)
+        """
+        value = to_bytes(value)
+        super(AugumentedClient, self).set(path, value, version)
+
+    def create(self, path, value=b"", acl=None, ephemeral=False,
+               sequence=False, makepath=False):
+        """
+        Handle encoding (Py3k)
+        """
+        print("Got value: " + str(value))
+        value = to_bytes(value)
+        print("Will save: " + str(value))
+        super(AugumentedClient, self).create(path,
+                                             value,
+                                             acl,
+                                             ephemeral,
+                                             sequence,
+                                             makepath)
 
     def du(self, path):
         stat = self.exists(path)
@@ -34,33 +88,51 @@ class AugumentedClient(KazooClient):
 
         return total
 
-    def find(self, path, match, check_match, flags, callback):
+    def find(self, path, match, flags, callback):
+        try:
+            match = re.compile(match, flags)
+        except sre_constants.error as ex:
+            print("Bad regexp: %s" % (ex))
+            return
+
+        self.do_find(path, match, True, callback)
+
+    def do_find(self, path, match, check_match, callback):
         for c in self.get_children(path):
             check = check_match
             full_path = os.path.join(path, c)
-            if not check:
-                callback(full_path)
+            if check:
+                if match.search(full_path):
+                    callback(full_path)
+                    check = False
             else:
-                check = not re.search(match, full_path, flags)
-                if not check: callback(full_path)
+                callback(full_path)
 
-            self.find(full_path, match, check, flags, callback)
+            self.do_find(full_path, match, check, callback)
 
     def grep(self, path, content, show_matches, flags, callback):
+        try:
+            match = re.compile(content, flags)
+        except sre_constants.error as ex:
+            print("Bad regexp: %s" % (ex))
+            return
+
+        self.do_grep(path, match, show_matches, callback)
+
+    def do_grep(self, path, match, show_matches, callback):
         for c in self.get_children(path):
             full_path = os.path.join(path, c)
             value, _ = self.get(full_path)
-            value = value.decode("utf-8")
 
             if show_matches:
                 for line in value.split("\n"):
-                    if re.search(content, line, flags):
+                    if match.search(line):
                         callback("%s: %s" % (full_path, line))
             else:
-                if re.search(content, value, flags):
+                if match.search(value):
                     callback(full_path)
 
-            self.grep(full_path, content, show_matches, flags, callback)
+            self.do_grep(full_path, match, show_matches, callback)
 
     def tree(self, path, max_depth, callback):
         self.do_tree(path, max_depth, callback, 0)

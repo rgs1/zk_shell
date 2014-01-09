@@ -34,7 +34,6 @@ import re
 import shlex
 import sys
 import time
-import zlib
 
 from kazoo.exceptions import NoAuthError, NoNodeError, NotEmptyError
 from kazoo.handlers.threading import TimeoutError
@@ -298,7 +297,6 @@ class Shell(AugumentedCmd):
         """
         self._zk.find(params.path,
                       params.match,
-                      True,
                       0,
                       lambda p: print(p, file=self._output))
 
@@ -320,7 +318,6 @@ class Shell(AugumentedCmd):
         """
         self._zk.find(params.path,
                       params.match,
-                      True,
                       re.IGNORECASE,
                       lambda p: print(p, file=self._output))
 
@@ -396,14 +393,6 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
-        try:
-            value = value.decode(encoding="utf-8")
-        except UnicodeDecodeError:
-            # maybe it's compressed?
-            try:
-                value = zlib.decompress(value)
-            except:
-                pass
         print(value, file=self._output)
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -474,7 +463,7 @@ class Shell(AugumentedCmd):
         │   │   │   ├── here
         """
         self._zk.create(params.path,
-                        str.encode(params.value),
+                        params.value,
                         acl=None,
                         ephemeral=params.ephemeral,
                         sequence=params.sequence,
@@ -493,7 +482,7 @@ class Shell(AugumentedCmd):
         example:
         set /foo 'bar'
         """
-        self._zk.set(params.path, str.encode(params.value))
+        self._zk.set(params.path, params.value)
 
     def complete_set(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

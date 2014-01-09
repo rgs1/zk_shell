@@ -4,6 +4,8 @@ import json
 import os
 import tempfile
 import shutil
+import sys
+import zlib
 
 try:
     from StringIO import StringIO
@@ -17,6 +19,9 @@ from kazoo.client import KazooClient
 from zk_shell.shell import Shell
 
 
+PYTHON3 = sys.version_info > (3, )
+
+
 class BasicCmdsTestCase(unittest.TestCase):
     def setUp(self):
         """
@@ -25,14 +30,11 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.tests_path = os.getenv("ZKSHELL_PREFIX_DIR", "/tests")
         self.zk_host = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
 
-        k = KazooClient(self.zk_host, 5)
-        k.start()
-
-        if k.exists(self.tests_path):
-            k.delete(self.tests_path, recursive=True)
-
-        k.create(self.tests_path, str.encode(""))
-        k.stop()
+        self.client = KazooClient(self.zk_host, 5)
+        self.client.start()
+        if self.client.exists(self.tests_path):
+            self.client.delete(self.tests_path, recursive=True)
+        self.client.create(self.tests_path, str.encode(""))
 
         self.output = StringIO()
         self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False)
@@ -46,6 +48,8 @@ class BasicCmdsTestCase(unittest.TestCase):
 
         if os.path.isdir(self.temp_dir):
             shutil.rmtree(self.temp_dir)
+
+        self.client.stop()
 
     def test_create_ls(self):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
@@ -117,8 +121,11 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
         self.shell.onecmd("set_acls %s/one world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa" % (self.tests_path))
         self.shell.onecmd("get_acls %s/one" % (self.tests_path))
-        expected_output = """[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]
-"""
+        if PYTHON3:
+            expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
+        else:
+            expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
+        print(self.output.getvalue())
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_find(self):
@@ -152,10 +159,7 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("cp zk://%s%s zk://%s%s true true" % (
             self.zk_host, src_path, self.zk_host, dst_path))
         self.shell.onecmd("tree %s" % (dst_path))
-        expected_output = """.
-├── nested
-│   ├── znode
-"""
+        expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\n'
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_cp_zk2json(self):
@@ -185,11 +189,7 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("tree %s/from-json" % (self.tests_path))
         self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
 
-        expected_output = """.
-├── nested
-│   ├── znode
-HELLO
-"""
+        expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO\n'
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_cp_local(self):
@@ -197,8 +197,19 @@ HELLO
         self.shell.onecmd("cp %s/very %s/backup true true" % (
             self.tests_path, self.tests_path))
         self.shell.onecmd("tree %s/backup" % (self.tests_path))
-        expected_output = """.
-├── nested
-│   ├── znode
-"""
+        expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\n'
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_get_compressed(self):
+        # ZK Shell doesn't support creating directly from a bytes array so we use a Kazoo client
+        # to create a znode with zlib compressed content.
+        if PYTHON3:
+            compressed = zlib.compress(bytes("some value", "utf-8"))
+        else:
+            compressed = zlib.compress("some value")
+
+        self.client.create("%s/one" % (self.tests_path), compressed)
+
+        self.shell.onecmd("get %s/one" % (self.tests_path))
+        expected_output = "b'some value'\n" if PYTHON3 else "some value\n"
         self.assertEqual(expected_output, self.output.getvalue())
