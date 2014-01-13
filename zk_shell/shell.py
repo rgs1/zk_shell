@@ -121,11 +121,16 @@ class Shell(AugumentedCmd):
         set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
         set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
         """
-        acls = ACLReader.extract(params.acls)
+        try:
+            acls = ACLReader.extract(params.acls)
+        except ACLReader.BadACL as ex:
+            print("Failed to set ACLs: %s." % (ex), file=self._output)
+            return
+
         try:
             self._zk.set_acls(params.path, acls)
         except Exception as ex:
-            print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)))
+            print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)), file=self._output)
 
     def complete_set_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

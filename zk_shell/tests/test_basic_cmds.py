@@ -127,6 +127,12 @@ class BasicCmdsTestCase(unittest.TestCase):
             expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
         self.assertEqual(expected_output, self.output.getvalue())
 
+    def test_set_get_bad_acl(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("set_acls %s/one world:anyone:r username_password:user:user" % (self.tests_path))
+        expected_output = "Failed to set ACLs: Bad ACL: username_password:user:user. Format is scheme:id:perms.\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
     def test_find(self):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
         self.shell.onecmd("create %s/two 'goodbye'" % (self.tests_path))

@@ -38,7 +38,10 @@ class ACLReader:
         admin = True if "a" in cdrwa else False
 
         if scheme == "username_password":
-            username, password = credential.split(":", 1)
+            try:
+                username, password = credential.split(":", 1)
+            except ValueError:
+                raise cls.BadACL("Bad ACL: %s. Format is scheme:id:perms" % (acl))
             return make_digest_acl(username,
                                    password,
                                    read,
