@@ -74,26 +74,22 @@ class WatchManager(object):
             pass
 
     def _watches_stats_watcher(self, watched_event):
-        try:
-            for path, stats in self._watching_paths.items():
-                if not watched_event.path.startswith(path):
-                    continue
-
-                if watched_event.type == EventType.CHILD:
-                    stats.paths[watched_event.path] += 1
-
-                if stats.debug:
-                    print(str(watched_event))
+        for path, stats in self._watching_paths.items():
+            if not watched_event.path.startswith(path):
+                continue
 
             if watched_event.type == EventType.CHILD:
-                try:
-                    self._client.get_children(watched_event.path,
-                                              self._watches_stats_watcher)
-                except NoNodeError:
-                    pass
+                stats.paths[watched_event.path] += 1
 
-        except Exception as ex:
-            print(str(ex))
+            if stats.debug:
+                print(str(watched_event))
+
+        if watched_event.type == EventType.CHILD:
+            try:
+                self._client.get_children(watched_event.path,
+                                          self._watches_stats_watcher)
+            except NoNodeError:
+                pass
 
 
 _wm = None

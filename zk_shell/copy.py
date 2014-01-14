@@ -187,10 +187,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
             else:
                 print("Copying from %s to %s" % (self.url, dst.url))
 
-        try:
-            dst.write_path(self.read_path())
-        except Exception as ex:
-            raise CopyError("Failed to copy: %s" % (str(ex)))
+        dst.write_path(self.read_path())
 
 
 class ZKProxy(Proxy):

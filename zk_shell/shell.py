@@ -35,7 +35,14 @@ import shlex
 import sys
 import time
 
-from kazoo.exceptions import NoAuthError, NoNodeError, NotEmptyError
+from kazoo.exceptions import (
+    BadVersionError,
+    InvalidACLError,
+    NoAuthError,
+    NoNodeError,
+    NotEmptyError,
+    ZookeeperError,
+)
 from kazoo.handlers.threading import TimeoutError
 
 from .acl import ACLReader
@@ -129,7 +136,7 @@ class Shell(AugumentedCmd):
 
         try:
             self._zk.set_acls(params.path, acls)
-        except Exception as ex:
+        except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
             print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)), file=self._output)
 
     def complete_set_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
@@ -248,7 +255,7 @@ class Shell(AugumentedCmd):
 
             src.copy(dst, params.recursive, params.async, params.verbose)
         except CopyError as ex:
-            print(str(ex))
+            print(str(ex), file=self._output)
 
     def complete_cp(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

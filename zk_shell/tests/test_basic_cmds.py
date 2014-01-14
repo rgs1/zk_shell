@@ -183,6 +183,14 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertIn("/backup/nested/znode", copied_paths)
         self.assertEqual("HELLO", copied_znodes["/backup/nested/znode"]["content"])
 
+    def test_cp_zk2json_bad(self):
+        src_path = "%s/src" % (self.tests_path)
+        json_file = "%s/backup.json" % (self.temp_dir)
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
+            self.zk_host, src_path, json_file.replace("/", "!")))
+        expected_output = "znode /tests/src in localhost:2181 doesn't exist\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
     def test_cp_json2zk(self):
         src_path = "%s/src" % (self.tests_path)
         json_file = "%s/backup.json" % (self.temp_dir)
@@ -197,12 +205,25 @@ class BasicCmdsTestCase(unittest.TestCase):
         expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO\n'
         self.assertEqual(expected_output, self.output.getvalue())
 
+    def test_cp_json2zk_bad(self):
+        json_file = "%s/backup.json" % (self.temp_dir)
+        self.shell.onecmd("cp json://%s/backup zk://%s/%s/from-json true true" % (
+            json_file.replace("/", "!"), self.zk_host, self.tests_path))
+        expected_output = "Path /backup doesn't exist\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
     def test_cp_local(self):
         self.shell.onecmd("create %s/very/nested/znode 'HELLO' false false true" % (self.tests_path))
         self.shell.onecmd("cp %s/very %s/backup true true" % (
             self.tests_path, self.tests_path))
         self.shell.onecmd("tree %s/backup" % (self.tests_path))
         expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\n'
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_cp_local_bad_path(self):
+        self.shell.onecmd("cp %s/doesnt/exist/path %s/some/other/nonexistent/path true true" % (
+            self.tests_path, self.tests_path))
+        expected_output = "znode /tests/doesnt/exist/path in 127.0.0.1:2181 doesn't exist\n"
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_get_compressed(self):
