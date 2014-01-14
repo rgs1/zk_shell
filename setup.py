@@ -1,13 +1,31 @@
+import os
 from setuptools import find_packages, setup
+import sys
+
+
+PYTHON3 = sys.version_info > (3, )
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def readme():
-    with open('README.md') as f:
+    with open(os.path.join(HERE, 'README.md')) as f:
         return f.read()
 
 
+def get_version():
+    with open(os.path.join(HERE, "zk_shell/__init__.py"), "r") as f:
+        content = "".join(f.readlines())
+    env = {}
+    if PYTHON3:
+        exec(content, env, env)
+    else:
+        compiled = compile(content, "get_version", "single")
+        eval(compiled, env, env)
+    return env["__version__"]
+
+
 setup(name='zk_shell',
-      version='0.93.0',
+      version=get_version(),
       description='A Python - Kazoo based - shell for ZooKeeper',
       long_description=readme(),
       classifiers=[

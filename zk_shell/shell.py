@@ -45,6 +45,7 @@ from kazoo.exceptions import (
 )
 from kazoo.handlers.threading import TimeoutError
 
+from . import __version__
 from .acl import ACLReader
 from .augumented_client import AugumentedClient
 from .augumented_cmd import (
@@ -71,6 +72,7 @@ class Shell(AugumentedCmd):
         self._zk = None
         self._read_only = False
         self.connected = False
+        self.intro = "Welcome to zk-shell (%s)" % (__version__)
 
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")

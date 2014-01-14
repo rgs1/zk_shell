@@ -117,7 +117,7 @@ class AugumentedCmd(cmd.Cmd):
     def emptyline(self): pass
 
     def run(self):
-        self.cmdloop("")
+        self.cmdloop()
 
     def _exit(self, newline=True):
         if newline:
