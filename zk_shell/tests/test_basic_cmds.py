@@ -139,9 +139,9 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("set_acls %s/one world:anyone:r digest:%s:cdrwa" % (self.tests_path, self.auth_digest))
         self.shell.onecmd("get_acls %s/one" % (self.tests_path))
         if PYTHON3:
-            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest)
+            expected_output = "/tests/one: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest)
         else:
-            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest)
+            expected_output = "/tests/one: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest)
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_set_get_acls_recursive(self):
@@ -151,10 +151,9 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.shell.onecmd("set_acls %s/one world:anyone:r digest:%s:cdrwa" % (self.tests_path, self.auth_digest))
         self.shell.onecmd("get_acls %s/one 0" % (self.tests_path))
         if PYTHON3:
-            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n/tests/one/two: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest, self.auth_digest)
+            expected_output = "/tests/one: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n/tests/one/two: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest, self.auth_digest)
         else:
-            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n/tests/one/two: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest, self.auth_digest)
-
+            expected_output = "/tests/one: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n/tests/one/two: ['WORLD_READ', ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest, self.auth_digest)
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_set_get_bad_acl(self):

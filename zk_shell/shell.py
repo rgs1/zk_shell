@@ -44,6 +44,7 @@ from kazoo.exceptions import (
     ZookeeperError,
 )
 from kazoo.handlers.threading import TimeoutError
+from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 
 from .acl import ACLReader
 from .augumented_client import AugumentedClient
@@ -163,7 +164,16 @@ class Shell(AugumentedCmd):
         /zookeeper/config: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         /zookeeper/quota: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         """
+        def replace(l, oldv, newv):
+            try:
+                l.remove(oldv)
+                l.insert(0, newv)
+            except ValueError:
+                pass
+
         for p, acls in self._zk.get_acls_recursive(params.path, params.depth):
+            replace(acls, READ_ACL_UNSAFE[0], "WORLD_READ")
+            replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
             print("%s: %s" % (p, acls), file=self._output)
 
     def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
