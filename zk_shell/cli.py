@@ -4,6 +4,7 @@ import argparse
 import sys
 
 
+from . import __version__
 from .shell import Shell
 
 try:
@@ -20,13 +21,16 @@ class CLI(object):
         if params.run_once != "":
             sys.exit(0 if s.onecmd(params.run_once) == None else 1)
 
+        intro = "Welcome to zk-shell (%s)" % (__version__)
+        first = True
         while True:
             try:
-                s.run()
+                s.run(intro if first else None)
             except KeyboardInterrupt:
                 done = raw_input("\nExit? (y|n) ")
                 if done == "y":
                     break
+            first = False
 
     def get_params(self):
         parser = argparse.ArgumentParser()

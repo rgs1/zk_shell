@@ -45,7 +45,6 @@ from kazoo.exceptions import (
 )
 from kazoo.handlers.threading import TimeoutError
 
-from . import __version__
 from .acl import ACLReader
 from .augumented_client import AugumentedClient
 from .augumented_cmd import (
@@ -72,7 +71,6 @@ class Shell(AugumentedCmd):
         self._zk = None
         self._read_only = False
         self.connected = False
-        self.intro = "Welcome to zk-shell (%s)" % (__version__)
 
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")
@@ -145,6 +143,7 @@ class Shell(AugumentedCmd):
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
+    @interruptible
     @ensure_params(Required("path"), IntegerOptional("depth", -1))
     @check_path_exists
     def do_get_acls(self, params):
