@@ -29,9 +29,15 @@ class BasicCmdsTestCase(unittest.TestCase):
         """
         self.tests_path = os.getenv("ZKSHELL_PREFIX_DIR", "/tests")
         self.zk_host = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
+        self.username = os.getenv("ZKSHELL_USER", "user")
+        self.password = os.getenv("ZKSHELL_PASSWD", "user")
+        self.digested_password = os.getenv("ZKSHELL_DIGESTED_PASSWD", "F46PeTVYeItL6aAyygIVQ9OaaeY=")
+        self.super_password = os.getenv("ZKSHELL_SUPER_PASSWD", "secret")
+        self.scheme = os.getenv("ZKSHELL_AUTH_SCHEME", "digest")
 
         self.client = KazooClient(self.zk_host, 5)
         self.client.start()
+        self.client.add_auth(self.scheme, self.auth_id)
         if self.client.exists(self.tests_path):
             self.client.delete(self.tests_path, recursive=True)
         self.client.create(self.tests_path, str.encode(""))
@@ -42,12 +48,23 @@ class BasicCmdsTestCase(unittest.TestCase):
         # Create an empty test dir (needed for some tests)
         self.temp_dir = tempfile.mkdtemp()
 
+    @property
+    def auth_id(self):
+        return "%s:%s" % (self.username, self.password)
+
+    @property
+    def auth_digest(self):
+        return "%s:%s" % (self.username, self.digested_password)
+
     def tearDown(self):
         self.output = None
         self.shell = None
 
         if os.path.isdir(self.temp_dir):
             shutil.rmtree(self.temp_dir)
+
+        if self.client.exists(self.tests_path):
+            self.client.delete(self.tests_path, recursive=True)
 
         self.client.stop()
 
@@ -109,7 +126,7 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertIn("127.0.0.1", self.output.getvalue())
 
     def test_add_auth(self):
-        self.shell.onecmd("add_auth digest super:secret")
+        self.shell.onecmd("add_auth digest super:%s" % (self.super_password))
         self.assertEqual("", self.output.getvalue())
 
     def test_du(self):
@@ -119,12 +136,25 @@ class BasicCmdsTestCase(unittest.TestCase):
 
     def test_set_get_acls(self):
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
-        self.shell.onecmd("set_acls %s/one world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa" % (self.tests_path))
+        self.shell.onecmd("set_acls %s/one world:anyone:r digest:%s:cdrwa" % (self.tests_path, self.auth_digest))
         self.shell.onecmd("get_acls %s/one" % (self.tests_path))
         if PYTHON3:
-            expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
+            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest)
         else:
-            expected_output = "[ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'user:aRxISyaKnTP2+OZ9OmQLkq04bvo='))]\n"
+            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest)
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_set_get_acls_recursive(self):
+        self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
+        self.shell.onecmd("create %s/one/two 'goodbye'" % (self.tests_path))
+        self.shell.onecmd("set_acls %s/one/two world:anyone:r digest:%s:cdrwa" % (self.tests_path, self.auth_digest))
+        self.shell.onecmd("set_acls %s/one world:anyone:r digest:%s:cdrwa" % (self.tests_path, self.auth_digest))
+        self.shell.onecmd("get_acls %s/one 0" % (self.tests_path))
+        if PYTHON3:
+            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n/tests/one/two: [ACL(perms=1, acl_list=['READ'], id=Id(scheme='world', id='anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme='digest', id='%s'))]\n" % (self.auth_digest, self.auth_digest)
+        else:
+            expected_output = "/tests/one: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n/tests/one/two: [ACL(perms=1, acl_list=['READ'], id=Id(scheme=u'world', id=u'anyone')), ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'digest', id=u'%s'))]\n" % (self.auth_digest, self.auth_digest)
+
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_set_get_bad_acl(self):

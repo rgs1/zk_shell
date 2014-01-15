@@ -145,16 +145,27 @@ class Shell(AugumentedCmd):
         return self._complete_path(cmd_param_text, full_cmd)
 
     @connected
-    @ensure_params(Required("path"))
+    @ensure_params(Required("path"), IntegerOptional("depth", -1))
     @check_path_exists
     def do_get_acls(self, params):
         """
         gets ACLs for a given path.
-        example:
+
+        get_acls <path> [depth]
+
+        by the default this won't recurse. 0 means infinite recursion.
+
+        examples:
         get_acls /zookeeper
         [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
+
+        get_acls /zookeeper -1
+        /zookeeper: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
+        /zookeeper/config: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
+        /zookeeper/quota: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         """
-        print(self._zk.get_acls(params.path)[0], file=self._output)
+        for p, acls in self._zk.get_acls_recursive(params.path, params.depth):
+            print("%s: %s" % (p, acls), file=self._output)
 
     def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -283,9 +294,8 @@ class Shell(AugumentedCmd):
         ├── bar
         """
         print(".", file=self._output)
-        def print_node(c, l):
+        for c, l in self._zk.tree(params.path, params.max_depth):
             print(u"%s├── %s" % (u"│   " * l, c), file=self._output)
-        self._zk.tree(params.path, params.max_depth, print_node)
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)

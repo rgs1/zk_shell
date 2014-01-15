@@ -86,6 +86,25 @@ class AugumentedClient(KazooClient):
 
         return total
 
+    def get_acls_recursive(self, path, depth):
+        """A recursive generator wrapper for get_acls
+
+        :param path: path from which to start
+        :param depth: depth of the recursion (-1 no recursion, 0 means no limit)
+        """
+        yield path, self.get_acls(path)[0]
+
+        if depth == -1:
+            return
+
+        for p, l in self.tree(path, depth, full_path=True):
+            try:
+                acls = self.get_acls(p)[0]
+            except NoNodeError:
+                continue
+
+            yield p, acls
+
     def find(self, path, match, flags, callback):
         try:
             match = re.compile(match, flags)
@@ -132,20 +151,33 @@ class AugumentedClient(KazooClient):
 
             self.do_grep(full_path, match, show_matches, callback)
 
-    def tree(self, path, max_depth, callback):
-        self.do_tree(path, max_depth, callback, 0)
+    def tree(self, path, max_depth, full_path=False):
+        """DFS generator which starts from a given path and goes up to a max depth.
 
-    def do_tree(self, path, max_depth, callback, level):
+        :param path: path from which the DFS will start
+        :param max_depth: max depth of DFS (0 means no limit)
+        :param full_path: should the full path of the child node be returned
+        """
+        for child, level in self.do_tree(path, max_depth, 0, full_path):
+            yield child, level
+
+    def do_tree(self, path, max_depth, level, full_path):
         try:
             children = self.get_children(path)
         except NoNodeError:
             return
 
         for c in children:
-            callback(c, level)
+            if full_path:
+                cpath = u"%s/%s" % (path.rstrip("/"), c)
+                yield cpath, level
+            else:
+                yield c, level
+
             if max_depth == 0 or level + 1 < max_depth:
-                cpath = u"%s/%s" % (path, c)
-                self.do_tree(cpath, max_depth, callback, level + 1)
+                cpath = u"%s/%s" % (path.rstrip("/"), c)
+                for c2, l2 in self.do_tree(cpath, max_depth, level + 1, full_path):
+                    yield c2, l2
 
     def mntr(self, host=None):
         address = self.address_from_host(host)
