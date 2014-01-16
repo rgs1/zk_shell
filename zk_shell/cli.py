@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import logging
 import sys
 
 
@@ -15,6 +16,8 @@ except NameError:
 
 class CLI(object):
     def run(self):
+        logging.basicConfig(level=logging.ERROR)
+
         params = self.get_params()
         s = Shell(params.hosts, params.connect_timeout)
 

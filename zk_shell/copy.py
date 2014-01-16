@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from base64 import b64decode, b64encode
 from collections import defaultdict, namedtuple
 import json
 import os
@@ -18,6 +19,7 @@ from kazoo.client import KazooClient
 
 from .acl import ACLReader
 from .async_walker import AsyncWalker
+from .util import to_bytes
 
 
 DEFAULT_ZK_PORT = 2181
@@ -69,6 +71,10 @@ class PathValue(object):
     @property
     def value(self):
         return self._value
+
+    @property
+    def value_as_bytes(self):
+        return to_bytes(self.value)
 
     @property
     def acl(self):
@@ -396,12 +402,13 @@ class JSONProxy(Proxy):
             raise CopyError(m)
 
     def read_path(self):
-        value = self._tree[self.path]["content"].encode("utf-8")
+        value = b64decode(self._tree[self.path]["content"])
         acl = self._tree[self.path].get("acls", [])
         return PathValue(value, acl)
 
     def write_path(self, path_value):
-        self._tree[self.path]["content"] = path_value.value.decode("utf-8")
+        self._tree[self.path]["content"] = b64encode(
+            path_value.value_as_bytes).decode(encoding="utf-8")
         self._tree[self.path]["acls"] = path_value.acl_as_dict
         self._dirty = True
 

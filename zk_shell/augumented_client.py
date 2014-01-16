@@ -11,25 +11,14 @@ import zlib
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoNodeError
 
+from .util import to_bytes
+
 
 @contextmanager
 def connected_socket(address):
     s = socket.create_connection(address)
     yield s
     s.close()
-
-
-def to_bytes(value):
-    vtype = type(value)
-
-    if vtype == bytes:
-        return value
-
-    try:
-        return vtype.encode(value)
-    except UnicodeDecodeError:
-        pass
-    return value
 
 
 class AugumentedClient(KazooClient):

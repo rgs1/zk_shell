@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from base64 import b64decode
 import json
 import os
 import tempfile
@@ -210,7 +211,8 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertIn("/backup", copied_paths)
         self.assertIn("/backup/nested", copied_paths)
         self.assertIn("/backup/nested/znode", copied_paths)
-        self.assertEqual("HELLO", copied_znodes["/backup/nested/znode"]["content"])
+        self.assertEqual("HELLO", b64decode(
+            copied_znodes["/backup/nested/znode"]["content"]).decode(encoding="utf-8"))
 
     def test_cp_zk2json_bad(self):
         src_path = "%s/src" % (self.tests_path)

@@ -14,3 +14,16 @@ def pretty_bytes(num):
 
 def to_bool(s):
     return s.lower() == "true"
+
+
+def to_bytes(value):
+    vtype = type(value)
+
+    if vtype == bytes:
+        return value
+
+    try:
+        return vtype.encode(value)
+    except UnicodeDecodeError:
+        pass
+    return value
