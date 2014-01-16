@@ -86,11 +86,12 @@ class AugumentedClient(KazooClient):
 
         return total
 
-    def get_acls_recursive(self, path, depth):
+    def get_acls_recursive(self, path, depth, include_ephemerals):
         """A recursive generator wrapper for get_acls
 
         :param path: path from which to start
         :param depth: depth of the recursion (-1 no recursion, 0 means no limit)
+        :param include_ephemerals: get ACLs for ephemerals too
         """
         yield path, self.get_acls(path)[0]
 
@@ -99,8 +100,11 @@ class AugumentedClient(KazooClient):
 
         for p, l in self.tree(path, depth, full_path=True):
             try:
-                acls = self.get_acls(p)[0]
+                acls, stat = self.get_acls(p)
             except NoNodeError:
+                continue
+
+            if not include_ephemerals and stat.ephemeralOwner != 0:
                 continue
 
             yield p, acls

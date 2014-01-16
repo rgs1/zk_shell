@@ -145,13 +145,13 @@ class Shell(AugumentedCmd):
 
     @connected
     @interruptible
-    @ensure_params(Required("path"), IntegerOptional("depth", -1))
+    @ensure_params(Required("path"), IntegerOptional("depth", -1), BooleanOptional("ephemerals"))
     @check_path_exists
     def do_get_acls(self, params):
         """
         gets ACLs for a given path.
 
-        get_acls <path> [depth]
+        get_acls <path> [depth] [ephemerals]
 
         by the default this won't recurse. 0 means infinite recursion.
 
@@ -171,7 +171,7 @@ class Shell(AugumentedCmd):
             except ValueError:
                 pass
 
-        for p, acls in self._zk.get_acls_recursive(params.path, params.depth):
+        for p, acls in self._zk.get_acls_recursive(params.path, params.depth, params.ephemerals):
             replace(acls, READ_ACL_UNSAFE[0], "WORLD_READ")
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
             print("%s: %s" % (p, acls), file=self._output)
