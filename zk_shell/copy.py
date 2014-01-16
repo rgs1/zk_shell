@@ -374,7 +374,10 @@ class JSONProxy(Proxy):
         self._tree = defaultdict(dict)
         if os.path.exists(self._file_path):
             with open(self._file_path, "r") as fp:
-                self._tree = json.load(fp)
+                try:
+                    ondisc_tree = json.load(fp)
+                    self._tree.update(ondisc_tree)
+                except ValueError: pass
 
         if self.exists is not None:
             self.check_path()
