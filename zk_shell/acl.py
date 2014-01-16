@@ -1,6 +1,12 @@
 """ ACL parsing stuff """
 
-from kazoo.security import make_acl, make_digest_acl
+from kazoo.security import (
+    ACL,
+    Id,
+    make_acl,
+    make_digest_acl,
+    Permissions
+)
 
 
 class ACLReader:
@@ -57,3 +63,21 @@ class ACLReader:
                             create,
                             delete,
                             admin)
+
+    @classmethod
+    def to_dict(cls, acl):
+        return {
+            "perms": acl.perms,
+            "id": {
+                "scheme": acl.id.scheme,
+                "id": acl.id.id
+            }
+        }
+
+    @classmethod
+    def from_dict(cls, a):
+        perms = a.get("perms", Permissions.ALL)
+        id_dict = a.get("id", {})
+        id_scheme = id_dict.get("scheme", "world")
+        id_id = id_dict.get("id", "anyone")
+        return ACL(perms, Id(id_scheme, id_id))

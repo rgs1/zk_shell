@@ -16,6 +16,7 @@ except ImportError:
 
 from kazoo.client import KazooClient
 
+from .acl import ACLReader
 from .async_walker import AsyncWalker
 
 
@@ -61,12 +62,21 @@ class CopyError(Exception): pass
 
 
 class PathValue(object):
-    def __init__(self, value):
+    def __init__(self, value, acl=None):
         self._value = value
+        self._acl = acl if acl else []
 
     @property
     def value(self):
         return self._value
+
+    @property
+    def acl(self):
+        return self._acl
+
+    @property
+    def acl_as_dict(self):
+        return self._acl
 
 
 class ProxyType(type):
@@ -204,6 +214,11 @@ class ZKProxy(Proxy):
         def acl(self):
             return self._acl
 
+        @property
+        def acl_as_dict(self):
+            acls = self.acl if self.acl else []
+            return [ACLReader.to_dict(a) for a in acls]
+
     def __init__(self, parse_result, exists):
         super(ZKProxy, self).__init__(parse_result, exists)
         self.client = None
@@ -244,7 +259,10 @@ class ZKProxy(Proxy):
         return self.ZKPathValue(value, acl)
 
     def write_path(self, path_value):
-        acl = path_value.acl if isinstance(path_value, self.ZKPathValue) else None
+        if isinstance(path_value, self.ZKPathValue):
+            acl = path_value.acl
+        else:
+            acl = [ACLReader.from_dict(a) for a in path_value.acl]
 
         if self.client.exists(self.path):
             value, _ = self.client.get(self.path)
@@ -375,11 +393,13 @@ class JSONProxy(Proxy):
             raise CopyError(m)
 
     def read_path(self):
-        return PathValue(self._tree[self.path]["content"].encode("utf-8"))
+        value = self._tree[self.path]["content"].encode("utf-8")
+        acl = self._tree[self.path].get("acls", [])
+        return PathValue(value, acl)
 
     def write_path(self, path_value):
         self._tree[self.path]["content"] = path_value.value.decode("utf-8")
-        self._tree[self.path]["acls"] = []  # not implemented (yet)
+        self._tree[self.path]["acls"] = path_value.acl_as_dict
         self._dirty = True
 
     def children_of(self, async):
