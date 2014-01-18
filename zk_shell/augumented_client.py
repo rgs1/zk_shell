@@ -92,51 +92,54 @@ class AugumentedClient(KazooClient):
 
             yield p, acls
 
-    def find(self, path, match, flags, callback):
+    def find(self, path, match, flags):
         try:
             match = re.compile(match, flags)
         except sre_constants.error as ex:
             print("Bad regexp: %s" % (ex))
             return
 
-        self.do_find(path, match, True, callback)
+        for p in self.do_find(path, match, True):
+            yield p
 
-    def do_find(self, path, match, check_match, callback):
+    def do_find(self, path, match, check_match):
         for c in self.get_children(path):
             check = check_match
             full_path = os.path.join(path, c)
             if check:
                 if match.search(full_path):
-                    callback(full_path)
+                    yield full_path
                     check = False
             else:
-                callback(full_path)
+                yield full_path
 
-            self.do_find(full_path, match, check, callback)
+            self.do_find(full_path, match, check)
 
-    def grep(self, path, content, show_matches, flags, callback):
+    def grep(self, path, content, flags):
         try:
             match = re.compile(content, flags)
         except sre_constants.error as ex:
             print("Bad regexp: %s" % (ex))
             return
 
-        self.do_grep(path, match, show_matches, callback)
+        for p, matches in self.do_grep(path, match):
+            yield (p, matches)
 
-    def do_grep(self, path, match, show_matches, callback):
+    def do_grep(self, path, match):
         for c in self.get_children(path):
             full_path = os.path.join(path, c)
             value, _ = self.get(full_path)
+            matches = []
 
-            if show_matches:
-                for line in value.split("\n"):
-                    if match.search(line):
-                        callback("%s: %s" % (full_path, line))
-            else:
-                if match.search(value):
-                    callback(full_path)
+            for line in value.split("\n"):
+                if match.search(line):
+                    matches.append(line)
 
-            self.do_grep(full_path, match, show_matches, callback)
+            if len(matches) > 0:
+                yield (full_path, matches)
+
+            for p, matches in self.do_grep(full_path, match):
+                yield (p, matches)
 
     def tree(self, path, max_depth, full_path=False):
         """DFS generator which starts from a given path and goes up to a max depth.

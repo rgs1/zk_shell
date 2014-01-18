@@ -328,10 +328,8 @@ class Shell(AugumentedCmd):
         /fooish/xorg
         /copy/foo
         """
-        self._zk.find(params.path,
-                      params.match,
-                      0,
-                      lambda p: print(p, file=self._output))
+        for p in self._zk.find(params.path, params.match, 0):
+            print(p, file=self._output)
 
     def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -349,10 +347,8 @@ class Shell(AugumentedCmd):
         /fooish/xorg
         /copy/Foo
         """
-        self._zk.find(params.path,
-                      params.match,
-                      re.IGNORECASE,
-                      lambda p: print(p, file=self._output))
+        for p in self._zk.find(params.path, params.match, re.IGNORECASE):
+            print(p, file=self._output)
 
     def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -368,11 +364,7 @@ class Shell(AugumentedCmd):
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         """
-        self._zk.grep(params.path,
-                      params.content,
-                      params.show_matches,
-                      flags=0,
-                      callback=lambda p: print(p, file=self._output))
+        self.grep(params.path, params.content, 0, params.show_matches)
 
     def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -388,14 +380,19 @@ class Shell(AugumentedCmd):
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         """
-        self._zk.grep(params.path,
-                      params.content,
-                      params.show_matches,
-                      flags=re.IGNORECASE,
-                      callback=lambda p: print(p, file=self._output))
+        self.grep(params.path, params.content, re.IGNORECASE, params.show_matches)
 
     def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
+
+    def grep(self, path, content, flags, show_matches):
+        for p, matches in self._zk.grep(path, content, flags):
+            if show_matches:
+                print("%s:" % (p), file=self._output)
+                for m in matches:
+                    print(m, file=self._output)
+            else:
+                print(p, file=self._output)
 
     @connected
     @ensure_params(Required("path"))

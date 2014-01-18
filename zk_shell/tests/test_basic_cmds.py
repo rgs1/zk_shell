@@ -185,7 +185,7 @@ class BasicCmdsTestCase(unittest.TestCase):
         path = "%s/semi/long/path" % (self.tests_path)
         self.shell.onecmd("create %s 'HELLO' false false true" % (path))
         self.shell.onecmd("igrep %s hello true" % (self.tests_path))
-        self.assertEqual("%s: HELLO\n" % (path), self.output.getvalue())
+        self.assertEqual("%s:\nHELLO\n" % (path), self.output.getvalue())
 
     def test_cp_zk2zk(self):
         src_path = "%s/src" % (self.tests_path)
