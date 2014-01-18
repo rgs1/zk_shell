@@ -33,6 +33,7 @@ import re
 import shlex
 import sys
 import time
+import zlib
 
 from kazoo.exceptions import (
     BadVersionError,
@@ -425,6 +426,12 @@ class Shell(AugumentedCmd):
         """
         kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
         value, stat = self._zk.get(params.path, **kwargs)
+
+        # maybe it's compressed?
+        try:
+            value = zlib.decompress(value)
+        except (zlib.error, TypeError): pass
+
         print(value, file=self._output)
 
     def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):

@@ -198,21 +198,10 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_cp_zk2json(self):
-        src_path = "%s/src" % (self.tests_path)
-        json_file = "%s/backup.json" % (self.temp_dir)
-        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
-        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
-            self.zk_host, src_path, json_file.replace("/", "!")))
+        self.cp_zk2json(compressed=False)
 
-        with open(json_file, "r") as f:
-            copied_znodes = json.load(f)
-            copied_paths = copied_znodes.keys()
-
-        self.assertIn("/backup", copied_paths)
-        self.assertIn("/backup/nested", copied_paths)
-        self.assertIn("/backup/nested/znode", copied_paths)
-        self.assertEqual("HELLO", b64decode(
-            copied_znodes["/backup/nested/znode"]["content"]).decode(encoding="utf-8"))
+    def test_cp_zk2json_compressed(self):
+        self.cp_zk2json(compressed=True)
 
     def test_cp_zk2json_bad(self):
         src_path = "%s/src" % (self.tests_path)
@@ -223,18 +212,10 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_cp_json2zk(self):
-        src_path = "%s/src" % (self.tests_path)
-        json_file = "%s/backup.json" % (self.temp_dir)
-        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
-        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
-            self.zk_host, src_path, json_file.replace("/", "!")))
-        self.shell.onecmd("cp json://%s/backup zk://%s/%s/from-json true true" % (
-            json_file.replace("/", "!"), self.zk_host, self.tests_path))
-        self.shell.onecmd("tree %s/from-json" % (self.tests_path))
-        self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
+        self.cp_json2zk(compressed=False)
 
-        expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO\n'
-        self.assertEqual(expected_output, self.output.getvalue())
+    def test_cp_json2zk_compressed(self):
+        self.cp_json2zk(compressed=True)
 
     def test_cp_json2zk_bad(self):
         json_file = "%s/backup.json" % (self.temp_dir)
@@ -258,15 +239,75 @@ class BasicCmdsTestCase(unittest.TestCase):
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_get_compressed(self):
-        # ZK Shell doesn't support creating directly from a bytes array so we use a Kazoo client
-        # to create a znode with zlib compressed content.
-        if PYTHON3:
-            compressed = zlib.compress(bytes("some value", "utf-8"))
-        else:
-            compressed = zlib.compress("some value")
-
-        self.client.create("%s/one" % (self.tests_path), compressed)
-
+        self.create_compressed("%s/one" % (self.tests_path), "some value")
         self.shell.onecmd("get %s/one" % (self.tests_path))
         expected_output = "b'some value'\n" if PYTHON3 else "some value\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    ###
+    # Helpers.
+    ##
+
+    def create_compressed(self, path, value):
+        """
+        ZK Shell doesn't support creating directly from a bytes array so we use a Kazoo client
+        to create a znode with zlib compressed content.
+        """
+        compressed = zlib.compress(bytes(value, "utf-8") if PYTHON3 else value)
+        self.client.create(path, compressed, makepath=True)
+
+    def cp_zk2json(self, compressed):
+        src_path = "%s/src" % (self.tests_path)
+        json_file = "%s/backup.json" % (self.temp_dir)
+
+        if compressed:
+            self.create_compressed("%s/nested/znode" % (src_path), "HELLO")
+        else:
+            self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
+
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
+            self.zk_host, src_path, json_file.replace("/", "!")))
+
+        with open(json_file, "r") as f:
+            copied_znodes = json.load(f)
+            copied_paths = copied_znodes.keys()
+
+        self.assertIn("/backup", copied_paths)
+        self.assertIn("/backup/nested", copied_paths)
+        self.assertIn("/backup/nested/znode", copied_paths)
+
+        json_value = b64decode(copied_znodes["/backup/nested/znode"]["content"])
+        if compressed:
+            json_value = zlib.decompress(json_value)
+            if PYTHON3:
+                json_value = json_value.decode(encoding="utf-8")
+        else:
+            json_value = json_value.decode(encoding="utf-8")
+
+        self.assertEqual("HELLO", json_value)
+
+    def cp_json2zk(self, compressed):
+        src_path = "%s/src" % (self.tests_path)
+        json_file = "%s/backup.json" % (self.temp_dir)
+
+        if compressed:
+            self.create_compressed("%s/nested/znode" % (src_path), u'HELLO')
+        else:
+            self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src_path))
+
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
+            self.zk_host, src_path, json_file.replace("/", "!")))
+        self.shell.onecmd("cp json://%s/backup zk://%s/%s/from-json true true" % (
+            json_file.replace("/", "!"), self.zk_host, self.tests_path))
+        self.shell.onecmd("tree %s/from-json" % (self.tests_path))
+        self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
+
+        if PYTHON3:
+            if compressed:
+                expected_output = ".\n├── nested\n│   ├── znode\nb'HELLO'\n"
+            else:
+                expected_output = '.\n├── nested\n│   ├── znode\nHELLO\n'
+        else:
+            expected_output = u'.\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO\n'
+
         self.assertEqual(expected_output, self.output.getvalue())

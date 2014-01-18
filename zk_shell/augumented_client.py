@@ -6,7 +6,6 @@ import os
 import re
 import socket
 import sre_constants
-import zlib
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoNodeError
@@ -32,12 +31,7 @@ class AugumentedClient(KazooClient):
 
         try:
             value = value.decode(encoding="utf-8")
-        except UnicodeDecodeError:
-            # maybe it's compressed?
-            try:
-                value = zlib.decompress(value)
-            except zlib.error:
-                pass
+        except UnicodeDecodeError: pass
 
         return (value, stat)
 
