@@ -16,6 +16,12 @@ except ImportError:
     from urllib.parse import urlparse
 
 from kazoo.client import KazooClient
+from kazoo.exceptions import (
+    NodeExistsError,
+    NoNodeError,
+    NoChildrenForEphemeralsError,
+    ZookeeperError,
+)
 
 from .acl import ACLReader
 from .async_walker import AsyncWalker
@@ -275,7 +281,19 @@ class ZKProxy(Proxy):
             if path_value.value != value:
                 self.client.set(self.path, path_value.value)
         else:
-            self.client.create(self.path, path_value.value, acl=acl, makepath=True)
+            try:
+                # Kazoo's create() doesn't handle acl=[] correctly
+                # See: https://github.com/python-zk/kazoo/pull/164
+                acl = acl or None
+                self.client.create(self.path, path_value.value, acl=acl, makepath=True)
+            except NodeExistsError:
+                raise CopyError("Node %s exists" % (self.path))
+            except NoNodeError:
+                raise CopyError("Parent node for %s is missing" % (self.path))
+            except NoChildrenForEphemeralsError:
+                raise CopyError("Ephemeral znodes can't have children")
+            except ZookeeperError:
+                raise CopyError("ZooKeeper server error")
 
     def children_of(self, async):
         if async:
