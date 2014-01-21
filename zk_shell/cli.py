@@ -19,7 +19,9 @@ class CLI(object):
         logging.basicConfig(level=logging.ERROR)
 
         params = self.get_params()
-        s = Shell(params.hosts, params.connect_timeout)
+        s = Shell(params.hosts,
+                  params.connect_timeout,
+                  setup_readline=params.run_once == "")
 
         if params.run_once != "":
             sys.exit(0 if s.onecmd(params.run_once) == None else 1)
