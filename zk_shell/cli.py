@@ -24,7 +24,10 @@ class CLI(object):
                   setup_readline=params.run_once == "")
 
         if params.run_once != "":
-            sys.exit(0 if s.onecmd(params.run_once) == None else 1)
+            try:
+                sys.exit(0 if s.onecmd(params.run_once) == None else 1)
+            except IOError:
+                sys.exit(1)
 
         intro = "Welcome to zk-shell (%s)" % (__version__)
         first = True
