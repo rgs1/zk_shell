@@ -398,11 +398,10 @@ class JSONProxy(Proxy):
 
     def __enter__(self):
         self._dirty = False  # tracks writes
-        self._file_path = self.host.replace("!", "/")
 
         self._tree = defaultdict(dict)
-        if os.path.exists(self._file_path):
-            with open(self._file_path, "r") as fp:
+        if os.path.exists(self.host):
+            with open(self.host, "r") as fp:
                 try:
                     ondisc_tree = json.load(fp)
                     self._tree.update(ondisc_tree)
@@ -415,8 +414,12 @@ class JSONProxy(Proxy):
         if not self._dirty:
             return
 
-        with open(self._file_path, "w") as fp:
+        with open(self.host, "w") as fp:
             json.dump(self._tree, fp, indent=4)
+
+    @property
+    def host(self):
+        return super(JSONProxy, self).host.replace("!", "/")
 
     def check_path(self):
         if (self.path in self._tree) != self.exists:

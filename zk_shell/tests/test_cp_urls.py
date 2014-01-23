@@ -28,7 +28,7 @@ class CpUrlsTestCase(unittest.TestCase):
         pro = Proxy.from_string("json://!tmp!backup.json/")
         self.assertEqual(pro.scheme, "json")
         self.assertEqual(pro.path, "/")
-        self.assertEqual(pro.host, "!tmp!backup.json")
+        self.assertEqual(pro.host, "/tmp/backup.json")
 
     def test_json_implicit_path(self):
         """ implicit / path """
