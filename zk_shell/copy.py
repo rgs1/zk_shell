@@ -107,10 +107,12 @@ class ProxyType(type):
 class Proxy(ProxyType("ProxyBase", (object,), {})):
     SCHEME = ""
 
-    def __init__(self, parse_result, exists):
+    def __init__(self, parse_result, exists, async, verbose):
         self.parse_result = parse_result
         self.netloc = Netloc.from_string(parse_result.netloc)
         self.exists = exists
+        self.async = async
+        self.verbose = verbose
 
     @property
     def scheme(self):
@@ -141,7 +143,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         self.parse_result = Proxy.parse(string)
 
     @classmethod
-    def from_string(cls, string, exists):
+    def from_string(cls, string, exists, async, verbose):
         """
         if exists is bool, then check it either exists or it doesn't.
         if exists is None, we don't care.
@@ -151,7 +153,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         if result.scheme not in cls.TYPES:
             raise CopyError("Invalid scheme: %s" % (result.scheme))
 
-        return cls.TYPES[result.scheme](result, exists)
+        return cls.TYPES[result.scheme](result, exists, async, verbose)
 
     @classmethod
     def parse(cls, url_string):
@@ -175,7 +177,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def children_of(self, async):
         raise NotImplementedError("children_of must be implemented")
 
-    def copy(self, dst, recursive, async, verbose):
+    def copy(self, dst, recursive, max_items):
         # basic sanity check
         if recursive and self.scheme == "zk" and dst.scheme == "file":
             raise CopyError("Recursive copy from zk to fs isn't supported")
@@ -187,12 +189,14 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
         with self:
             with dst:
-                self.do_copy(dst, async, verbose)
+                self.do_copy(dst)
                 if recursive:
-                    for c in self.children_of(async):
+                    for i, c in enumerate(self.children_of()):
+                        if max_items > 0 and i == max_items:
+                            break
                         self.set_url(url_join(src_url, c))
                         dst.set_url(url_join(dst_url, c))
-                        self.do_copy(dst, async, verbose)
+                        self.do_copy(dst)
 
                     # reset to base urls
                     self.set_url(src_url)
@@ -202,9 +206,9 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
         print("Copying took %.2f secs" % (round(end - start, 2)))
 
-    def do_copy(self, dst, async=False, verbose=False):
-        if verbose:
-            if async:
+    def do_copy(self, dst):
+        if self.verbose:
+            if self.async:
                 print("Copying (asynchronously) from %s to %s" % (self.url, dst.url))
             else:
                 print("Copying from %s to %s" % (self.url, dst.url))
@@ -231,8 +235,8 @@ class ZKProxy(Proxy):
             acls = self.acl if self.acl else []
             return [ACLReader.to_dict(a) for a in acls]
 
-    def __init__(self, parse_result, exists):
-        super(ZKProxy, self).__init__(parse_result, exists)
+    def __init__(self, parse_result, exists, async, verbose):
+        super(ZKProxy, self).__init__(parse_result, exists, async, verbose)
         self.client = None
         self.need_client = True  # whether we build a client or one is provided
 
@@ -295,8 +299,8 @@ class ZKProxy(Proxy):
             except ZookeeperError:
                 raise CopyError("ZooKeeper server error")
 
-    def children_of(self, async):
-        if async:
+    def children_of(self):
+        if self.async:
             return AsyncWalker(self.client).walk(self.path.rstrip("/"))
         else:
             return self.zk_walk(self.path, None)
@@ -320,8 +324,8 @@ class ZKProxy(Proxy):
 class FileProxy(Proxy):
     SCHEME = "file"
 
-    def __init__(self, parse_result, exists):
-        super(FileProxy, self).__init__(parse_result, exists)
+    def __init__(self, parse_result, exists, async, verbose):
+        super(FileProxy, self).__init__(parse_result, exists, async, verbose)
 
         if exists is not None:
             self.check_path()
@@ -352,7 +356,7 @@ class FileProxy(Proxy):
         with open(self.path, "w") as fp:
             fp.write(path_value.value)
 
-    def children_of(self, async):
+    def children_of(self):
         root_path = self.path[0:-1] if self.path.endswith("/") else self.path
         for path, dirs, files in os.walk(root_path):
             path = path.replace(root_path, "")
@@ -428,7 +432,7 @@ class JSONProxy(Proxy):
         self._tree[self.path]["acls"] = path_value.acl_as_dict
         self._dirty = True
 
-    def children_of(self, async):
+    def children_of(self):
         offs = 1 if self.path == "/" else len(self.path) + 1
         good = lambda k: k != self.path and k.startswith(self.path)
         for c in self._tree.keys():

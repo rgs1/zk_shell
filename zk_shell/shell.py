@@ -227,7 +227,8 @@ class Shell(AugumentedCmd):
 
     @ensure_params(Required("src"), Required("dst"),
                    BooleanOptional("recursive"), BooleanOptional("overwrite"),
-                   BooleanOptional("async"), BooleanOptional("verbose"))
+                   BooleanOptional("async"), BooleanOptional("verbose"),
+                   IntegerOptional("max_items", 0))
     def do_cp(self, params):
         """
         copy from/to local/remote or remote/remote paths.
@@ -246,7 +247,7 @@ class Shell(AugumentedCmd):
 
         examples:
         cp /some/znode /backup/copy-znode  # local
-        cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose>
+        cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose> <max_items>
         cp /some/path json://!home!user!backup.json/ true true
         """
 
@@ -265,17 +266,20 @@ class Shell(AugumentedCmd):
                 dst_connected_zk = True
 
         try:
-            src = Proxy.from_string(params.src, True)
+            src = Proxy.from_string(params.src, True, params.async, params.verbose)
             if src_connected_zk:
                 src.need_client = False
                 src.client = self._zk
 
-            dst = Proxy.from_string(params.dst, None if params.overwrite else False)
+            dst = Proxy.from_string(params.dst,
+                                    exists=None if params.overwrite else False,
+                                    async=params.async,
+                                    verbose=params.verbose)
             if dst_connected_zk:
                 dst.need_client = False
                 dst.client = self._zk
 
-            src.copy(dst, params.recursive, params.async, params.verbose)
+            src.copy(dst, params.recursive, params.max_items)
         except CopyError as ex:
             print(str(ex), file=self._output)
 
