@@ -354,16 +354,14 @@ class FileProxy(Proxy):
 
     def children_of(self, async):
         root_path = self.path[0:-1] if self.path.endswith("/") else self.path
-        all = []
         for path, dirs, files in os.walk(root_path):
             path = path.replace(root_path, "")
             if path.startswith("/"):
                 path = path[1:]
             if path != "":
-                all.append(path)
+                yield path
             for f in files:
-                all.append("%s/%s" % (path, f) if path != "" else f)
-        return all
+                yield "%s/%s" % (path, f) if path != "" else f
 
 
 class JSONProxy(Proxy):
@@ -432,6 +430,8 @@ class JSONProxy(Proxy):
 
     def children_of(self, async):
         offs = 1 if self.path == "/" else len(self.path) + 1
-        def good(k):
-            return k != self.path and k.startswith(self.path)
-        return list(map(lambda c: c[offs:], list(filter(good, self._tree.keys()))))
+        good = lambda k: k != self.path and k.startswith(self.path)
+        for c in self._tree.keys():
+            if not good(c):
+                continue
+            yield c[offs:]
