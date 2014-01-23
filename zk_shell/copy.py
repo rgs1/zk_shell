@@ -124,7 +124,10 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
     @property
     def path(self):
-        return self.parse_result.path
+        p = self.parse_result.path
+        if p == "":
+            return "/"
+        return "/" if p == "/" else p.rstrip("/")
 
     @property
     def host(self):
@@ -143,7 +146,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         self.parse_result = Proxy.parse(string)
 
     @classmethod
-    def from_string(cls, string, exists, async, verbose):
+    def from_string(cls, string, exists=False, async=False, verbose=False):
         """
         if exists is bool, then check it either exists or it doesn't.
         if exists is None, we don't care.
