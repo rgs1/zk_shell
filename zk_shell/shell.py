@@ -43,7 +43,6 @@ from kazoo.exceptions import (
     NotEmptyError,
     ZookeeperError,
 )
-from kazoo.handlers.threading import TimeoutError
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 
 from .acl import ACLReader
@@ -653,7 +652,7 @@ server=%s""" % (self._zk.state,
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
-        except TimeoutError as ex:
+        except self._zk.handler.timeout_exception as ex:
             print("Failed to connect: %s" % (ex), file=self._output)
 
         self.update_curdir("/")
