@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
-#
-# a zkCli.sh clone - though not everything is supported currently
-# It supports the basic ops:
-#
-#  python contrib/shell.py localhost:2181
-#  (CONNECTED) /> ls
-#  zookeeper
-#  (CONNECTED) /> create foo 'bar'
-#  (CONNECTED) /> get foo
-#  bar
-#  (CONNECTED) /> cd foo
-#  (CONNECTED) /foo> create ish 'barish'
-#  (CONNECTED) /foo> cd ..
-#  (CONNECTED) /> ls foo
-#  ish
-#  (CONNECTED) /> create temp- 'temp' true true
-#  (CONNECTED) /> ls
-#  zookeeper foo temp-0000000001
-#  (CONNECTED) /> rmr foo
-#  (CONNECTED) />
-#  (CONNECTED) /> tree
-#  .
-#  ├── zookeeper
-#  │   ├── config
-#  │   ├── quota
 
+"""
+zkCli.sh clone.
+It supports the basic ops plus a few handy extensions:
+ (CONNECTED) /> ls
+ zookeeper
+ (CONNECTED) /> create foo 'bar'
+ (CONNECTED) /> get foo
+ bar
+ (CONNECTED) /> cd foo
+ (CONNECTED) /foo> create ish 'barish'
+ (CONNECTED) /foo> cd ..
+ (CONNECTED) /> ls foo
+ ish
+ (CONNECTED) /> create temp- 'temp' true true
+ (CONNECTED) /> ls
+ zookeeper foo temp-0000000001
+ (CONNECTED) /> rmr foo
+ (CONNECTED) />
+ (CONNECTED) /> tree
+ .
+ ├── zookeeper
+ │   ├── config
+ │   ├── quota
+"""
 
 from __future__ import print_function
 
@@ -63,6 +62,7 @@ from .util import pretty_bytes, to_bool
 
 
 class Shell(AugumentedCmd):
+    """ main class """
     def __init__(self, hosts=[], timeout=10, output=sys.stdout, setup_readline=True):
         AugumentedCmd.__init__(self, ".kz-shell-history", setup_readline)
         self._hosts = hosts
