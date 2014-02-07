@@ -72,7 +72,7 @@ def connected(func):
         else:
             try:
                 return func(*args, **kwargs)
-            except NoAuthError as ex:
+            except NoAuthError:
                 print("Not authenticated.", file=self.output)
     return wrapper
 
