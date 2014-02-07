@@ -80,7 +80,7 @@ def connected(func):
 def check_path_exists(func):
     """ check paths exists """
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args):
         self = args[0]
         params = args[1]
         path = params.path
