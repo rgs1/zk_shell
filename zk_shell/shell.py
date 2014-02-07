@@ -63,20 +63,22 @@ from .util import pretty_bytes, to_bool
 
 
 def connected(func):
+    """ check connected, fails otherwise """
     @wraps(func)
     def wrapper(*args, **kwargs):
         self = args[0]
         if not self.connected:
-            print("Not connected.", file=self._output)
+            print("Not connected.", file=self.output)
         else:
             try:
                 return func(*args, **kwargs)
             except NoAuthError as ex:
-                print("Not authenticated.", file=self._output)
+                print("Not authenticated.", file=self.output)
     return wrapper
 
 
 def check_path_exists(func):
+    """ check paths exists """
     @wraps(func)
     def wrapper(*args, **kwargs):
         self = args[0]
@@ -85,12 +87,13 @@ def check_path_exists(func):
         params.path = self.abspath(path if path not in ["", "."] else self.curdir)
         if self._zk.exists(params.path):
             return func(self, params)
-        print("Path %s doesn't exist" % (path), file=self._output)
+        print("Path %s doesn't exist" % (path), file=self.output)
         return False
     return wrapper
 
 
 def check_path_absent(func):
+    """ check path doesn't exist """
     def wrapper(*args, **kwargs):
         self = args[0]
         params = args[1]
@@ -102,6 +105,7 @@ def check_path_absent(func):
     return wrapper
 
 
+# pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
     def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True):
@@ -115,6 +119,10 @@ class Shell(AugumentedCmd):
 
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")
+
+    @property
+    def output(self):
+        return self._output
 
     @connected
     @ensure_params(Required("scheme"), Required("credential"))
