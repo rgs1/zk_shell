@@ -85,7 +85,7 @@ def check_path_exists(func):
         params = args[1]
         path = params.path
         params.path = self.abspath(path if path not in ["", "."] else self.curdir)
-        if self._zk.exists(params.path):
+        if self.client.exists(params.path):
             return func(self, params)
         print("Path %s doesn't exist" % (path), file=self.output)
         return False
@@ -99,7 +99,7 @@ def check_path_absent(func):
         params = args[1]
         path = params.path
         params.path = self.abspath(path if path != '' else self.curdir)
-        if not self._zk.exists(params.path):
+        if not self.client.exists(params.path):
             return func(self, params)
         print("Path %s already exists" % (path))
     return wrapper
@@ -119,6 +119,10 @@ class Shell(AugumentedCmd):
 
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")
+
+    @property
+    def client(self):
+        return self._zk
 
     @property
     def output(self):
