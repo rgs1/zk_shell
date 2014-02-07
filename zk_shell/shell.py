@@ -125,6 +125,29 @@ class Shell(AugumentedCmd):
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")
 
+    def _complete_path(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        pieces = shlex.split(full_cmd)
+        cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
+        offs = len(cmd_param) - len(cmd_param_text)
+        path = cmd_param[:-1] if cmd_param.endswith("/") else cmd_param
+
+        if re.match(r"^\s*$", path):
+            return self._zk.get_children(self.curdir)
+
+        if self._zk.exists(path):
+            children = self._zk.get_children(self.abspath(path))
+            opts = list(map(lambda z: "%s/%s" % (path, z), children))
+        elif "/" not in path:
+            znodes = self._zk.get_children(self.curdir)
+            opts = list(filter(lambda z: z.startswith(path), znodes))
+        else:
+            parent = os.path.dirname(path)
+            child = os.path.basename(path)
+            matching = list(filter(lambda z: z.startswith(child), self._zk.get_children(parent)))
+            opts = list(map(lambda z: "%s/%s" % (parent, z), matching))
+
+        return list(map(lambda x: x[offs:], opts))
+
     @property
     def client(self):
         """ the connected ZK client, if any """
@@ -166,8 +189,7 @@ class Shell(AugumentedCmd):
         except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
             print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)), file=self._output)
 
-    def complete_set_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_set_acls = _complete_path
 
     @connected
     @interruptible
@@ -202,8 +224,7 @@ class Shell(AugumentedCmd):
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
             print("%s: %s" % (path, acls), file=self._output)
 
-    def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_get_acls = _complete_path
 
     @connected
     @ensure_params(Optional("path"), Optional("watch"))
@@ -213,8 +234,7 @@ class Shell(AugumentedCmd):
         znodes = self._zk.get_children(params.path, **kwargs)
         print(" ".join(znodes), file=self._output)
 
-    def complete_ls(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_ls = _complete_path
 
     @connected
     @interruptible
@@ -309,8 +329,7 @@ class Shell(AugumentedCmd):
         except CopyError as ex:
             print(str(ex), file=self._output)
 
-    def complete_cp(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_cp = _complete_path
 
     @connected
     @interruptible
@@ -336,8 +355,7 @@ class Shell(AugumentedCmd):
         for child, level in self._zk.tree(params.path, params.max_depth):
             print(u"%s├── %s" % (u"│   " * level, child), file=self._output)
 
-    def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_tree = _complete_path
 
     @connected
     @ensure_params(Optional("path"))
@@ -361,8 +379,7 @@ class Shell(AugumentedCmd):
         for path in self._zk.find(params.path, params.match, 0):
             print(path, file=self._output)
 
-    def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_find = _complete_path
 
     @connected
     @ensure_params(Required("path"), Required("match"))
@@ -380,8 +397,7 @@ class Shell(AugumentedCmd):
         for path in self._zk.find(params.path, params.match, re.IGNORECASE):
             print(path, file=self._output)
 
-    def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_ifind = _complete_path
 
     @connected
     @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
@@ -396,8 +412,7 @@ class Shell(AugumentedCmd):
         """
         self.grep(params.path, params.content, 0, params.show_matches)
 
-    def complete_grep(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_grep = _complete_path
 
     @connected
     @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
@@ -412,8 +427,7 @@ class Shell(AugumentedCmd):
         """
         self.grep(params.path, params.content, re.IGNORECASE, params.show_matches)
 
-    def complete_igrep(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_igrep = _complete_path
 
     def grep(self, path, content, flags, show_matches):
         for path, matches in self._zk.grep(path, content, flags):
@@ -430,8 +444,7 @@ class Shell(AugumentedCmd):
     def do_cd(self, params):
         self.update_curdir(params.path)
 
-    def complete_cd(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_cd = _complete_path
 
     @connected
     @ensure_params(Required("path"), Optional("watch"))
@@ -461,8 +474,7 @@ class Shell(AugumentedCmd):
 
         print(value, file=self._output)
 
-    def complete_get(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_get = _complete_path
 
     @connected
     @ensure_params(Required("path"), Optional("watch"))
@@ -488,8 +500,7 @@ class Shell(AugumentedCmd):
         else:
             print("Path %s doesn't exist" % (params.path), file=self._output)
 
-    def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_exists = _complete_path
 
     @connected
     @ensure_params(Required("path"),
@@ -532,8 +543,7 @@ class Shell(AugumentedCmd):
                         sequence=params.sequence,
                         makepath=params.recursive)
 
-    def complete_create(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_create = _complete_path
 
     @connected
     @ensure_params(Required("path"), Required("value"))
@@ -547,8 +557,7 @@ class Shell(AugumentedCmd):
         """
         self._zk.set(params.path, params.value)
 
-    def complete_set(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_set = _complete_path
 
     @connected
     @ensure_params(Required("path"))
@@ -559,8 +568,7 @@ class Shell(AugumentedCmd):
         except NotEmptyError:
             print("%s is not empty." % (params.path))
 
-    def complete_rm(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_rm = _complete_path
 
     @connected
     @ensure_params()
@@ -622,8 +630,7 @@ server=%s""" % (self._zk.state,
         """
         self._zk.delete(params.path, recursive=True)
 
-    def complete_rmr(self, cmd_param_text, full_cmd, start_idx, end_idx):
-        return self._complete_path(cmd_param_text, full_cmd)
+    complete_rmr = _complete_path
 
     @connected
     @ensure_params(Required("path"))
@@ -684,26 +691,3 @@ server=%s""" % (self._zk.state,
     @property
     def state(self):
         return "(%s) " % (self._zk.state if self._zk else "DISCONNECTED")
-
-    def _complete_path(self, cmd_param_text, full_cmd):
-        pieces = shlex.split(full_cmd)
-        cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
-        offs = len(cmd_param) - len(cmd_param_text)
-        path = cmd_param[:-1] if cmd_param.endswith("/") else cmd_param
-
-        if re.match(r"^\s*$", path):
-            return self._zk.get_children(self.curdir)
-
-        if self._zk.exists(path):
-            children = self._zk.get_children(self.abspath(path))
-            opts = list(map(lambda z: "%s/%s" % (path, z), children))
-        elif "/" not in path:
-            znodes = self._zk.get_children(self.curdir)
-            opts = list(filter(lambda z: z.startswith(path), znodes))
-        else:
-            parent = os.path.dirname(path)
-            child = os.path.basename(path)
-            matching = list(filter(lambda z: z.startswith(child), self._zk.get_children(parent)))
-            opts = list(map(lambda z: "%s/%s" % (parent, z), matching))
-
-        return list(map(lambda x: x[offs:], opts))
