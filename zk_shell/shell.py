@@ -94,7 +94,8 @@ def check_path_exists(func):
 
 def check_path_absent(func):
     """ check path doesn't exist """
-    def wrapper(*args, **kwargs):
+    @wraps(func)
+    def wrapper(*args):
         self = args[0]
         params = args[1]
         path = params.path
