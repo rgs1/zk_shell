@@ -106,6 +106,10 @@ def check_path_absent(func):
     return wrapper
 
 
+def default_watcher(watched_event):
+    print(str(watched_event))
+
+
 # pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
@@ -193,10 +197,10 @@ class Shell(AugumentedCmd):
             except ValueError:
                 pass
 
-        for p, acls in self._zk.get_acls_recursive(params.path, params.depth, params.ephemerals):
+        for path, acls in self._zk.get_acls_recursive(params.path, params.depth, params.ephemerals):
             replace(acls, READ_ACL_UNSAFE[0], "WORLD_READ")
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
-            print("%s: %s" % (p, acls), file=self._output)
+            print("%s: %s" % (path, acls), file=self._output)
 
     def complete_get_acls(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -205,7 +209,7 @@ class Shell(AugumentedCmd):
     @ensure_params(Optional("path"), Optional("watch"))
     @check_path_exists
     def do_ls(self, params):
-        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
+        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
         print(" ".join(znodes), file=self._output)
 
@@ -241,7 +245,7 @@ class Shell(AugumentedCmd):
                     wm.stats(params.path)
                     time.sleep(sleep)
             else:
-                for i in xrange(0, repeat):
+                for _ in range(0, repeat):
                     wm.stats(params.path)
                     time.sleep(sleep)
         else:
@@ -329,8 +333,8 @@ class Shell(AugumentedCmd):
         ├── bar
         """
         print(".", file=self._output)
-        for c, l in self._zk.tree(params.path, params.max_depth):
-            print(u"%s├── %s" % (u"│   " * l, c), file=self._output)
+        for child, level in self._zk.tree(params.path, params.max_depth):
+            print(u"%s├── %s" % (u"│   " * level, child), file=self._output)
 
     def complete_tree(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -354,8 +358,8 @@ class Shell(AugumentedCmd):
         /fooish/xorg
         /copy/foo
         """
-        for p in self._zk.find(params.path, params.match, 0):
-            print(p, file=self._output)
+        for path in self._zk.find(params.path, params.match, 0):
+            print(path, file=self._output)
 
     def complete_find(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -373,8 +377,8 @@ class Shell(AugumentedCmd):
         /fooish/xorg
         /copy/Foo
         """
-        for p in self._zk.find(params.path, params.match, re.IGNORECASE):
-            print(p, file=self._output)
+        for path in self._zk.find(params.path, params.match, re.IGNORECASE):
+            print(path, file=self._output)
 
     def complete_ifind(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
@@ -412,13 +416,13 @@ class Shell(AugumentedCmd):
         return self._complete_path(cmd_param_text, full_cmd)
 
     def grep(self, path, content, flags, show_matches):
-        for p, matches in self._zk.grep(path, content, flags):
+        for path, matches in self._zk.grep(path, content, flags):
             if show_matches:
-                print("%s:" % (p), file=self._output)
-                for m in matches:
-                    print(m, file=self._output)
+                print("%s:" % (path), file=self._output)
+                for match in matches:
+                    print(match, file=self._output)
             else:
-                print(p, file=self._output)
+                print(path, file=self._output)
 
     @connected
     @ensure_params(Required("path"))
@@ -447,8 +451,8 @@ class Shell(AugumentedCmd):
         set /foo 'notbar'
         WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
         """
-        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
-        value, stat = self._zk.get(params.path, **kwargs)
+        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
+        value, _ = self._zk.get(params.path, **kwargs)
 
         # maybe it's compressed?
         try:
@@ -477,7 +481,7 @@ class Shell(AugumentedCmd):
         rm /foo
         WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
         """
-        kwargs = {"watch": self.watcher} if to_bool(params.watch) else {}
+        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         stat = self._zk.exists(params.path, **kwargs)
         if stat:
             print(stat, file=self._output)
@@ -486,9 +490,6 @@ class Shell(AugumentedCmd):
 
     def complete_exists(self, cmd_param_text, full_cmd, start_idx, end_idx):
         return self._complete_path(cmd_param_text, full_cmd)
-
-    def watcher(self, watched_event):
-        print((str(watched_event)))
 
     @connected
     @ensure_params(Required("path"),
