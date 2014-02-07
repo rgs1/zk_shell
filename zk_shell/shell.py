@@ -122,10 +122,12 @@ class Shell(AugumentedCmd):
 
     @property
     def client(self):
+        """ the connected ZK client, if any """
         return self._zk
 
     @property
     def output(self):
+        """ the io output object """
         return self._output
 
     @connected
@@ -183,10 +185,10 @@ class Shell(AugumentedCmd):
         /zookeeper/config: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         /zookeeper/quota: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         """
-        def replace(l, oldv, newv):
+        def replace(plist, oldv, newv):
             try:
-                l.remove(oldv)
-                l.insert(0, newv)
+                plist.remove(oldv)
+                plist.insert(0, newv)
             except ValueError:
                 pass
 
