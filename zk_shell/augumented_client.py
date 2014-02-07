@@ -23,6 +23,20 @@ def connected_socket(address):
 class AugumentedClient(KazooClient):
     class CmdFailed(Exception): pass
 
+    @property
+    def xid(self):
+        conn = self._connection
+        return conn._xid if conn else -1
+
+    @property
+    def session_timeout(self):
+        return self._session_timeout
+
+    @property
+    def server(self):
+        conn = self._connection
+        return conn._socket.getpeername() if conn else ""
+
     def get(self, *args, **kwargs):
         """
         Try to figure out what the value is (i.e.: compressed, etc)

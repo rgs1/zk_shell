@@ -122,10 +122,13 @@ class Shell(AugumentedCmd):
         self._read_only = False
         self.connected = False
 
-        if len(self._hosts) > 0: self._connect(self._hosts)
-        if not self.connected: self.update_curdir("/")
+        if len(self._hosts) > 0:
+            self._connect(self._hosts)
+        if not self.connected:
+            self.update_curdir("/")
 
     def _complete_path(self, cmd_param_text, full_cmd, start_idx, end_idx):
+        """ completes paths """
         pieces = shlex.split(full_cmd)
         cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
         offs = len(cmd_param) - len(cmd_param_text)
@@ -136,17 +139,17 @@ class Shell(AugumentedCmd):
 
         if self._zk.exists(path):
             children = self._zk.get_children(self.abspath(path))
-            opts = list(map(lambda z: "%s/%s" % (path, z), children))
+            opts = ["%s/%s" % (path, znode) for znode in children]
         elif "/" not in path:
             znodes = self._zk.get_children(self.curdir)
-            opts = list(filter(lambda z: z.startswith(path), znodes))
+            opts = [znode for znode in znodes if znode.startswith(path)]
         else:
             parent = os.path.dirname(path)
             child = os.path.basename(path)
-            matching = list(filter(lambda z: z.startswith(child), self._zk.get_children(parent)))
-            opts = list(map(lambda z: "%s/%s" % (parent, z), matching))
+            matching = [znode for znode in self._zk.get_children(parent) if znode.startswith(child)]
+            opts = ["%s/%s" % (parent, znode) for znode in matching]
 
-        return list(map(lambda x: x[offs:], opts))
+        return [opt[offs:] for opt in opts]
 
     @property
     def client(self):
@@ -259,7 +262,8 @@ class Shell(AugumentedCmd):
             try:
                 repeat = int(params.debug)
                 sleep = int(params.sleep)
-            except ValueError: pass
+            except ValueError:
+                pass
             if repeat == 0:
                 while True:
                     wm.stats(params.path)
@@ -470,7 +474,8 @@ class Shell(AugumentedCmd):
         # maybe it's compressed?
         try:
             value = zlib.decompress(value)
-        except (zlib.error, TypeError): pass
+        except (zlib.error, TypeError):
+            pass
 
         print(value, file=self._output)
 
@@ -589,10 +594,10 @@ xid=%d
 last_zxid=%d
 timeout=%d
 server=%s""" % (self._zk.state,
-                self._zk._connection._xid,
+                self._zk.xid,
                 self._zk.last_zxid,
-                self._zk._session_timeout,
-                self._zk._connection._socket.getpeername()), file=self._output)
+                self._zk.session_timeout,
+                self._zk.server), file=self._output)
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
