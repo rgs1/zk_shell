@@ -27,6 +27,7 @@ It supports the basic ops plus a few handy extensions:
 
 from __future__ import print_function
 
+from functools import wraps
 import os
 import re
 import shlex
@@ -61,11 +62,51 @@ from .watch_manager import get_watch_manager
 from .util import pretty_bytes, to_bool
 
 
+def connected(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.connected:
+            print("Not connected.", file=self._output)
+        else:
+            try:
+                return func(*args, **kwargs)
+            except NoAuthError as ex:
+                print("Not authenticated.", file=self._output)
+    return wrapper
+
+
+def check_path_exists(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        params = args[1]
+        path = params.path
+        params.path = self.abspath(path if path not in ["", "."] else self.curdir)
+        if self._zk.exists(params.path):
+            return func(self, params)
+        print("Path %s doesn't exist" % (path), file=self._output)
+        return False
+    return wrapper
+
+
+def check_path_absent(func):
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        params = args[1]
+        path = params.path
+        params.path = self.abspath(path if path != '' else self.curdir)
+        if not self._zk.exists(params.path):
+            return func(self, params)
+        print("Path %s already exists" % (path))
+    return wrapper
+
+
 class Shell(AugumentedCmd):
     """ main class """
-    def __init__(self, hosts=[], timeout=10, output=sys.stdout, setup_readline=True):
+    def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True):
         AugumentedCmd.__init__(self, ".kz-shell-history", setup_readline)
-        self._hosts = hosts
+        self._hosts = hosts if hosts else []
         self._connect_timeout = timeout
         self._output = output
         self._zk = None
@@ -74,39 +115,6 @@ class Shell(AugumentedCmd):
 
         if len(self._hosts) > 0: self._connect(self._hosts)
         if not self.connected: self.update_curdir("/")
-
-    def connected(f):
-        def wrapped(self, args):
-            if not self.connected:
-                print("Not connected.", file=self._output)
-            else:
-                try:
-                    return f(self, args)
-                except NoAuthError as ex:
-                    print("Not authenticated.", file=self._output)
-        wrapped.__doc__ = f.__doc__
-        return wrapped
-
-    def check_path_exists(f):
-        def wrapped(self, params):
-            path = params.path
-            params.path = self.abspath(path if path not in ["", "."] else self.curdir)
-            if self._zk.exists(params.path):
-                return f(self, params)
-            print("Path %s doesn't exist" % (path), file=self._output)
-            return False
-        wrapped.__doc__ = f.__doc__
-        return wrapped
-
-    def check_path_absent(f):
-        def wrapped(self, params):
-            path = params.path
-            params.path = self.abspath(path if path != '' else self.curdir)
-            if not self._zk.exists(params.path):
-                return f(self, params)
-            print("Path %s already exists" % (path))
-        wrapped.__doc__ = f.__doc__
-        return wrapped
 
     @connected
     @ensure_params(Required("scheme"), Required("credential"))
@@ -256,11 +264,11 @@ class Shell(AugumentedCmd):
             zk_url = self._zk.zk_url()
 
             # if these are local paths, make them absolute paths
-            if not re.match("^\w+://", params.src):
+            if not re.match(r"^\w+://", params.src):
                 params.src = "%s%s" % (zk_url, self.abspath(params.src))
                 src_connected_zk = True
 
-            if not re.match("^\w+://", params.dst):
+            if not re.match(r"^\w+://", params.dst):
                 params.dst = "%s%s" % (zk_url, self.abspath(params.dst))
                 dst_connected_zk = True
 
@@ -667,7 +675,7 @@ server=%s""" % (self._zk.state,
         offs = len(cmd_param) - len(cmd_param_text)
         path = cmd_param[:-1] if cmd_param.endswith("/") else cmd_param
 
-        if re.match("^\s*$", path):
+        if re.match(r"^\s*$", path):
             return self._zk.get_children(self.curdir)
 
         if self._zk.exists(path):
