@@ -10,74 +10,98 @@ import sys
 
 
 class BasicParam(object):
+    """ a labeled param """
     def __init__(self, label):
         self.label = label
 
     @property
     def pretty_label(self):
+        """ the label as it should be displayed in messages """
         return self.label
 
 
 class Required(BasicParam):
+    """ a required param """
     pass
 
 
 class Optional(BasicParam):
+    """ an optional param """
     @property
     def pretty_label(self):
         return "<%s>" % (self.label)
 
 
 class Multi(BasicParam):
+    """ a multi param """
     pass
 
 
 class BooleanOptional(BasicParam):
+    """ an optional boolean param """
     def __init__(self, label, default=False):
         super(BooleanOptional, self).__init__(label)
         self.default = default
 
 
 class IntegerOptional(BasicParam):
+    """ an optional integer param """
     def __init__(self, label, default=0):
         super(IntegerOptional, self).__init__(label)
         self.default = default
 
 
 class BooleanAction(argparse.Action):
+    """ used to parse boolean string params """
     def __call__(self, parser, namespace, values, option_string=None):
-        v = values if type(values) == bool else values.lower() == "true"
-        setattr(namespace, self.dest, v)
+        value = values if type(values) == bool else values.lower() == "true"
+        setattr(namespace, self.dest, value)
 
 
 class ShellParser(argparse.ArgumentParser):
-    class ParserException(Exception): pass
+    """ a cmdline parser useful for implementing shells """
+
+    class ParserException(Exception):
+        """ parser generated exception """
+        pass
 
     @classmethod
     def from_params(cls, params):
+        """ generate an instance from a list of params """
         parser = cls()
-        for p in params:
-            if isinstance(p, Required):
-                parser.add_argument(p.label)
-            elif isinstance(p, Optional):
-                parser.add_argument(p.label, nargs="?", default="")
-            elif isinstance(p, BooleanOptional):
-                parser.add_argument(p.label, nargs="?", default=p.default, action=BooleanAction)
-            elif isinstance(p, IntegerOptional):
-                parser.add_argument(p.label, nargs="?", default=p.default, type=int)
-            elif isinstance(p, Multi):
-                parser.add_argument(p.label, nargs="+")
+        for param in params:
+            if isinstance(param, Required):
+                parser.add_argument(param.label)
+            elif isinstance(param, Optional):
+                parser.add_argument(param.label, nargs="?", default="")
+            elif isinstance(param, BooleanOptional):
+                parser.add_argument(param.label, nargs="?", default=param.default, action=BooleanAction)
+            elif isinstance(param, IntegerOptional):
+                parser.add_argument(param.label, nargs="?", default=param.default, type=int)
+            elif isinstance(param, Multi):
+                parser.add_argument(param.label, nargs="+")
             else:
-                raise ValueError("Unknown parameter type: %s" % (p))
-        parser.__dict__["valid_params"] = " ".join(p.pretty_label for p in params)
+                raise ValueError("Unknown parameter type: %s" % (param))
+        parser.set_valid_params(" ".join(param.pretty_label for param in params))
         return parser
 
+    @property
+    def valid_params(self):
+        """ a string with the valid params for this parser instance """
+        return self.__dict__['_valid_params']
+
+    def set_valid_params(self, params):
+        """ sets the string list of valid params """
+        self.__dict__['_valid_params'] = params
+
     def error(self, message):
+        """ handle an error raised by ArgumentParser """
         full_msg = "Wrong params: %s, expected: %s" % (message, self.valid_params)
         raise self.ParserException(full_msg)
 
 
 def interruptible(func):
+    """ handle KeyboardInterrupt for func """
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -88,8 +112,9 @@ def interruptible(func):
 
 
 def ensure_params_with_parser(parser, func):
+    """ parse args with parser and run func """
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args):
         try:
             params = parser.parse_args(shlex.split(args[1]))
             return func(args[0], params)
@@ -99,11 +124,13 @@ def ensure_params_with_parser(parser, func):
 
 
 def ensure_params(*params):
+    """ decorates with a Parser built from params """
     parser = ShellParser.from_params(params)
     return partial(ensure_params_with_parser, parser)
 
 
 class AugumentedCmd(cmd.Cmd):
+    """ extends cmd.Cmd """
     curdir = "/"
 
     def __init__(self, hist_file_name=None, setup_readline=True):
@@ -117,7 +144,8 @@ class AugumentedCmd(cmd.Cmd):
         if not args[0].startswith("#"):  # ignore commented lines, ala Bash
             print("Unknown command: %s" % (args[0]))
 
-    def emptyline(self): pass
+    def emptyline(self):
+        pass
 
     def run(self, intro=None):
         self.intro = intro
@@ -157,13 +185,17 @@ class AugumentedCmd(cmd.Cmd):
         return ""
 
     def _setup_readline(self, hist_file_name):
-        try: import readline, atexit
-        except ImportError: return
+        try:
+            import readline, atexit
+        except ImportError:
+            return
 
         if hist_file_name is None:
             return
 
         path = os.path.join(os.environ["HOME"], hist_file_name)
-        try: readline.read_history_file(path)
-        except IOError: pass
+        try:
+            readline.read_history_file(path)
+        except IOError:
+            pass
         atexit.register(readline.write_history_file, path)
