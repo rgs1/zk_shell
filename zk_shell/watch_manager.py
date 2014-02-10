@@ -1,4 +1,4 @@
-# helper to handle watches & related stats
+""" helper to handle watches & related stats """
 
 from __future__ import print_function
 
@@ -9,12 +9,14 @@ from kazoo.exceptions import NoNodeError
 
 
 class PathStats(object):
+    """ per path stats """
     def __init__(self, debug):
         self.debug = debug
         self.paths = defaultdict(int)
 
 
 class WatchManager(object):
+    """ keep track of paths being watched """
     def __init__(self, client):
         self._client = client
         self._watching_paths = {}
@@ -68,8 +70,8 @@ class WatchManager(object):
         """
         try:
             children = self._client.get_children(path, self._watches_stats_watcher)
-            for c in children:
-                self._set_watches("%s/%s" % (path, c))
+            for child in children:
+                self._set_watches("%s/%s" % (path, child))
         except NoNodeError:
             pass
 
