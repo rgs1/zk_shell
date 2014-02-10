@@ -1,4 +1,4 @@
-# helpers to move files/dirs to and from ZK and also among ZK clusters
+""" helpers to move files/dirs to and from ZK and also among ZK clusters """
 
 from __future__ import print_function
 
@@ -32,8 +32,10 @@ DEFAULT_ZK_PORT = 2181
 
 
 def zk_client(host, username, password):
-    if not re.match(":\d+$", host):
-        hostname = "%s:%d" % (host, DEFAULT_ZK_PORT)
+    """ returns a connected (and possibly authenticated) ZK client """
+
+    if not re.match(r".*:\d+$", host):
+        host = "%s:%d" % (host, DEFAULT_ZK_PORT)
 
     client = KazooClient(hosts=host)
     client.start()
@@ -51,6 +53,7 @@ def url_join(url_root, child_path):
 
 
 class Netloc(namedtuple("Netloc", "username password host")):
+    """ network location info: host, username & password """
     @classmethod
     def from_string(cls, netloc_string):
         username = password = host = ""
@@ -66,7 +69,9 @@ class Netloc(namedtuple("Netloc", "username password host")):
         return cls(username, password, host)
 
 
-class CopyError(Exception): pass
+class CopyError(Exception):
+    """ base exception for Copy errors """
+    pass
 
 
 class PathValue(object):
@@ -95,12 +100,13 @@ class ProxyType(type):
     TYPES = {}
     SCHEME = ""
 
-    def __new__(cls, clsname, bases, dct):
-        obj = super(ProxyType, cls).__new__(cls, clsname, bases, dct)
-        if obj.SCHEME in cls.TYPES:
+    def __new__(mcs, clsname, bases, dct):
+        obj = super(ProxyType, mcs).__new__(mcs, clsname, bases, dct)
+        if obj.SCHEME in mcs.TYPES:
             raise ValueError("Duplicate scheme handler: %s" % obj.SCHEME)
 
-        if obj.SCHEME != "": cls.TYPES[obj.SCHEME] = obj
+        if obj.SCHEME != "":
+            mcs.TYPES[obj.SCHEME] = obj
         return obj
 
 
@@ -124,10 +130,10 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
     @property
     def path(self):
-        p = self.parse_result.path
-        if p == "":
+        path = self.parse_result.path
+        if path == "":
             return "/"
-        return "/" if p == "/" else p.rstrip("/")
+        return "/" if path == "/" else path.rstrip("/")
 
     @property
     def host(self):
@@ -165,7 +171,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def __enter__(self):
         pass
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, etype, value, traceback):
         pass
 
     def check_path(self):
@@ -177,7 +183,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def write_path(self, path_value):
         raise NotImplementedError("write_path must be implemented")
 
-    def children_of(self, async):
+    def children_of(self):
         raise NotImplementedError("children_of must be implemented")
 
     def copy(self, dst, recursive, max_items):
@@ -194,11 +200,11 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
             with dst:
                 self.do_copy(dst)
                 if recursive:
-                    for i, c in enumerate(self.children_of()):
+                    for i, child in enumerate(self.children_of()):
                         if max_items > 0 and i == max_items:
                             break
-                        self.set_url(url_join(src_url, c))
-                        dst.set_url(url_join(dst_url, c))
+                        self.set_url(url_join(src_url, child))
+                        dst.set_url(url_join(dst_url, child))
                         self.do_copy(dst)
 
                     # reset to base urls
@@ -225,6 +231,7 @@ class ZKProxy(Proxy):
     SCHEME = "zk"
 
     class ZKPathValue(PathValue):
+        """ handle ZK specific meta attribs (i.e.: acls) """
         def __init__(self, value, acl=None):
             PathValue.__init__(self, value)
             self._acl = acl
@@ -258,18 +265,18 @@ class ZKProxy(Proxy):
         if self.exists is not None:
             self.check_path()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, etype, value, traceback):
         self.disconnect()
 
     def check_path(self):
         retval = True if self.client.exists(self.path) else False
         if retval is not self.exists:
             if self.exists:
-                m = "znode %s in %s doesn't exist" % \
+                error = "znode %s in %s doesn't exist" % \
                     (self.path, self.host)
             else:
-                m = "znode %s in %s exists" % (self.path, self.host)
-            raise CopyError(m)
+                error = "znode %s in %s exists" % (self.path, self.host)
+            raise CopyError(error)
 
     def read_path(self):
         # TODO: propose a new ZK opcode (GetWithACLs) so we can do this in 1 rt
@@ -314,8 +321,8 @@ class ZKProxy(Proxy):
         """
         full_path = "%s/%s" % (root_path, branch_path) if branch_path else root_path
 
-        for c in self.client.get_children(full_path):
-            child_path = "%s/%s" % (branch_path, c) if branch_path else c
+        for child in self.client.get_children(full_path):
+            child_path = "%s/%s" % (branch_path, child) if branch_path else child
             stat = self.client.exists("%s/%s" % (root_path, child_path))
             if stat is None or stat.ephemeralOwner != 0:
                 continue
@@ -335,14 +342,14 @@ class FileProxy(Proxy):
 
     def check_path(self):
         if os.path.exists(self.path) is not self.exists:
-            m = "Path %s " % (self.path)
-            m += "doesn't exist" if self.exists else "exists"
-            raise CopyError(m)
+            error = "Path %s " % (self.path)
+            error += "doesn't exist" if self.exists else "exists"
+            raise CopyError(error)
 
     def read_path(self):
         if os.path.isfile(self.path):
-            with open(self.path, "r") as fp:
-                return PathValue("".join(fp.readlines()))
+            with open(self.path, "r") as fph:
+                return PathValue("".join(fph.readlines()))
         elif os.path.isdir(self.path):
             return PathValue("")
 
@@ -354,21 +361,21 @@ class FileProxy(Proxy):
         parent_dir = os.path.dirname(self.path)
         try:
             os.makedirs(parent_dir)
-        except OSError as ex:
+        except OSError:
             pass
-        with open(self.path, "w") as fp:
-            fp.write(path_value.value)
+        with open(self.path, "w") as fph:
+            fph.write(path_value.value)
 
     def children_of(self):
         root_path = self.path[0:-1] if self.path.endswith("/") else self.path
-        for path, dirs, files in os.walk(root_path):
+        for path, _, files in os.walk(root_path):
             path = path.replace(root_path, "")
             if path.startswith("/"):
                 path = path[1:]
             if path != "":
                 yield path
-            for f in files:
-                yield "%s/%s" % (path, f) if path != "" else f
+            for filename in files:
+                yield "%s/%s" % (path, filename) if path != "" else filename
 
 
 class JSONProxy(Proxy):
@@ -394,6 +401,11 @@ class JSONProxy(Proxy):
         their parent.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(JSONProxy, self).__init__(*args, **kwargs)
+        self._dirty = None
+        self._tree = None
+
     SCHEME = "json"
 
     def __enter__(self):
@@ -401,21 +413,22 @@ class JSONProxy(Proxy):
 
         self._tree = defaultdict(dict)
         if os.path.exists(self.host):
-            with open(self.host, "r") as fp:
+            with open(self.host, "r") as fph:
                 try:
-                    ondisc_tree = json.load(fp)
+                    ondisc_tree = json.load(fph)
                     self._tree.update(ondisc_tree)
-                except ValueError: pass
+                except ValueError:
+                    pass
 
         if self.exists is not None:
             self.check_path()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, etype, value, traceback):
         if not self._dirty:
             return
 
-        with open(self.host, "w") as fp:
-            json.dump(self._tree, fp, indent=4)
+        with open(self.host, "w") as fph:
+            json.dump(self._tree, fph, indent=4)
 
     @property
     def host(self):
@@ -423,9 +436,9 @@ class JSONProxy(Proxy):
 
     def check_path(self):
         if (self.path in self._tree) != self.exists:
-            m = "Path %s " % (self.path)
-            m += "doesn't exist" if self.exists else "exists"
-            raise CopyError(m)
+            error = "Path %s " % (self.path)
+            error += "doesn't exist" if self.exists else "exists"
+            raise CopyError(error)
 
     def read_path(self):
         value = b64decode(self._tree[self.path]["content"])
@@ -441,7 +454,6 @@ class JSONProxy(Proxy):
     def children_of(self):
         offs = 1 if self.path == "/" else len(self.path) + 1
         good = lambda k: k != self.path and k.startswith(self.path)
-        for c in self._tree.keys():
-            if not good(c):
-                continue
-            yield c[offs:]
+        for child in self._tree.keys():
+            if good(child):
+                yield child[offs:]
