@@ -63,21 +63,6 @@ class BasicCmdsTestCase(ShellTestCase):
 """
         self.assertEqual(expected_output, self.output.getvalue())
 
-    def test_mntr(self):
-        """ test mntr """
-        self.shell.onecmd("mntr")
-        self.assertIn("zk_server_state", self.output.getvalue())
-
-    def test_cons(self):
-        """ test cons """
-        self.shell.onecmd("cons")
-        self.assertIn("127.0.0.1", self.output.getvalue())
-
-    def test_dump(self):
-        """ test dump """
-        self.shell.onecmd("dump")
-        self.assertIn("127.0.0.1", self.output.getvalue())
-
     def test_add_auth(self):
         """ test authentication """
         self.shell.onecmd("add_auth digest super:%s" % (self.super_password))
