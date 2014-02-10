@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+""" base test case """
+
+
 import os
 import shutil
 import sys
@@ -21,6 +24,8 @@ PYTHON3 = sys.version_info > (3, )
 
 
 class ShellTestCase(unittest.TestCase):
+    """ base class for all tests """
+
     def setUp(self):
         """
         make sure that the prefix dir is empty
@@ -41,7 +46,7 @@ class ShellTestCase(unittest.TestCase):
         self.client.create(self.tests_path, str.encode(""))
 
         self.output = StringIO()
-        self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False)
+        self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False, async=False)
 
         # Create an empty test dir (needed for some tests)
         self.temp_dir = tempfile.mkdtemp()

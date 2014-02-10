@@ -21,7 +21,7 @@ class ConnectTestCase(unittest.TestCase):
         """
         self.zk_host = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
         self.output = StringIO()
-        self.shell = Shell([], 1, self.output, setup_readline=False)
+        self.shell = Shell([], 1, self.output, setup_readline=False, async=False)
 
     def tearDown(self):
         self.output = None

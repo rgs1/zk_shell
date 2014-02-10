@@ -141,7 +141,7 @@ class AugumentedCmd(cmd.Cmd):
 
     def default(self, line):
         args = shlex.split(line)
-        if not args[0].startswith("#"):  # ignore commented lines, ala Bash
+        if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
             print("Unknown command: %s" % (args[0]))
 
     def emptyline(self):

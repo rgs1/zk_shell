@@ -31,6 +31,7 @@ from functools import wraps
 import os
 import re
 import shlex
+import signal
 import sys
 import time
 import zlib
@@ -43,6 +44,7 @@ from kazoo.exceptions import (
     NotEmptyError,
     ZookeeperError,
 )
+from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 
 from .acl import ACLReader
@@ -113,13 +115,14 @@ def default_watcher(watched_event):
 # pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
-    def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True):
+    def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True, async=True):
         AugumentedCmd.__init__(self, ".kz-shell-history", setup_readline)
         self._hosts = hosts if hosts else []
         self._connect_timeout = timeout
         self._output = output
         self._zk = None
         self._read_only = False
+        self._async = async
         self.connected = False
 
         if len(self._hosts) > 0:
@@ -127,7 +130,7 @@ class Shell(AugumentedCmd):
         if not self.connected:
             self.update_curdir("/")
 
-    def _complete_path(self, cmd_param_text, full_cmd, start_idx, end_idx):
+    def _complete_path(self, cmd_param_text, full_cmd, *_):
         """ completes paths """
         pieces = shlex.split(full_cmd)
         cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
@@ -685,12 +688,29 @@ server=%s""" % (self._zk.state,
     def _connect(self, hosts):
         self._disconnect()
         self._zk = AugumentedClient(",".join(hosts), read_only=self._read_only)
+        if self._async:
+            self._connect_async()
+        else:
+            self._connect_sync()
+
+    def _connect_async(self):
+        def listener(state):
+            if state == KazooState.CONNECTED:
+                self.connected = True
+                self.update_curdir("/")
+                # hack to restart sys.stdin.readline()
+                print("", file=self.output)
+                os.kill(os.getpid(), signal.SIGUSR2)
+        self._zk.add_listener(listener)
+        self._zk.start_async()#timeout=self._connect_timeout)
+        self.update_curdir("/")
+
+    def _connect_sync(self):
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
         except self._zk.handler.timeout_exception as ex:
             print("Failed to connect: %s" % (ex), file=self._output)
-
         self.update_curdir("/")
 
     @property
