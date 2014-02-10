@@ -9,8 +9,11 @@ from kazoo.security import (
 )
 
 
-class ACLReader:
-    class BadACL(Exception): pass
+class ACLReader(object):
+    """ Helper class to parse/unparse ACLs """
+    class BadACL(Exception):
+        """ Couldn't parse the ACL """
+        pass
 
     valid_schemes = [
         "world",
@@ -23,10 +26,12 @@ class ACLReader:
 
     @classmethod
     def extract(cls, acls):
-        return list(map(cls.extract_acl, acls))
+        """ parse a str that represents a list of ACLs """
+        return [cls.extract_acl(acl) for acl in acls]
 
     @classmethod
     def extract_acl(cls, acl):
+        """ parse an individual ACL (i.e.: world:anyone:cdrwa) """
         try:
             scheme, rest = acl.split(":", 1)
             credential = ":".join(rest.split(":")[0:-1])
@@ -66,6 +71,7 @@ class ACLReader:
 
     @classmethod
     def to_dict(cls, acl):
+        """ transform an ACL to a dict """
         return {
             "perms": acl.perms,
             "id": {
@@ -75,9 +81,10 @@ class ACLReader:
         }
 
     @classmethod
-    def from_dict(cls, a):
-        perms = a.get("perms", Permissions.ALL)
-        id_dict = a.get("id", {})
+    def from_dict(cls, acl_dict):
+        """ ACL from dict """
+        perms = acl_dict.get("perms", Permissions.ALL)
+        id_dict = acl_dict.get("id", {})
         id_scheme = id_dict.get("scheme", "world")
         id_id = id_dict.get("id", "anyone")
         return ACL(perms, Id(id_scheme, id_id))
