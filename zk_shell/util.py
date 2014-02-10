@@ -2,21 +2,24 @@
 
 
 def pretty_bytes(num):
-    for x in ['', 'KB', 'MB', 'GB']:
+    """ pretty print the given number of bytes """
+    for unit in ['', 'KB', 'MB', 'GB']:
         if num < 1024.0:
-            if x == '':
-                return "%d%s" % (num, x)
+            if unit == '':
+                return "%d" % (num)
             else:
-                return "%3.1f%s" % (num, x)
+                return "%3.1f%s" % (num, unit)
         num /= 1024.0
     return "%3.1f%s" % (num, 'TB')
 
 
-def to_bool(s):
-    return s.lower() == "true"
+def to_bool(boolstr):
+    """ str to bool """
+    return boolstr.lower() == "true"
 
 
 def to_bytes(value):
+    """ str to bytes (py3k) """
     vtype = type(value)
 
     if vtype == bytes:
