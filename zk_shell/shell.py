@@ -40,6 +40,7 @@ from kazoo.exceptions import (
     BadVersionError,
     InvalidACLError,
     NoAuthError,
+    NodeExistsError,
     NoNodeError,
     NotEmptyError,
     ZookeeperError,
@@ -544,12 +545,15 @@ class Shell(AugumentedCmd):
         │   │   ├── path
         │   │   │   ├── here
         """
-        self._zk.create(params.path,
-                        params.value,
-                        acl=None,
-                        ephemeral=params.ephemeral,
-                        sequence=params.sequence,
-                        makepath=params.recursive)
+        try:
+            self._zk.create(params.path,
+                            params.value,
+                            acl=None,
+                            ephemeral=params.ephemeral,
+                            sequence=params.sequence,
+                            makepath=params.recursive)
+        except NodeExistsError:
+            print("Path %s exists" % (params.path), file=self._output)
 
     complete_create = _complete_path
 
