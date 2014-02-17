@@ -87,7 +87,7 @@ def check_path_exists(func):
         self = args[0]
         params = args[1]
         path = params.path
-        params.path = self.abspath(path if path not in ["", "."] else self.curdir)
+        params.path = self.resolve_path(path)
         if self.client.exists(params.path):
             return func(self, params)
         print("Path %s doesn't exist" % (path), file=self.output)
@@ -102,7 +102,7 @@ def check_path_absent(func):
         self = args[0]
         params = args[1]
         path = params.path
-        params.path = self.abspath(path if path != '' else self.curdir)
+        params.path = self.resolve_path(path)
         if not self.client.exists(params.path):
             return func(self, params)
         print("Path %s already exists" % (path))
@@ -142,7 +142,7 @@ class Shell(AugumentedCmd):
             return self._zk.get_children(self.curdir)
 
         if self._zk.exists(path):
-            children = self._zk.get_children(self.abspath(path))
+            children = self._zk.get_children(self.resolve_path(path))
             opts = ["%s/%s" % (path, znode) for znode in children]
         elif "/" not in path:
             znodes = self._zk.get_children(self.curdir)
@@ -312,11 +312,11 @@ class Shell(AugumentedCmd):
 
             # if these are local paths, make them absolute paths
             if not re.match(r"^\w+://", params.src):
-                params.src = "%s%s" % (zk_url, self.abspath(params.src))
+                params.src = "%s%s" % (zk_url, self.resolve_path(params.src))
                 src_connected_zk = True
 
             if not re.match(r"^\w+://", params.dst):
-                params.dst = "%s%s" % (zk_url, self.abspath(params.dst))
+                params.dst = "%s%s" % (zk_url, self.resolve_path(params.dst))
                 dst_connected_zk = True
 
         try:

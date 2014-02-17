@@ -156,8 +156,19 @@ class AugumentedCmd(cmd.Cmd):
             print("")
         sys.exit(0)
 
-    def abspath(self, path):
-        if path == "..":
+    def resolve_path(self, path):
+        """
+        transform a given relative or abbrev path into a fully resolved one
+
+        i.e.:
+          ''          -> /full/current/dir
+          '.'         -> /full/current/dir
+          '..'        -> /full/parent/dir
+          'some/path' -> /full/some/path
+        """
+        if path in ["", "."]:
+            path = self.curdir
+        elif path == "..":
             path = os.path.dirname(self.curdir)
 
         if not path.startswith("/"):
