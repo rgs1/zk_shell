@@ -503,7 +503,8 @@ class Shell(AugumentedCmd):
         WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
         """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
-        stat = self._zk.exists(params.path, **kwargs)
+        path = self.resolve_path(params.path)
+        stat = self._zk.exists(path, **kwargs)
         if stat:
             print(stat, file=self._output)
         else:
