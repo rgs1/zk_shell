@@ -29,7 +29,7 @@ def get_params():
                         default="",
                         help="Run a command non-interactively and exit")
     parser.add_argument("--sync-connect",
-                        type=bool,
+                        action="store_true",
                         default=False,
                         help="Connect syncronously.")
     parser.add_argument("hosts",
@@ -56,10 +56,11 @@ class CLI(object):
         logging.basicConfig(level=logging.ERROR)
 
         params = get_params()
+        async = False if params.sync_connect or params.run_once != "" else True
         shell = Shell(params.hosts,
                       params.connect_timeout,
                       setup_readline=params.run_once == "",
-                      async=not params.sync_connect)
+                      async=async)
 
         if params.run_once != "":
             try:
