@@ -387,7 +387,7 @@ class Shell(AugumentedCmd):
     complete_find = _complete_path
 
     @connected
-    @ensure_params(Required("path"), Required("match"))
+    @ensure_params(Optional("path"), Required("match"))
     @check_path_exists
     def do_ifind(self, params):
         """
@@ -405,7 +405,7 @@ class Shell(AugumentedCmd):
     complete_ifind = _complete_path
 
     @connected
-    @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
+    @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_grep(self, params):
         """
@@ -420,7 +420,7 @@ class Shell(AugumentedCmd):
     complete_grep = _complete_path
 
     @connected
-    @ensure_params(Required("path"), Required("content"), BooleanOptional("show_matches"))
+    @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
     @check_path_exists
     def do_igrep(self, params):
         """

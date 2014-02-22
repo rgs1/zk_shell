@@ -124,7 +124,12 @@ class AugumentedClient(KazooClient):
 
     def do_find(self, path, match, check_match):
         """ find's work horse """
-        for child in self.get_children(path):
+        try:
+            children = self.get_children(path)
+        except (NoNodeError, NoAuthError):
+            children = []
+
+        for child in children:
             check = check_match
             full_path = os.path.join(path, child)
             if check:
@@ -134,7 +139,8 @@ class AugumentedClient(KazooClient):
             else:
                 yield full_path
 
-            self.do_find(full_path, match, check)
+            for fpath in self.do_find(full_path, match, check):
+                yield fpath
 
     def grep(self, path, content, flags):
         """ grep every child path under path for content """
@@ -149,9 +155,17 @@ class AugumentedClient(KazooClient):
 
     def do_grep(self, path, match):
         """ grep's work horse """
-        for child in self.get_children(path):
+        try:
+            children = self.get_children(path)
+        except (NoNodeError, NoAuthError):
+            children = []
+
+        for child in children:
             full_path = os.path.join(path, child)
-            value, _ = self.get(full_path)
+            try:
+                value, _ = self.get(full_path)
+            except (NoNodeError, NoAuthError):
+                value = ""
             matches = []
 
             for line in value.split("\n"):
