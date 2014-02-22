@@ -8,7 +8,7 @@ import socket
 import sre_constants
 
 from kazoo.client import KazooClient
-from kazoo.exceptions import NoNodeError
+from kazoo.exceptions import NoAuthError, NoNodeError
 
 from .util import to_bytes
 
@@ -178,7 +178,7 @@ class AugumentedClient(KazooClient):
         """ tree's work horse """
         try:
             children = self.get_children(path)
-        except NoNodeError:
+        except (NoNodeError, NoAuthError):
             children = []
 
         for child in children:
