@@ -160,3 +160,13 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("get %s/one" % (self.tests_path))
         expected_output = "b'some value'\n" if PYTHON3 else "some value\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_child_count(self):
+        """ test child count for a given path """
+        self.shell.onecmd("create %s/something ''" % (self.tests_path))
+        self.shell.onecmd("create %s/something/else ''" % (self.tests_path))
+        self.shell.onecmd("create %s/something/else/entirely ''" % (self.tests_path))
+        self.shell.onecmd("create %s/something/else/entirely/child ''" % (self.tests_path))
+        self.shell.onecmd("child_count %s/something" % (self.tests_path))
+        expected_output = u"%s/something/else: 2\n" % (self.tests_path)
+        self.assertEqual(expected_output, self.output.getvalue())

@@ -363,6 +363,25 @@ class Shell(AugumentedCmd):
     complete_tree = _complete_path
 
     @connected
+    @interruptible
+    @ensure_params(Optional("path"), IntegerOptional("path_depth", 1))
+    @check_path_exists
+    def do_child_count(self, params):
+        """
+        prints the child count for paths, of depth <path_depth>, under the given <path>.
+        the default <path_depth> is 1.
+        examples:
+        child-count /
+        /zookeeper: 2
+        /foo: 0
+        /bar: 3
+        """
+        for child, level in self._zk.tree(params.path, params.path_depth, full_path=True):
+            self.do_output("%s: %d", child, self._zk.child_count(child))
+
+    complete_child_count = _complete_path
+
+    @connected
     @ensure_params(Optional("path"))
     @check_path_exists
     def do_du(self, params):

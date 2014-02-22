@@ -178,17 +178,26 @@ class AugumentedClient(KazooClient):
             for mpath, matches in self.do_grep(full_path, match):
                 yield (mpath, matches)
 
-    def tree(self, path, max_depth, full_path=False):
+    def child_count(self, path):
+        stat = self.stat(path)
+        count = stat.numChildren
+        for _, _, stat in self.tree(path, 0, include_stat=True):
+            if stat:
+                count += stat.numChildren
+        return count
+
+    def tree(self, path, max_depth, full_path=False, include_stat=False):
         """DFS generator which starts from a given path and goes up to a max depth.
 
         :param path: path from which the DFS will start
         :param max_depth: max depth of DFS (0 means no limit)
         :param full_path: should the full path of the child node be returned
+        :param include_stat: return the child Znode's stat along with the name & level
         """
-        for child, level in self.do_tree(path, max_depth, 0, full_path):
-            yield child, level
+        for child_level_stat in self.do_tree(path, max_depth, 0, full_path, include_stat):
+            yield child_level_stat
 
-    def do_tree(self, path, max_depth, level, full_path):
+    def do_tree(self, path, max_depth, level, full_path, include_stat):
         """ tree's work horse """
         try:
             children = self.get_children(path)
@@ -196,16 +205,25 @@ class AugumentedClient(KazooClient):
             children = []
 
         for child in children:
-            if full_path:
-                cpath = u"%s/%s" % (path.rstrip("/"), child)
-                yield cpath, level
+            cpath = u"%s/%s" % (path.rstrip("/"), child) if full_path else child
+            if include_stat:
+                stat_path = str(u"%s/%s" % (path.rstrip("/"), child))
+                yield cpath, level, self.stat(stat_path)
             else:
-                yield child, level
+                yield cpath, level
 
             if max_depth == 0 or level + 1 < max_depth:
                 cpath = u"%s/%s" % (path.rstrip("/"), child)
-                for rchild, rlevel in self.do_tree(cpath, max_depth, level + 1, full_path):
-                    yield rchild, rlevel
+                for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
+                    yield rchild_rlevel_rstat
+
+    def stat(self, path):
+        """ safely gets the Znode's Stat """
+        try:
+            stat = self.exists(str(path))
+        except (NoNodeError, NoAuthError):
+            stat = None
+        return stat
 
     def mntr(self, host=None):
         """ send an mntr cmd to either host or the connected server """
