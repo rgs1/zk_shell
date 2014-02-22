@@ -83,7 +83,7 @@ class AugumentedClient(KazooClient):
         try:
             for child in self.get_children(path):
                 total += self.du(os.path.join(path, child))
-        except NoNodeError:
+        except (NoNodeError, NoAuthError):
             pass
 
         return total
