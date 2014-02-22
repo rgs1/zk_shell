@@ -8,6 +8,12 @@ import os
 import shlex
 import sys
 
+try:
+    import readline
+    HAVE_READLINE = True
+except ImportError:
+    HAVE_READLINE = False
+
 
 class BasicParam(object):
     """ a labeled param """
@@ -142,7 +148,10 @@ class AugumentedCmd(cmd.Cmd):
     def default(self, line):
         args = shlex.split(line)
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
-            print("Unknown command: %s" % (args[0]))
+            if args[0] == "!!":
+                self.onecmd(self.last_command)
+            else:
+                print("Unknown command: %s" % (args[0]))
 
     def emptyline(self):
         pass
@@ -195,13 +204,16 @@ class AugumentedCmd(cmd.Cmd):
     def state(self):
         return ""
 
-    def _setup_readline(self, hist_file_name):
-        try:
-            import readline, atexit
-        except ImportError:
-            return
+    @property
+    def last_command(self):
+        if not HAVE_READLINE:
+            return ""
 
-        if hist_file_name is None:
+        cur_size = readline.get_current_history_length()
+        return readline.get_history_item(cur_size - 1)
+
+    def _setup_readline(self, hist_file_name):
+        if not HAVE_READLINE or hist_file_name is None:
             return
 
         path = os.path.join(os.environ["HOME"], hist_file_name)
@@ -209,4 +221,6 @@ class AugumentedCmd(cmd.Cmd):
             readline.read_history_file(path)
         except IOError:
             pass
+
+        import atexit
         atexit.register(readline.write_history_file, path)
