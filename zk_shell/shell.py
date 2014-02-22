@@ -71,12 +71,12 @@ def connected(func):
     def wrapper(*args, **kwargs):
         self = args[0]
         if not self.connected:
-            print("Not connected.", file=self.output)
+            self.do_output("Not connected.")
         else:
             try:
                 return func(*args, **kwargs)
             except NoAuthError:
-                print("Not authenticated.", file=self.output)
+                self.do_output("Not authenticated.")
     return wrapper
 
 
@@ -90,7 +90,7 @@ def check_path_exists(func):
         params.path = self.resolve_path(path)
         if self.client.exists(params.path):
             return func(self, params)
-        print("Path %s doesn't exist" % (path), file=self.output)
+        self.do_output("Path %s doesn't exist", path)
         return False
     return wrapper
 
@@ -105,7 +105,7 @@ def check_path_absent(func):
         params.path = self.resolve_path(path)
         if not self.client.exists(params.path):
             return func(self, params)
-        print("Path %s already exists" % (path))
+        self.do_output("Path %s already exists", path)
     return wrapper
 
 
@@ -113,14 +113,16 @@ def default_watcher(watched_event):
     print(str(watched_event))
 
 
+HISTORY_FILENAME = ".kz-shell-history"
+
+
 # pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
     def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True, async=True):
-        AugumentedCmd.__init__(self, ".kz-shell-history", setup_readline)
+        AugumentedCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = timeout
-        self._output = output
         self._zk = None
         self._read_only = False
         self._async = async
@@ -160,11 +162,6 @@ class Shell(AugumentedCmd):
         """ the connected ZK client, if any """
         return self._zk
 
-    @property
-    def output(self):
-        """ the io output object """
-        return self._output
-
     @connected
     @ensure_params(Required("scheme"), Required("credential"))
     def do_add_auth(self, params):
@@ -188,13 +185,13 @@ class Shell(AugumentedCmd):
         try:
             acls = ACLReader.extract(params.acls)
         except ACLReader.BadACL as ex:
-            print("Failed to set ACLs: %s." % (ex), file=self._output)
+            self.do_output("Failed to set ACLs: %s.", ex)
             return
 
         try:
             self._zk.set_acls(params.path, acls)
         except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
-            print("Failed to set ACLs: %s. Error: %s" % (str(acls), str(ex)), file=self._output)
+            self.do_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
 
     complete_set_acls = _complete_path
 
@@ -229,7 +226,7 @@ class Shell(AugumentedCmd):
         for path, acls in self._zk.get_acls_recursive(params.path, params.depth, params.ephemerals):
             replace(acls, READ_ACL_UNSAFE[0], "WORLD_READ")
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
-            print("%s: %s" % (path, acls), file=self._output)
+            self.do_output("%s: %s", path, acls)
 
     complete_get_acls = _complete_path
 
@@ -239,7 +236,7 @@ class Shell(AugumentedCmd):
     def do_ls(self, params):
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
-        print(" ".join(znodes), file=self._output)
+        self.do_output(" ".join(znodes))
 
     complete_ls = _complete_path
 
@@ -335,7 +332,7 @@ class Shell(AugumentedCmd):
 
             src.copy(dst, params.recursive, params.max_items)
         except CopyError as ex:
-            print(str(ex), file=self._output)
+            self.do_output(str(ex))
 
     complete_cp = _complete_path
 
@@ -359,9 +356,9 @@ class Shell(AugumentedCmd):
         ├── foo
         ├── bar
         """
-        print(".", file=self._output)
+        self.do_output(".")
         for child, level in self._zk.tree(params.path, params.max_depth):
-            print(u"%s├── %s" % (u"│   " * level, child), file=self._output)
+            self.do_output(u"%s├── %s", u"│   " * level, child)
 
     complete_tree = _complete_path
 
@@ -369,7 +366,7 @@ class Shell(AugumentedCmd):
     @ensure_params(Optional("path"))
     @check_path_exists
     def do_du(self, params):
-        print(pretty_bytes(self._zk.du(params.path)), file=self._output)
+        self.do_output(pretty_bytes(self._zk.du(params.path)))
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
@@ -385,7 +382,7 @@ class Shell(AugumentedCmd):
         /copy/foo
         """
         for path in self._zk.find(params.path, params.match, 0):
-            print(path, file=self._output)
+            self.do_output(path)
 
     complete_find = _complete_path
 
@@ -403,7 +400,7 @@ class Shell(AugumentedCmd):
         /copy/Foo
         """
         for path in self._zk.find(params.path, params.match, re.IGNORECASE):
-            print(path, file=self._output)
+            self.do_output(path)
 
     complete_ifind = _complete_path
 
@@ -440,11 +437,11 @@ class Shell(AugumentedCmd):
     def grep(self, path, content, flags, show_matches):
         for path, matches in self._zk.grep(path, content, flags):
             if show_matches:
-                print("%s:" % (path), file=self._output)
+                self.do_output("%s:", path)
                 for match in matches:
-                    print(match, file=self._output)
+                    self.do_output(match)
             else:
-                print(path, file=self._output)
+                self.do_output(path)
 
     @connected
     @ensure_params(Required("path"))
@@ -481,7 +478,7 @@ class Shell(AugumentedCmd):
         except (zlib.error, TypeError):
             pass
 
-        print(value, file=self._output)
+        self.do_output(value)
 
     complete_get = _complete_path
 
@@ -506,9 +503,9 @@ class Shell(AugumentedCmd):
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
         if stat:
-            print(stat, file=self._output)
+            self.do_output(stat)
         else:
-            print("Path %s doesn't exist" % (params.path), file=self._output)
+            self.do_output("Path %s doesn't exist", params.path)
 
     complete_exists = _complete_path
 
@@ -554,7 +551,7 @@ class Shell(AugumentedCmd):
                             sequence=params.sequence,
                             makepath=params.recursive)
         except NodeExistsError:
-            print("Path %s exists" % (params.path), file=self._output)
+            self.do_output("Path %s exists", params.path)
 
     complete_create = _complete_path
 
@@ -579,7 +576,7 @@ class Shell(AugumentedCmd):
         try:
             self._zk.delete(params.path)
         except NotEmptyError:
-            print("%s is not empty." % (params.path))
+            self.do_output("%s is not empty.", params.path)
 
     complete_rm = _complete_path
 
@@ -596,40 +593,41 @@ class Shell(AugumentedCmd):
         timeout=10000
         server=('127.0.0.1', 2181)
         """
-        print(
-"""state=%s
+        fmt_str = """state=%s
 xid=%d
 last_zxid=%d
 timeout=%d
-server=%s""" % (self._zk.state,
-                self._zk.xid,
-                self._zk.last_zxid,
-                self._zk.session_timeout,
-                self._zk.server), file=self._output)
+server=%s"""
+        self.do_output(fmt_str,
+                       self._zk.state,
+                       self._zk.xid,
+                       self._zk.last_zxid,
+                       self._zk.session_timeout,
+                       self._zk.server)
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.mntr(host), file=self._output)
+            self.do_output(self._zk.mntr(host))
         except AugumentedClient.CmdFailed as ex:
-            print(ex)
+            self.do_output(ex)
 
     @ensure_params(Optional("host"))
     def do_cons(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.cons(host), file=self._output)
+            self.do_output(self._zk.cons(host))
         except AugumentedClient.CmdFailed as ex:
-            print(ex)
+            self.do_output(ex)
 
     @ensure_params(Optional("host"))
     def do_dump(self, params):
         host = params.host if params.host != "" else None
         try:
-            print(self._zk.dump(host), file=self._output)
+            self.do_output(self._zk.dump(host))
         except AugumentedClient.CmdFailed as ex:
-            print(ex)
+            self.do_output(ex)
 
     @connected
     @ensure_params(Required("path"))
@@ -673,7 +671,7 @@ server=%s""" % (self._zk.state,
 
     @connected
     def do_pwd(self, args):
-        print("%s" % (self.curdir))
+        self.do_output("%s", self.curdir)
 
     def do_EOF(self, *args):
         self._exit(True)
@@ -704,7 +702,7 @@ server=%s""" % (self._zk.state,
                 self.connected = True
                 self.update_curdir("/")
                 # hack to restart sys.stdin.readline()
-                print("", file=self.output)
+                self.do_output("")
                 os.kill(os.getpid(), signal.SIGUSR2)
         self._zk.add_listener(listener)
         self._zk.start_async()#timeout=self._connect_timeout)
@@ -715,7 +713,7 @@ server=%s""" % (self._zk.state,
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
         except self._zk.handler.timeout_exception as ex:
-            print("Failed to connect: %s" % (ex), file=self._output)
+            self.do_output("Failed to connect: %s", ex)
         self.update_curdir("/")
 
     @property

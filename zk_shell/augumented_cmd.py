@@ -15,6 +15,9 @@ except ImportError:
     HAVE_READLINE = False
 
 
+PYTHON3 = sys.version_info > (3, )
+
+
 class BasicParam(object):
     """ a labeled param """
     def __init__(self, label):
@@ -135,23 +138,55 @@ def ensure_params(*params):
     return partial(ensure_params_with_parser, parser)
 
 
+MAX_OUTPUT = 1 << 20
+
+
 class AugumentedCmd(cmd.Cmd):
     """ extends cmd.Cmd """
     curdir = "/"
 
-    def __init__(self, hist_file_name=None, setup_readline=True):
+    def __init__(self, hist_file_name=None, setup_readline=True, output_io=sys.stdout):
         cmd.Cmd.__init__(self)
+
+        self._output = output_io
+        self._last_output = ""
 
         if setup_readline:
             self._setup_readline(hist_file_name)
 
+        # special commands dispatch map
+        self._special_commands = {
+            "!!": self.run_last_command,
+            "$?": self.echo_last_output,
+        }
+
+    @property
+    def output(self):
+        """ the io output object """
+        return self._output
+
+    def do_output(self, fmt_str, *params):
+        """ MAX_OUTPUT chars of the last output is available via $? """
+        if PYTHON3:
+            fmt_str = str(fmt_str)
+        out = fmt_str % params
+        self._last_output = out if len(out) < MAX_OUTPUT else out[:MAX_OUTPUT]
+        print(out, file=self._output)
+
     def default(self, line):
         args = shlex.split(line)
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
-            if args[0] == "!!":
-                self.onecmd(self.last_command)
+            cmd = self._special_commands.get(args[0])
+            if cmd:
+                cmd(args[1:])
             else:
                 print("Unknown command: %s" % (args[0]))
+
+    def run_last_command(self, *args):
+        self.onecmd(self.last_command)
+
+    def echo_last_output(self, *args):
+        print(self._last_output, file=self._output)
 
     def emptyline(self):
         pass
