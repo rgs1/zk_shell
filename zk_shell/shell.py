@@ -571,6 +571,9 @@ class Shell(AugumentedCmd):
                             makepath=params.recursive)
         except NodeExistsError:
             self.do_output("Path %s exists", params.path)
+        except NoNodeError:
+            self.do_output("Part of the parent path for %s doesn't exist (try recursive)",
+                           params.path)
 
     complete_create = _complete_path
 
