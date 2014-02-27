@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 from base64 import b64decode, b64encode
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import json
 import os
 import re
@@ -25,13 +25,13 @@ from kazoo.exceptions import (
 
 from .acl import ACLReader
 from .async_walker import AsyncWalker
-from .util import to_bytes
+from .util import Netloc, to_bytes
 
 
 DEFAULT_ZK_PORT = 2181
 
 
-def zk_client(host, username, password):
+def zk_client(host, scheme, credential):
     """ returns a connected (and possibly authenticated) ZK client """
 
     if not re.match(r".*:\d+$", host):
@@ -40,33 +40,14 @@ def zk_client(host, username, password):
     client = KazooClient(hosts=host)
     client.start()
 
-    # TODO: handle more than just digest
-    # TODO: add_auth() isn't truly synchronous!
-    if username != "":
-        client.add_auth("digest", "%s:%s" % (username, password))
+    if scheme != "":
+        client.add_auth(scheme, credential)
 
     return client
 
 
 def url_join(url_root, child_path):
     return "%s/%s" % (url_root.rstrip("/"), child_path)
-
-
-class Netloc(namedtuple("Netloc", "username password host")):
-    """ network location info: host, username & password """
-    @classmethod
-    def from_string(cls, netloc_string):
-        username = password = host = ""
-        if not "@" in netloc_string:
-            host = netloc_string
-        else:
-            username_passwd, host =  netloc_string.rsplit("@", 1)
-            if ":" in username_passwd:
-                username, password = username_passwd.split(":", 1)
-            else:
-                username = username_passwd
-
-        return cls(username, password, host)
 
 
 class CopyError(Exception):
@@ -140,12 +121,12 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         return self.netloc.host
 
     @property
-    def username(self):
-        return self.netloc.username
+    def auth_scheme(self):
+        return self.netloc.scheme
 
     @property
-    def password(self):
-        return self.netloc.password
+    def auth_credential(self):
+        return self.netloc.credential
 
     def set_url(self, string):
         """ useful for recycling a stateful proxy """
@@ -252,7 +233,7 @@ class ZKProxy(Proxy):
 
     def connect(self):
         if self.need_client:
-            self.client = zk_client(self.host, self.username, self.password)
+            self.client = zk_client(self.host, self.auth_scheme, self.auth_credential)
 
     def disconnect(self):
         if self.need_client:

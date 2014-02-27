@@ -62,7 +62,7 @@ from .augumented_cmd import (
 )
 from .copy import CopyError, Proxy
 from .watch_manager import get_watch_manager
-from .util import pretty_bytes, to_bool
+from .util import Netloc, pretty_bytes, to_bool
 
 
 def connected(func):
@@ -710,9 +710,32 @@ server=%s"""
             self._zk = None
         self.connected = False
 
-    def _connect(self, hosts):
+    def _connect(self, hosts_list):
+        """
+        In the basic case, hostsp is a list of hosts like:
+
+        ```
+        [10.0.0.2:2181, 10.0.0.3:2181]
+        ```
+
+        It might also contain auth info:
+
+        ```
+        [digest:foo:bar@10.0.0.2:2181, 10.0.0.3:2181]
+        ```
+        """
         self._disconnect()
-        self._zk = AugumentedClient(",".join(hosts), read_only=self._read_only)
+        auth_data = []
+        hosts = []
+        for auth_host in hosts_list:
+            nl = Netloc.from_string(auth_host)
+            hosts.append(nl.host)
+            if nl.scheme != "":
+                auth_data.append((nl.scheme, nl.credential))
+
+        self._zk = AugumentedClient(",".join(hosts),
+                                    read_only=self._read_only,
+                                    auth_data=auth_data if len(auth_data) > 0 else None)
         if self._async:
             self._connect_async()
         else:

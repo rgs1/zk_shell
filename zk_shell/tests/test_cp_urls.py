@@ -15,8 +15,8 @@ class CpUrlsTestCase(unittest.TestCase):
         self.assertEqual(pro.url, "zk://localhost:2181/")
         self.assertEqual(pro.path, "/")
         self.assertEqual(pro.host, "localhost:2181")
-        self.assertEqual(pro.username, "")
-        self.assertEqual(pro.password, "")
+        self.assertEqual(pro.auth_scheme, "")
+        self.assertEqual(pro.auth_credential, "")
 
     def test_trailing_slash(self):
         """ trailing slash shouldn't be in the path """

@@ -1,5 +1,7 @@
 """ helpers """
 
+from collections import namedtuple
+
 
 def pretty_bytes(num):
     """ pretty print the given number of bytes """
@@ -30,3 +32,23 @@ def to_bytes(value):
     except UnicodeDecodeError:
         pass
     return value
+
+
+class Netloc(namedtuple("Netloc", "host scheme credential")):
+    """
+    network location info: host, scheme and credential
+    """
+    @classmethod
+    def from_string(cls, netloc_string):
+        host = scheme = credential = ""
+        if not "@" in netloc_string:
+            host = netloc_string
+        else:
+            scheme_credential, host =  netloc_string.rsplit("@", 1)
+
+            if ":" not in scheme_credential:
+                raise ValueError("Malformed scheme/credential (must be scheme:credential)")
+
+            scheme, credential = scheme_credential.split(":", 1)
+
+        return cls(host, scheme, credential)
