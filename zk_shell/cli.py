@@ -28,6 +28,10 @@ def get_params():
                         type=str,
                         default="",
                         help="Run a command non-interactively and exit")
+    parser.add_argument("--run-from-stdin",
+                        action="store_true",
+                        default=False,
+                        help="Read cmds from stdin, run them and exit")
     parser.add_argument("--sync-connect",
                         action="store_true",
                         default=False,
@@ -56,17 +60,26 @@ class CLI(object):
         logging.basicConfig(level=logging.ERROR)
 
         params = get_params()
-        async = False if params.sync_connect or params.run_once != "" else True
+        interactive = params.run_once == "" and not params.run_from_stdin
+        async = False if params.sync_connect or not interactive else True
         shell = Shell(params.hosts,
                       params.connect_timeout,
-                      setup_readline=params.run_once == "",
+                      setup_readline=interactive,
                       async=async)
 
-        if params.run_once != "":
+        if not interactive:
+            rc = 0
             try:
-                sys.exit(0 if shell.onecmd(params.run_once) == None else 1)
+                if params.run_once != "":
+                    rc = 0 if shell.onecmd(params.run_once) == None else 1
+                else:
+                    rc = 0
+                    for cmd in sys.stdin.readlines():
+                        shell.onecmd(cmd.rstrip())
             except IOError:
-                sys.exit(1)
+                rc = 1
+
+            sys.exit(rc)
 
         if not params.sync_connect:
             signal.signal(signal.SIGUSR2, sigusr_handler)
