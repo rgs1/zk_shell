@@ -4,4 +4,4 @@ from zk_shell.cli import CLI
 
 
 if __name__ == "__main__":
-    CLI().run()
+    CLI()()

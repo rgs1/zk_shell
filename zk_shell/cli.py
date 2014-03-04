@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import argparse
+from collections import namedtuple
 import logging
 import signal
 import sys
@@ -15,6 +16,25 @@ try:
     raw_input
 except NameError:
     raw_input = input
+
+
+class CLIParams(
+        namedtuple("CLIParams",
+                   "connect_timeout run_once run_from_stdin sync_connect hosts")):
+    """
+    This defines the running params for a CLI() object. If you'd like to do parameters processing
+    from some other point you'll need to fill up an instance of this class and pass it to
+    CLI()(), i.e.:
+
+    ```
+      params = parmas_from_argv()
+      clip = CLIParams(params.connect_timeout, ...)
+      cli = CLI()
+      cli(clip)
+    ```
+
+    """
+    pass
 
 
 def get_params():
@@ -39,7 +59,13 @@ def get_params():
     parser.add_argument("hosts",
                         nargs="*",
                         help="ZK hosts to connect")
-    return parser.parse_args()
+    params = parser.parse_args()
+    return CLIParams(
+        params.connect_timeout,
+        params.run_once,
+        params.run_from_stdin,
+        params.sync_connect,
+        params.hosts)
 
 
 class StateTransition(Exception):
@@ -55,11 +81,13 @@ def sigusr_handler(*_):
 class CLI(object):
     """ the REPL """
 
-    def run(self):
+    def __call__(self, params=None):
         """ parse params & loop forever """
         logging.basicConfig(level=logging.ERROR)
 
-        params = get_params()
+        if params is None:
+            params = get_params()
+
         interactive = params.run_once == "" and not params.run_from_stdin
         async = False if params.sync_connect or not interactive else True
         shell = Shell(params.hosts,
