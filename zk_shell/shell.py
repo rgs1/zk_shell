@@ -522,7 +522,7 @@ class Shell(AugumentedCmd):
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
         if stat:
-            self.do_output(stat)
+            self.do_output(str(stat))
         else:
             self.do_output("Path %s doesn't exist", params.path)
 
