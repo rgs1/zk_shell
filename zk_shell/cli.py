@@ -78,6 +78,22 @@ def sigusr_handler(*_):
     raise StateTransition()
 
 
+def set_unbuffered_mode():
+    """
+    make output unbuffered
+    """
+    class Unbuffered(object):
+        def __init__(self, stream):
+            self.stream = stream
+        def write(self, data):
+            self.stream.write(data)
+            self.stream.flush()
+        def __getattr__(self, attr):
+            return getattr(self.stream, attr)
+
+    sys.stdout = Unbuffered(sys.stdout)
+
+
 class CLI(object):
     """ the REPL """
 
@@ -90,9 +106,14 @@ class CLI(object):
 
         interactive = params.run_once == "" and not params.run_from_stdin
         async = False if params.sync_connect or not interactive else True
+
+        if not interactive:
+            set_unbuffered_mode()
+
         shell = Shell(params.hosts,
                       params.connect_timeout,
                       setup_readline=interactive,
+                      output=sys.stdout,
                       async=async)
 
         if not interactive:
