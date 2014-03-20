@@ -119,10 +119,10 @@ HISTORY_FILENAME = ".kz-shell-history"
 # pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
-    def __init__(self, hosts=None, timeout=10, output=sys.stdout, setup_readline=True, async=True):
+    def __init__(self, hosts=None, timeout=10.0, output=sys.stdout, setup_readline=True, async=True):
         AugumentedCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
         self._hosts = hosts if hosts else []
-        self._connect_timeout = timeout
+        self._connect_timeout = float(timeout)
         self._zk = None
         self._read_only = False
         self._async = async
@@ -735,6 +735,7 @@ server=%s"""
 
         self._zk = AugumentedClient(",".join(hosts),
                                     read_only=self._read_only,
+                                    timeout=self._connect_timeout,
                                     auth_data=auth_data if len(auth_data) > 0 else None)
         if self._async:
             self._connect_async()
@@ -750,7 +751,7 @@ server=%s"""
                 self.do_output("")
                 os.kill(os.getpid(), signal.SIGUSR2)
         self._zk.add_listener(listener)
-        self._zk.start_async()#timeout=self._connect_timeout)
+        self._zk.start_async()
         self.update_curdir("/")
 
     def _connect_sync(self):
