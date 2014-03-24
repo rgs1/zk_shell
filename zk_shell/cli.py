@@ -20,7 +20,7 @@ except NameError:
 
 class CLIParams(
         namedtuple("CLIParams",
-                   "connect_timeout run_once run_from_stdin sync_connect hosts")):
+                   "connect_timeout run_once run_from_stdin sync_connect hosts readonly")):
     """
     This defines the running params for a CLI() object. If you'd like to do parameters processing
     from some other point you'll need to fill up an instance of this class and pass it to
@@ -56,6 +56,10 @@ def get_params():
                         action="store_true",
                         default=False,
                         help="Connect syncronously.")
+    parser.add_argument("--readonly",
+                        action="store_true",
+                        default=False,
+                        help="Enable readonly.")
     parser.add_argument("hosts",
                         nargs="*",
                         help="ZK hosts to connect")
@@ -65,7 +69,8 @@ def get_params():
         params.run_once,
         params.run_from_stdin,
         params.sync_connect,
-        params.hosts)
+        params.hosts,
+        params.readonly)
 
 
 class StateTransition(Exception):
@@ -114,7 +119,8 @@ class CLI(object):
                       params.connect_timeout,
                       setup_readline=interactive,
                       output=sys.stdout,
-                      async=async)
+                      async=async,
+                      read_only=params.readonly)
 
         if not interactive:
             rc = 0

@@ -43,6 +43,7 @@ from kazoo.exceptions import (
     NodeExistsError,
     NoNodeError,
     NotEmptyError,
+    NotReadOnlyCallError,
     ZookeeperError,
 )
 from kazoo.protocol.states import KazooState
@@ -119,13 +120,19 @@ HISTORY_FILENAME = ".kz-shell-history"
 # pylint: disable=R0904
 class Shell(AugumentedCmd):
     """ main class """
-    def __init__(self, hosts=None, timeout=10.0, output=sys.stdout, setup_readline=True, async=True):
+    def __init__(self,
+                 hosts=None,
+                 timeout=10.0,
+                 output=sys.stdout,
+                 setup_readline=True,
+                 async=True,
+                 read_only=False):
         AugumentedCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
-        self._zk = None
-        self._read_only = False
+        self._read_only = read_only
         self._async = async
+        self._zk = None
         self.connected = False
 
         if len(self._hosts) > 0:
@@ -574,6 +581,8 @@ class Shell(AugumentedCmd):
         except NoNodeError:
             self.do_output("Part of the parent path for %s doesn't exist (try recursive)",
                            params.path)
+        except NotReadOnlyCallError:
+            self.do_output("Not a read-only operation")
 
     complete_create = _complete_path
 
@@ -587,7 +596,10 @@ class Shell(AugumentedCmd):
         example:
         set /foo 'bar'
         """
-        self._zk.set(params.path, params.value)
+        try:
+            self._zk.set(params.path, params.value)
+        except NotReadOnlyCallError:
+            self.do_output("Not a read-only operation")
 
     complete_set = _complete_path
 
@@ -599,6 +611,8 @@ class Shell(AugumentedCmd):
             self._zk.delete(params.path)
         except NotEmptyError:
             self.do_output("%s is not empty.", params.path)
+        except NotReadOnlyCallError:
+            self.do_output("Not a read-only operation")
 
     complete_rm = _complete_path
 
@@ -621,7 +635,7 @@ last_zxid=%d
 timeout=%d
 server=%s"""
         self.do_output(fmt_str,
-                       self._zk.state,
+                       self._zk.client_state,
                        self._zk.xid,
                        self._zk.last_zxid,
                        self._zk.session_timeout,
@@ -661,7 +675,10 @@ server=%s"""
         example:
         rmr /foo
         """
-        self._zk.delete(params.path, recursive=True)
+        try:
+            self._zk.delete(params.path, recursive=True)
+        except NotReadOnlyCallError:
+            self.do_output("Not a read-only operation")
 
     complete_rmr = _complete_path
 
@@ -744,12 +761,12 @@ server=%s"""
 
     def _connect_async(self):
         def listener(state):
-            if state == KazooState.CONNECTED:
-                self.connected = True
-                self.update_curdir("/")
-                # hack to restart sys.stdin.readline()
-                self.do_output("")
-                os.kill(os.getpid(), signal.SIGUSR2)
+            self.connected = state == KazooState.CONNECTED
+            self.update_curdir("/")
+            # hack to restart sys.stdin.readline()
+            self.do_output("")
+            os.kill(os.getpid(), signal.SIGUSR2)
+
         self._zk.add_listener(listener)
         self._zk.start_async()
         self.update_curdir("/")
@@ -764,4 +781,4 @@ server=%s"""
 
     @property
     def state(self):
-        return "(%s) " % (self._zk.state if self._zk else "DISCONNECTED")
+        return "(%s) " % (self._zk.client_state if self._zk else "DISCONNECTED")
