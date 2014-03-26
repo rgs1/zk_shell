@@ -630,12 +630,16 @@ class Shell(AugumentedCmd):
         server=('127.0.0.1', 2181)
         """
         fmt_str = """state=%s
+sessionid=%s
+protocol_version=%d
 xid=%d
 last_zxid=%d
 timeout=%d
 server=%s"""
         self.do_output(fmt_str,
                        self._zk.client_state,
+                       self._zk.sessionid,
+                       self._zk.protocol_version,
                        self._zk.xid,
                        self._zk.last_zxid,
                        self._zk.session_timeout,

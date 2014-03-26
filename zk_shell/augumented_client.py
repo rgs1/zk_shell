@@ -45,6 +45,17 @@ class AugumentedClient(KazooClient):
         conn = self._connection
         return conn._socket.getpeername() if conn else ""
 
+    @property
+    def sessionid(self):
+        return "0x%x" % (getattr(self, "_session_id", 0))
+
+    @property
+    def protocol_version(self):
+        """ this depends on https://github.com/python-zk/kazoo/pull/182,
+            so play conservatively
+        """
+        return getattr(self, "_protocol_version", 0)
+
     def get(self, *args, **kwargs):
         """ wraps the default get() and deals with encoding """
         value, stat = super(AugumentedClient, self).get(*args, **kwargs)
