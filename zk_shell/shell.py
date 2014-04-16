@@ -651,7 +651,7 @@ server=%s"""
         try:
             self.do_output(self._zk.mntr(host))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(ex)
+            self.do_output(str(ex))
 
     @ensure_params(Optional("host"))
     def do_cons(self, params):
@@ -659,7 +659,7 @@ server=%s"""
         try:
             self.do_output(self._zk.cons(host))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(ex)
+            self.do_output(str(ex))
 
     @ensure_params(Optional("host"))
     def do_dump(self, params):
@@ -667,7 +667,7 @@ server=%s"""
         try:
             self.do_output(self._zk.dump(host))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(ex)
+            self.do_output(str(ex))
 
     @connected
     @ensure_params(Required("path"))
