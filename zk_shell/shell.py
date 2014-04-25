@@ -627,6 +627,7 @@ class Shell(AugumentedCmd):
         xid=4
         last_zxid=11
         timeout=10000
+        client=('127.0.0.1', 60348)
         server=('127.0.0.1', 2181)
         """
         fmt_str = """state=%s
@@ -635,6 +636,7 @@ protocol_version=%d
 xid=%d
 last_zxid=%d
 timeout=%d
+client=%s
 server=%s"""
         self.do_output(fmt_str,
                        self._zk.client_state,
@@ -643,6 +645,7 @@ server=%s"""
                        self._zk.xid,
                        self._zk.last_zxid,
                        self._zk.session_timeout,
+                       self._zk.client,
                        self._zk.server)
 
     @ensure_params(Optional("host"))
@@ -710,6 +713,14 @@ server=%s"""
         disconnects from the currently connected host.
         """
         self._disconnect()
+        self.update_curdir("/")
+
+    @connected
+    def do_reconnect(self, args):
+        """
+        forces a reconnect by shutting down the connected socket.
+        """
+        self._zk.reconnect()
         self.update_curdir("/")
 
     @connected

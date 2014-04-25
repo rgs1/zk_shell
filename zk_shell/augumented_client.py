@@ -6,9 +6,11 @@ import os
 import re
 import socket
 import sre_constants
+import time
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
+from kazoo.protocol.states import KazooState
 
 from .util import to_bytes
 
@@ -44,6 +46,12 @@ class AugumentedClient(KazooClient):
         """ the IP address of the connected ZK server (or "") """
         conn = self._connection
         return conn._socket.getpeername() if conn else ""
+
+    @property
+    def client(self):
+        """ the address (ip, port) of the local endpoint """
+        conn = self._connection
+        return conn._socket.getsockname() if conn else ""
 
     @property
     def sessionid(self):
@@ -290,3 +298,27 @@ class AugumentedClient(KazooClient):
         """ returns `zk://host:port` for the connected host:port """
         host, port = self.address_from_server()
         return "zk://%s:%d" % (host, port)
+
+    def reconnect(self):
+        """ forces a reconnect by shutting down the connected socket
+            return True if the reconnect happened, False otherwise
+        """
+        state_change_event = self.handler.event_object()
+
+        def listener(state):
+            if state is KazooState.SUSPENDED:
+                state_change_event.set()
+
+        self.add_listener(listener)
+
+        self._connection._socket.shutdown(socket.SHUT_RDWR)
+
+        state_change_event.wait(1)
+        if not state_change_event.is_set():
+            return False
+
+        # wait until we are back
+        while not self.connected:
+            time.sleep(0.1)
+
+        return True
