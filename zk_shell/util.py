@@ -34,6 +34,14 @@ def to_bytes(value):
     return value
 
 
+def get_int(sint, default):
+    """ get an int from an str """
+    try:
+        return int(sint)
+    except ValueError:
+        return default
+
+
 class Netloc(namedtuple("Netloc", "host scheme credential")):
     """
     network location info: host, scheme and credential

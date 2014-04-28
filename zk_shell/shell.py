@@ -64,7 +64,7 @@ from .augumented_cmd import (
 from .copy import CopyError, Proxy
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool
+from .util import Netloc, pretty_bytes, to_bool, get_int
 
 
 def connected(func):
@@ -256,23 +256,20 @@ class Shell(AugumentedCmd):
         """
         Recursively watch for all changes under a path.
         examples:
-        watch start /foo/bar [debug]
+        watch start /foo/bar [debug] [childrenLevel]
         watch stop /foo/bar
         watch stats /foo/bar [repeatN] [sleepN]
         """
         wm = get_watch_manager(self._zk)
         if params.command == "start":
-            wm.add(params.path, params.debug.lower() == "true")
+            debug = to_bool(params.debug)
+            children = get_int(params.sleep, -1)
+            wm.add(params.path, debug, children)
         elif params.command == "stop":
             wm.remove(params.path)
         elif params.command == "stats":
-            repeat = 1
-            sleep = 1
-            try:
-                repeat = int(params.debug)
-                sleep = int(params.sleep)
-            except ValueError:
-                pass
+            repeat = get_int(params.debug, 1)
+            sleep = get_int(params.sleep, 1)
             if repeat == 0:
                 while True:
                     wm.stats(params.path)

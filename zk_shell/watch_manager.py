@@ -24,7 +24,17 @@ class WatchManager(object):
     PARENT_ERR = "%s is a parent of %s which is already watched"
     CHILD_ERR = "%s is a child of %s which is already watched"
 
-    def add(self, path, debug):
+    def add(self, path, debug, children):
+        """
+        Set a watch for path and (maybe) its children depending on the value
+        of children:
+
+         -1:  all children
+          0:  no children
+        > 0:  up to level depth children
+
+        If debug is true, print each received events.
+        """
         if path in self._stats_by_path:
             print("%s is already being watched" % (path))
             return
@@ -46,7 +56,7 @@ class WatchManager(object):
                 return
 
         self._stats_by_path[path] = PathStats(debug)
-        self._watch(path)
+        self._watch(path, 0, children)
 
     def remove(self, path):
         if path not in self._stats_by_path:
@@ -62,7 +72,7 @@ class WatchManager(object):
             for path, count in self._stats_by_path[path].paths.items():
                 print("%s: %d" % (path, count))
 
-    def _watch(self, path):
+    def _watch(self, path, current_level, max_level):
         """
         we need to catch ZNONODE because children might be removed whilst we
         are iterating (specially ephemeral znodes)
@@ -78,8 +88,11 @@ class WatchManager(object):
         except NoNodeError:
             children = []
 
+        if max_level >= 0 and current_level + 1 > max_level:
+            return
+
         for child in children:
-            self._watch("%s/%s" % (path, child))
+            self._watch("%s/%s" % (path, child), current_level + 1, max_level)
 
     def _watcher(self, watched_event):
         for path, stats in self._stats_by_path.items():
