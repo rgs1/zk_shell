@@ -284,6 +284,8 @@ class Shell(AugumentedCmd):
         else:
             print("watch <start|stop> <path> [verbose]")
 
+    complete_watch = _complete_path
+
     @ensure_params(Required("src"), Required("dst"),
                    BooleanOptional("recursive"), BooleanOptional("overwrite"),
                    BooleanOptional("async"), BooleanOptional("verbose"),
@@ -638,7 +640,9 @@ xid=%d
 last_zxid=%d
 timeout=%d
 client=%s
-server=%s"""
+server=%s
+data_watches=%s
+child_watches=%s"""
         self.do_output(fmt_str,
                        self._zk.client_state,
                        self._zk.sessionid,
@@ -647,7 +651,33 @@ server=%s"""
                        self._zk.last_zxid,
                        self._zk.session_timeout,
                        self._zk.client,
-                       self._zk.server)
+                       self._zk.server,
+                       ",".join(self._zk.data_watches),
+                       ",".join(self._zk.child_watches))
+
+    @ensure_params(Optional("match"))
+    def do_history(self, params):
+        """
+        prints the commands history
+
+        example:
+
+        history
+        ls
+        create
+        get /foo
+        get /bar
+
+        history get
+        get /foo
+        get /bar
+        """
+        for hcmd in self.history:
+            if hcmd is None:
+                continue
+
+            if params.match == "" or params.match in hcmd:
+                self.do_output("%s", hcmd)
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):

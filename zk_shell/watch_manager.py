@@ -67,6 +67,12 @@ class WatchManager(object):
         we need to catch ZNONODE because children might be removed whilst we
         are iterating (specially ephemeral znodes)
         """
+
+        # ephemeral znodes can't have children, so skip them
+        stat = self._client.exists(path)
+        if stat is None or stat.ephemeralOwner != 0:
+            return
+
         try:
             children = self._client.get_children(path, self._watcher)
         except NoNodeError:

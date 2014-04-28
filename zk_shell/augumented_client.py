@@ -64,6 +64,16 @@ class AugumentedClient(KazooClient):
         """
         return getattr(self, "_protocol_version", 0)
 
+    @property
+    def data_watches(self):
+        """ paths for data watches """
+        return self._data_watchers.keys()
+
+    @property
+    def child_watches(self):
+        """ paths for child watches """
+        return self._child_watchers.keys()
+
     def get(self, *args, **kwargs):
         """ wraps the default get() and deals with encoding """
         value, stat = super(AugumentedClient, self).get(*args, **kwargs)

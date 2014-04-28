@@ -247,6 +247,14 @@ class AugumentedCmd(cmd.Cmd):
         cur_size = readline.get_current_history_length()
         return readline.get_history_item(cur_size - 1)
 
+    @property
+    def history(self):
+        if not HAVE_READLINE:
+            return
+
+        for i in range(0, readline.get_current_history_length()):
+            yield readline.get_history_item(i)
+
     def _setup_readline(self, hist_file_name):
         if not HAVE_READLINE or hist_file_name is None:
             return
