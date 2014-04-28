@@ -62,6 +62,7 @@ from .augumented_cmd import (
     Required,
 )
 from .copy import CopyError, Proxy
+from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import Netloc, pretty_bytes, to_bool
 
@@ -694,6 +695,16 @@ server=%s"""
     @check_path_exists
     def do_sync(self, params):
         self._zk.sync(params.path)
+
+    @connected
+    @ensure_params(Required("path"))
+    @check_path_exists
+    def do_child_watch(self, params):
+        """
+        watches for child changes under path and print the
+        the children list every time it changes
+        """
+        get_child_watcher(self._zk).update(params.path)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
