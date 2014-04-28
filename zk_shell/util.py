@@ -34,7 +34,7 @@ def to_bytes(value):
     return value
 
 
-def get_int(sint, default):
+def to_int(sint, default):
     """ get an int from an str """
     try:
         return int(sint)

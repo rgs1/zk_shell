@@ -4,7 +4,7 @@ from __future__ import print_function
 
 from collections import defaultdict
 
-from kazoo.protocol.states import EventType
+from kazoo.protocol.states import EventType, KazooState
 from kazoo.exceptions import NoNodeError
 
 
@@ -19,6 +19,15 @@ class WatchManager(object):
     """ keep track of paths being watched """
     def __init__(self, client):
         self._client = client
+        self._client.add_listener(self._session_watcher)
+        self._reset_paths()
+
+    def _session_watcher(self, state):
+        """ if the session expires we've lost everything """
+        if state == KazooState.LOST:
+            self._reset_paths()
+
+    def _reset_paths(self):
         self._stats_by_path = {}
 
     PARENT_ERR = "%s is a parent of %s which is already watched"

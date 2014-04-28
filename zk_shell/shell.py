@@ -64,7 +64,7 @@ from .augumented_cmd import (
 from .copy import CopyError, Proxy
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, get_int
+from .util import Netloc, pretty_bytes, to_bool, to_int
 
 
 def connected(func):
@@ -263,13 +263,13 @@ class Shell(AugumentedCmd):
         wm = get_watch_manager(self._zk)
         if params.command == "start":
             debug = to_bool(params.debug)
-            children = get_int(params.sleep, -1)
+            children = to_int(params.sleep, -1)
             wm.add(params.path, debug, children)
         elif params.command == "stop":
             wm.remove(params.path)
         elif params.command == "stats":
-            repeat = get_int(params.debug, 1)
-            sleep = get_int(params.sleep, 1)
+            repeat = to_int(params.debug, 1)
+            sleep = to_int(params.sleep, 1)
             if repeat == 0:
                 while True:
                     wm.stats(params.path)
