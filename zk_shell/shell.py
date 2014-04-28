@@ -697,14 +697,21 @@ server=%s"""
         self._zk.sync(params.path)
 
     @connected
-    @ensure_params(Required("path"))
+    @ensure_params(Required("path"), BooleanOptional("verbose"))
     @check_path_exists
     def do_child_watch(self, params):
         """
-        watches for child changes under path and print the
-        the children list every time it changes
+        watches for child changes for the given path
+
+        example:
+
+        # only prints the current number of children
+        child_watch /
+
+        # prints num of children along with znodes listing
+        child_watch / true
         """
-        get_child_watcher(self._zk).update(params.path)
+        get_child_watcher(self._zk).update(params.path, params.verbose)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
