@@ -169,7 +169,9 @@ class AugumentedCmd(cmd.Cmd):
         """ MAX_OUTPUT chars of the last output is available via $? """
         if PYTHON3:
             fmt_str = str(fmt_str)
-        out = fmt_str % params
+
+        out = fmt_str % params if len(params) > 0 else fmt_str
+
         self._last_output = out if len(out) < MAX_OUTPUT else out[:MAX_OUTPUT]
         print(out, file=self._output)
 
