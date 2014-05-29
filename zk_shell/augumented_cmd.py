@@ -172,7 +172,9 @@ class AugumentedCmd(cmd.Cmd):
 
         out = fmt_str % params if len(params) > 0 else fmt_str
 
-        self._last_output = out if len(out) < MAX_OUTPUT else out[:MAX_OUTPUT]
+        if out is not None:
+            self._last_output = out if len(out) < MAX_OUTPUT else out[:MAX_OUTPUT]
+
         print(out, file=self._output)
 
     def default(self, line):

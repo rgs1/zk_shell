@@ -79,7 +79,8 @@ class AugumentedClient(KazooClient):
         value, stat = super(AugumentedClient, self).get(*args, **kwargs)
 
         try:
-            value = value.decode(encoding="utf-8")
+            if value is not None:
+                value = value.decode(encoding="utf-8")
         except UnicodeDecodeError:
             pass
 

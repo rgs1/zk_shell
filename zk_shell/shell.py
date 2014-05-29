@@ -500,7 +500,8 @@ class Shell(AugumentedCmd):
 
         # maybe it's compressed?
         try:
-            value = zlib.decompress(value)
+            if value is not None:
+                value = zlib.decompress(value)
         except (zlib.error, TypeError):
             pass
 
