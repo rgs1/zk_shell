@@ -188,9 +188,9 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
                         dst.set_url(url_join(dst_url, child))
                         self.do_copy(dst)
 
-                    # reset to base urls
-                    self.set_url(src_url)
-                    dst.set_url(dst_url)
+                        # reset to base urls
+                        self.set_url(src_url)
+                        dst.set_url(dst_url)
 
         end = time.time()
 
