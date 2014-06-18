@@ -24,7 +24,7 @@ def to_bytes(value):
     """ str to bytes (py3k) """
     vtype = type(value)
 
-    if vtype == bytes:
+    if vtype == bytes or vtype == type(None):
         return value
 
     try:

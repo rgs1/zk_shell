@@ -422,13 +422,18 @@ class JSONProxy(Proxy):
             raise CopyError(error)
 
     def read_path(self):
-        value = b64decode(self._tree[self.path]["content"])
+        value = self._tree[self.path]["content"]
+        if value is not None:
+            value = b64decode(value)
         acl = self._tree[self.path].get("acls", [])
         return PathValue(value, acl)
 
     def write_path(self, path_value):
-        self._tree[self.path]["content"] = b64encode(
-            path_value.value_as_bytes).decode(encoding="utf-8")
+        content = path_value.value_as_bytes
+        if content is not None:
+            content = b64encode(content).decode(encoding="utf-8")
+
+        self._tree[self.path]["content"] = content
         self._tree[self.path]["acls"] = path_value.acl_as_dict
         self._dirty = True
 
