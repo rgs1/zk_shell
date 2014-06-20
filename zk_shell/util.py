@@ -29,7 +29,7 @@ def to_bytes(value):
 
     try:
         return vtype.encode(value)
-    except UnicodeDecodeError:
+    except UnicodeEncodeError:
         pass
     return value
 

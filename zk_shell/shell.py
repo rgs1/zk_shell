@@ -499,11 +499,11 @@ class Shell(AugumentedCmd):
         value, _ = self._zk.get(params.path, **kwargs)
 
         # maybe it's compressed?
-        try:
-            if value is not None:
+        if value is not None:
+            try:
                 value = zlib.decompress(value)
-        except (zlib.error, TypeError):
-            pass
+            except:
+                pass
 
         self.do_output(value)
 

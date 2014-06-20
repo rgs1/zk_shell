@@ -86,6 +86,10 @@ class AugumentedClient(KazooClient):
 
         return (value, stat)
 
+    def get_bytes(self, *args, **kwargs):
+        """ no string decoding performed """
+        return super(AugumentedClient, self).get(*args, **kwargs)
+
     def set(self, path, value, version=-1):
         """ wraps the default set() and handles encoding (Py3k) """
         value = to_bytes(value)
