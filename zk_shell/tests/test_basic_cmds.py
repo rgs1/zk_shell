@@ -170,3 +170,32 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("child_count %s/something" % (self.tests_path))
         expected_output = u"%s/something/else: 2\n" % (self.tests_path)
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_diff_equal(self):
+        self.shell.onecmd("create %s/a ''" % (self.tests_path))
+        self.shell.onecmd("create %s/a/something 'aaa'" % (self.tests_path))
+        self.shell.onecmd("create %s/a/something/else 'bbb'" % (self.tests_path))
+        self.shell.onecmd("create %s/a/something/else/entirely 'ccc'" % (self.tests_path))
+
+        self.shell.onecmd("create %s/b ''" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something 'aaa'" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something/else 'bbb'" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something/else/entirely 'ccc'" % (self.tests_path))
+
+        self.shell.onecmd("diff %s/a %s/b" % (self.tests_path, self.tests_path))
+        expected_output = u"Branches are equal.\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_diff_different(self):
+        self.shell.onecmd("create %s/a ''" % (self.tests_path))
+        self.shell.onecmd("create %s/a/something 'AAA'" % (self.tests_path))
+        self.shell.onecmd("create %s/a/something/else 'bbb'" % (self.tests_path))
+
+        self.shell.onecmd("create %s/b ''" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something 'aaa'" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something/else 'bbb'" % (self.tests_path))
+        self.shell.onecmd("create %s/b/something/else/entirely 'ccc'" % (self.tests_path))
+
+        self.shell.onecmd("diff %s/a %s/b" % (self.tests_path, self.tests_path))
+        expected_output = u"-+ something\n++ something/else/entirely\n"
+        self.assertEqual(expected_output, self.output.getvalue())

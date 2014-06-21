@@ -741,6 +741,49 @@ child_watches=%s"""
         """
         get_child_watcher(self._zk).update(params.path, params.verbose)
 
+    @connected
+    @ensure_params(Required("path_a"), Required("path_b"))
+    def do_diff(self, params):
+        """
+        diffs two branches
+
+        example:
+
+        diff /configs /new-configs
+        -- service-x/hosts
+        ++ service-x/hosts.json
+        +- service-x/params
+
+        where:
+          -- means the znode is missing in /new-configs
+          ++ means the znode is new in /new-configs
+          +- means the znode's content differ between /configs and /new-configs
+
+        """
+        path_a = self.resolve_path(params.path_a)
+        path_b = self.resolve_path(params.path_b)
+
+        if not self._zk.exists(path_a):
+            self.do_output("Path %s doesn't exist.", path_a)
+            return
+
+        if not self._zk.exists(path_b):
+            self.do_output("Path %s doesn't exist.", path_b)
+            return
+
+        count = 0
+        for diff, path in self._zk.diff(path_a, path_b):
+            count += 1
+            if diff == -1:
+                self.do_output("-- %s", path)
+            elif diff == 0:
+                self.do_output("-+ %s", path)
+            elif diff == 1:
+                self.do_output("++ %s", path)
+
+        if count == 0:
+            self.do_output("Branches are equal.")
+
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
