@@ -771,8 +771,7 @@ child_watches=%s"""
 
         """
         count = 0
-        for diff, path in self._zk.diff(params.path_a, params.path_b):
-            count += 1
+        for count, (diff, path) in enumerate(self._zk.diff(params.path_a, params.path_b), 1):
             if diff == -1:
                 self.do_output("-- %s", path)
             elif diff == 0:
