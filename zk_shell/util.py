@@ -1,6 +1,10 @@
 """ helpers """
 
 from collections import namedtuple
+import sys
+
+
+PYTHON3 = sys.version_info > (3, )
 
 
 def pretty_bytes(num):
@@ -40,6 +44,12 @@ def to_int(sint, default):
         return int(sint)
     except ValueError:
         return default
+
+def decoded(s):
+    if PYTHON3:
+        return str.encode(s).decode('unicode_escape')
+    else:
+        return s.decode('string_escape')
 
 
 class Netloc(namedtuple("Netloc", "host scheme credential")):

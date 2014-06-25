@@ -64,7 +64,7 @@ from .augumented_cmd import (
 from .copy import CopyError, Proxy
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, to_int
+from .util import Netloc, pretty_bytes, to_bool, to_int, decoded
 
 
 def connected(func):
@@ -581,7 +581,7 @@ class Shell(AugumentedCmd):
         """
         try:
             self._zk.create(params.path,
-                            params.value,
+                            decoded(params.value),
                             acl=None,
                             ephemeral=params.ephemeral,
                             sequence=params.sequence,
@@ -607,7 +607,7 @@ class Shell(AugumentedCmd):
         set /foo 'bar'
         """
         try:
-            self._zk.set(params.path, params.value)
+            self._zk.set(params.path, decoded(params.value))
         except NotReadOnlyCallError:
             self.do_output("Not a read-only operation")
 

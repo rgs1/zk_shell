@@ -199,3 +199,11 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("diff %s/a %s/b" % (self.tests_path, self.tests_path))
         expected_output = u"-+ something\n++ something/else/entirely\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_newline_unescaped(self):
+        self.shell.onecmd("create %s/a 'hello\\n'" % (self.tests_path))
+        self.shell.onecmd("get %s/a" % (self.tests_path))
+        self.shell.onecmd("set %s/a 'bye\\n'" % (self.tests_path))
+        self.shell.onecmd("get %s/a" % (self.tests_path))
+        expected_output = u"hello\n\nbye\n\n"
+        self.assertEqual(expected_output, self.output.getvalue())
