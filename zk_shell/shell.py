@@ -688,7 +688,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
+        """
+        runs the mntr 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.mntr(host))
         except AugumentedClient.CmdFailed as ex:
@@ -696,7 +703,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_cons(self, params):
+        """
+        runs the cons 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.cons(host))
         except AugumentedClient.CmdFailed as ex:
@@ -704,7 +718,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_dump(self, params):
+        """
+        runs the cons 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.dump(host))
         except AugumentedClient.CmdFailed as ex:

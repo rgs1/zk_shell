@@ -355,7 +355,7 @@ class AugumentedClient(KazooClient):
             return host.rsplit(":", 1) if ":" in host else (host, 2181)
 
         if not self.connected:
-            raise ValueError("Not connected and no host given")
+            raise self.CmdFailed("Not connected and no host given.")
 
         return self._connection._socket.getpeername()
 
