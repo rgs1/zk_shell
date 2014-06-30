@@ -60,6 +60,51 @@ You can also copy from znodes to a JSON file:
 (CONNECTED) /> cp zk://localhost:2181/something json://!tmp!backup.json/ true true
 ```
 
+Mirroring one path to another path in ZK or from ZK to a JSON file or from the
+filesystem or a JSON to ZK is supported. Mirroring replaces the destination path
+with the content and structure of the source path.
+
+```
+(CONNECTED) /> create /source/znode1/znode11 'Hello' false false true
+(CONNECTED) /> create /source/znode2 'Hello' false false true
+(CONNECTED) /> create /target/znode1/znode12 'Hello' false false true
+(CONNECTED) /> create /target/znode3 'Hello' false false true
+(CONNECTED) /> tree
+.
+├── target
+│   ├── znode3
+│   ├── znode1
+│   │   ├── znode12
+├── source
+│   ├── znode2
+│   ├── znode1
+│   │   ├── znode11
+├── zookeeper
+│   ├── config
+│   ├── quota
+(CONNECTED) /> mirror /source /target
+Are you sure you want to replace /target with /source? [y/n]:
+y
+Mirroring took 0.04 secs
+(CONNECTED) /> tree
+.
+├── target
+│   ├── znode2
+│   ├── znode1
+│   │   ├── znode11
+├── source
+│   ├── znode2
+│   ├── znode1
+│   │   ├── znode11
+├── zookeeper
+│   ├── config
+│   ├── quota
+(CONNECTED) /> create /target/znode4 'Hello' false false true
+(CONNECTED) /> mirror /source /target false false true
+Mirroring took 0.03 secs
+(CONNECTED) />
+```
+
 Sometimes you want to debug watches in ZooKeeper - i.e.: how often do watches fire
 under a given path? You can easily do that with the watch command.
 

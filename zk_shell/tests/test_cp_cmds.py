@@ -41,8 +41,8 @@ class CpCmdsTestCase(ShellTestCase):
         json_file = "%s/backup.json" % (self.temp_dir)
         self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
             self.zk_host, src_path, json_file.replace("/", "!")))
-        expected_output = "znode /tests/src in localhost:2181 doesn't exist\n"
-        self.assertEqual(expected_output, self.output.getvalue())
+        expected_output = "znode /tests/src in %s doesn't exist\n" % self.zk_host
+        self.assertIn(expected_output, self.output.getvalue())
 
     def test_cp_json2zk(self):
         """ copy from a json file to a ZK cluster (uncompressed) """
@@ -59,7 +59,7 @@ class CpCmdsTestCase(ShellTestCase):
             "cp json://%s/backup zk://%s/%s/from-json true true" % (
                 json_file.replace("/", "!"), self.zk_host, self.tests_path))
         expected_output = "Path /backup doesn't exist\n"
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertIn(expected_output, self.output.getvalue())
 
     def test_cp_local(self):
         """ copy one path to another in the connected ZK cluster """
@@ -81,7 +81,7 @@ class CpCmdsTestCase(ShellTestCase):
             bad_path, "%s/some/other/nonexistent/path" % (self.tests_path)))
         expected_output = "znode %s in 127.0.0.1:2181 doesn't exist\n" % (
             bad_path)
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertIn(expected_output, self.output.getvalue())
 
     def test_cp_file2zk(self):
         # FIXME: everything should be treated as binary, expecting strings in ZK

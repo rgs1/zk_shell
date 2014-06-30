@@ -64,7 +64,7 @@ from .augumented_cmd import (
 from .copy import CopyError, Proxy
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, to_int, decoded
+from .util import Netloc, pretty_bytes, to_bool, to_int, decoded, prompt_yes_no
 
 
 def connected(func):
@@ -317,7 +317,43 @@ class Shell(AugumentedCmd):
         cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose> <max_items>
         cp /some/path json://!home!user!backup.json/ true true
         """
+        self.copy(params, params.recursive, params.overwrite, params.max_items, False)
 
+    complete_cp = _complete_path
+
+    @ensure_params(Required("src"), Required("dst"),
+                   BooleanOptional("async"), BooleanOptional("verbose"),
+                   BooleanOptional("skip_prompt"))
+    def do_mirror(self, params):
+        """
+        mirrors from/to local/remote or remote/remote paths. the dst subtree
+        will be modified to look the same as the src subtree with the exception
+        of ephemeral nodes
+
+        src and dst can be any of:
+
+        /some/path (in the connected server)
+        file://<path>
+        zk://[user:passwd@]host/<path>
+        json://!some!path!backup.json/some/path
+
+        with a few restrictions. bare in mind the semantic differences
+        that znodes have with filesystem directories - so mirror
+        from znodes to an fs could lose data, but to a JSON file it would
+        work just fine. these are the same restrictions as with copy.
+
+        examples:
+        mirror /some/znode /backup/copy-znode  # local
+        mirror file://<path> zk://[user:passwd@]host/<path> <async> <verbose> <max_items>
+        mirror /some/path json://!home!user!backup.json/ true true
+        """
+        question = "Are you sure you want to replace %s with %s?" % (params.dst, params.src)
+        if params.skip_prompt or prompt_yes_no(question):
+            self.copy(params, True, True, 0, True)
+
+    complete_mirror = _complete_path
+
+    def copy(self, params, recursive, overwrite, max_items, mirror):
         # default to zk://connected_host, if connected
         src_connected_zk = dst_connected_zk = False
         if self.connected:
@@ -333,24 +369,40 @@ class Shell(AugumentedCmd):
                 dst_connected_zk = True
 
         try:
+            if mirror and not recursive:
+                raise CopyError("Mirroring must be recursive", True)
+
+            if mirror and not overwrite:
+                raise CopyError("Mirroring must overwrite", True)
+
+            if mirror and not max_items == 0:
+                raise CopyError("Mirroring must not have a max items limit", True)
+
             src = Proxy.from_string(params.src, True, params.async, params.verbose)
             if src_connected_zk:
                 src.need_client = False
                 src.client = self._zk
 
             dst = Proxy.from_string(params.dst,
-                                    exists=None if params.overwrite else False,
+                                    exists=None if overwrite else False,
                                     async=params.async,
                                     verbose=params.verbose)
             if dst_connected_zk:
                 dst.need_client = False
                 dst.client = self._zk
 
-            src.copy(dst, params.recursive, params.max_items)
+            src.copy(dst, recursive, max_items, mirror)
         except CopyError as ex:
-            self.do_output(str(ex))
+            if ex.is_early_error:
+                msg = str(ex)
+            else:
+                msg = ("%s failed; "
+                       "it may have partially completed. To return to a "
+                       "stable state, either fix the issue and re-run the "
+                       "command or manually revert.\nFailure reason:"
+                       "\n%s") % ("Copy" if not mirror else "Mirror", str(ex))
 
-    complete_cp = _complete_path
+            self.do_output(msg)
 
     @connected
     @interruptible

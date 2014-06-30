@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+import shutil
 
 try:
     from urlparse import urlparse
@@ -17,6 +18,7 @@ except ImportError:
 
 from kazoo.client import KazooClient
 from kazoo.exceptions import (
+    NoAuthError,
     NodeExistsError,
     NoNodeError,
     NoChildrenForEphemeralsError,
@@ -52,7 +54,14 @@ def url_join(url_root, child_path):
 
 class CopyError(Exception):
     """ base exception for Copy errors """
-    pass
+
+    def __init__(self, message, early_error=False):
+        super(CopyError, self).__init__(message)
+        self._early_error = early_error
+
+    @property
+    def is_early_error(self):
+        return self._early_error
 
 
 class PathValue(object):
@@ -167,10 +176,22 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def children_of(self):
         raise NotImplementedError("children_of must be implemented")
 
-    def copy(self, dst, recursive, max_items):
+    def delete_path_recursively(self):
+        raise NotImplementedError("delete_path must be implemented")
+
+    def copy(self, dst, recursive, max_items, mirror):
+        opname = "Copy" if not mirror else "Mirror"
+
         # basic sanity check
+        if mirror and self.scheme == "zk" and dst.scheme == "file":
+            raise CopyError("Mirror from zk to fs isn't supported", True)
+
         if recursive and self.scheme == "zk" and dst.scheme == "file":
-            raise CopyError("Recursive copy from zk to fs isn't supported")
+            raise CopyError("Recursive %s from zk to fs isn't supported" %
+                            opname.lower(), True)
+
+        if mirror and not recursive:
+            raise CopyError("Mirroring must be recursive", True)
 
         start = time.time()
 
@@ -179,29 +200,40 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
         with self:
             with dst:
-                self.do_copy(dst)
+                if mirror:
+                    dst_children = set(c for c in dst.children_of())
+
+                self.do_copy(dst, opname)
+
                 if recursive:
                     for i, child in enumerate(self.children_of()):
+                        if mirror and child in dst_children:
+                            dst_children.remove(child)
                         if max_items > 0 and i == max_items:
                             break
                         self.set_url(url_join(src_url, child))
                         dst.set_url(url_join(dst_url, child))
-                        self.do_copy(dst)
+                        self.do_copy(dst, opname)
 
                         # reset to base urls
                         self.set_url(src_url)
                         dst.set_url(dst_url)
 
+                if mirror:
+                    for child in dst_children:
+                        dst.set_url(url_join(dst_url, child))
+                        dst.delete_path_recursively()
+
         end = time.time()
 
-        print("Copying took %.2f secs" % (round(end - start, 2)))
+        print("%sing took %.2f secs" % (opname, round(end - start, 2)))
 
-    def do_copy(self, dst):
+    def do_copy(self, dst, opname):
         if self.verbose:
             if self.async:
-                print("Copying (asynchronously) from %s to %s" % (self.url, dst.url))
+                print("%sing (asynchronously) from %s to %s" % (opname, self.url, dst.url))
             else:
-                print("Copying from %s to %s" % (self.url, dst.url))
+                print("%sing from %s to %s" % (opname, self.url, dst.url))
 
         dst.write_path(self.read_path())
 
@@ -298,6 +330,16 @@ class ZKProxy(Proxy):
 
         return v
 
+    def delete_path_recursively(self):
+        try:
+            self.client.delete(self.path, recursive=True)
+        except NoNodeError:
+            pass
+        except NoAuthError:
+            raise CopyError("Permission denied: Cannot delete %s" % self.path)
+        except ZookeeperError:
+            raise CopyError("Zookeeper server error")
+
     def children_of(self):
         if self.async:
             return AsyncWalker(self.client).walk(self.path.rstrip("/"))
@@ -310,7 +352,12 @@ class ZKProxy(Proxy):
         """
         full_path = "%s/%s" % (root_path, branch_path) if branch_path else root_path
 
-        for child in self.client.get_children(full_path):
+        try:
+            children = self.client.get_children(full_path)
+        except NoNodeError:
+            children = set()
+
+        for child in children:
             child_path = "%s/%s" % (branch_path, child) if branch_path else child
             stat = self.client.exists("%s/%s" % (root_path, child_path))
             if stat is None or stat.ephemeralOwner != 0:
@@ -318,7 +365,6 @@ class ZKProxy(Proxy):
             yield child_path
             for new_path in self.zk_walk(root_path, child_path):
                 yield new_path
-
 
 class FileProxy(Proxy):
     SCHEME = "file"
@@ -346,7 +392,6 @@ class FileProxy(Proxy):
 
     def write_path(self, path_value):
         """ this will overwrite dst path - be careful """
-
         parent_dir = os.path.dirname(self.path)
         try:
             os.makedirs(parent_dir)
@@ -365,6 +410,9 @@ class FileProxy(Proxy):
                 yield path
             for filename in files:
                 yield "%s/%s" % (path, filename) if path != "" else filename
+
+    def delete_path_recursively(self):
+        shutil.rmtree(self.path, True)
 
 
 class JSONProxy(Proxy):
@@ -458,3 +506,10 @@ class JSONProxy(Proxy):
         for child in self._tree.keys():
             if good(child):
                 yield child[offs:]
+
+    def delete_path_recursively(self):
+        if self.path in self._tree:
+            # build a set from the iterable so we don't change the dictionary during iteration
+            for c in set(self.children_of()):
+                self._tree.pop(url_join(self.path, c))
+            self._tree.pop(self.path)
