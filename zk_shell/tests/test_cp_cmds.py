@@ -41,7 +41,7 @@ class CpCmdsTestCase(ShellTestCase):
         json_file = "%s/backup.json" % (self.temp_dir)
         self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (
             self.zk_host, src_path, json_file.replace("/", "!")))
-        expected_output = "znode /tests/src in localhost:2181 doesn't exist\n"
+        expected_output = "znode /tests/src in %s doesn't exist\n" % self.zk_host
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_cp_json2zk(self):
