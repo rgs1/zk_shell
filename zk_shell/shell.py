@@ -27,7 +27,7 @@ It supports the basic ops plus a few handy extensions:
 
 from __future__ import print_function
 
-from functools import wraps
+from functools import partial, wraps
 import os
 import re
 import shlex
@@ -64,7 +64,7 @@ from .augumented_cmd import (
 from .copy import CopyError, Proxy
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, to_int
+from .util import Netloc, pretty_bytes, to_bool, to_int, decoded
 
 
 def connected(func):
@@ -82,19 +82,28 @@ def connected(func):
     return wrapper
 
 
-def check_path_exists(func):
-    """ check paths exists """
+def check_path_exists_foreach(paths, func):
     @wraps(func)
     def wrapper(*args):
         self = args[0]
         params = args[1]
-        path = params.path
-        params.path = self.resolve_path(path)
-        if self.client.exists(params.path):
-            return func(self, params)
-        self.do_output("Path %s doesn't exist", path)
-        return False
+
+        for path_param_name in paths:
+            path = getattr(params, path_param_name)
+            path = self.resolve_path(path)
+            setattr(params, path_param_name, path)
+            if not self.client.exists(path):
+                self.do_output("Path %s=%s doesn't exist", path_param_name, path)
+                return False
+
+        return func(self, params)
+
     return wrapper
+
+
+def check_paths_exists(*paths):
+    """ check that each path exists """
+    return partial(check_path_exists_foreach, paths)
 
 
 def check_path_absent(func):
@@ -182,7 +191,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Required("path"), Multi("acls"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_set_acls(self, params):
         """
         sets ACLs for a given path.
@@ -206,7 +215,7 @@ class Shell(AugumentedCmd):
     @connected
     @interruptible
     @ensure_params(Required("path"), IntegerOptional("depth", -1), BooleanOptional("ephemerals"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_get_acls(self, params):
         """
         gets ACLs for a given path.
@@ -240,7 +249,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Optional("path"), Optional("watch"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_ls(self, params):
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
@@ -251,7 +260,7 @@ class Shell(AugumentedCmd):
     @connected
     @interruptible
     @ensure_params(Required("command"), Required("path"), Optional("debug"), Optional("sleep"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_watch(self, params):
         """
         Recursively watch for all changes under a path.
@@ -384,7 +393,7 @@ class Shell(AugumentedCmd):
     @connected
     @interruptible
     @ensure_params(Optional("path"), IntegerOptional("max_depth"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_tree(self, params):
         """
         print the tree under a given path (optionally only up to a given max depth).
@@ -410,7 +419,7 @@ class Shell(AugumentedCmd):
     @connected
     @interruptible
     @ensure_params(Optional("path"), IntegerOptional("path_depth", 1))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_child_count(self, params):
         """
         prints the child count for paths, of depth <path_depth>, under the given <path>.
@@ -428,13 +437,13 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Optional("path"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_du(self, params):
         self.do_output(pretty_bytes(self._zk.du(params.path)))
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_find(self, params):
         """
         find znodes whose path matches a given text.
@@ -452,7 +461,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_ifind(self, params):
         """
         find znodes whose path matches a given text (regardless of the latter's case).
@@ -470,7 +479,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_grep(self, params):
         """
         find znodes whose value matches a given text.
@@ -485,7 +494,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_igrep(self, params):
         """
         find znodes whose value matches a given text (case-insensite).
@@ -509,7 +518,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Required("path"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_cd(self, params):
         self.update_curdir(params.path)
 
@@ -517,7 +526,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Required("path"), Optional("watch"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_get(self, params):
         """
         gets the value for a given znode. a watch can be set.
@@ -537,11 +546,11 @@ class Shell(AugumentedCmd):
         value, _ = self._zk.get(params.path, **kwargs)
 
         # maybe it's compressed?
-        try:
-            if value is not None:
+        if value is not None:
+            try:
                 value = zlib.decompress(value)
-        except (zlib.error, TypeError):
-            pass
+            except:
+                pass
 
         self.do_output(value)
 
@@ -610,7 +619,7 @@ class Shell(AugumentedCmd):
         """
         try:
             self._zk.create(params.path,
-                            params.value,
+                            decoded(params.value),
                             acl=None,
                             ephemeral=params.ephemeral,
                             sequence=params.sequence,
@@ -627,7 +636,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Required("path"), Required("value"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_set(self, params):
         """
         sets the value for a znode.
@@ -636,7 +645,7 @@ class Shell(AugumentedCmd):
         set /foo 'bar'
         """
         try:
-            self._zk.set(params.path, params.value)
+            self._zk.set(params.path, decoded(params.value))
         except NotReadOnlyCallError:
             self.do_output("Not a read-only operation")
 
@@ -644,7 +653,7 @@ class Shell(AugumentedCmd):
 
     @connected
     @ensure_params(Required("path"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_rm(self, params):
         try:
             self._zk.delete(params.path)
@@ -717,7 +726,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_mntr(self, params):
+        """
+        runs the mntr 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.mntr(host))
         except AugumentedClient.CmdFailed as ex:
@@ -725,7 +741,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_cons(self, params):
+        """
+        runs the cons 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.cons(host))
         except AugumentedClient.CmdFailed as ex:
@@ -733,7 +756,14 @@ child_watches=%s"""
 
     @ensure_params(Optional("host"))
     def do_dump(self, params):
+        """
+        runs the cons 4 letter command on current or given host
+        """
         host = params.host if params.host != "" else None
+
+        if self._zk is None:
+            self._zk = AugumentedClient()
+
         try:
             self.do_output(self._zk.dump(host))
         except AugumentedClient.CmdFailed as ex:
@@ -741,7 +771,7 @@ child_watches=%s"""
 
     @connected
     @ensure_params(Required("path"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_rmr(self, params):
         """
         recursively deletes a path.
@@ -758,13 +788,13 @@ child_watches=%s"""
 
     @connected
     @ensure_params(Required("path"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_sync(self, params):
         self._zk.sync(params.path)
 
     @connected
     @ensure_params(Required("path"), BooleanOptional("verbose"))
-    @check_path_exists
+    @check_paths_exists("path")
     def do_child_watch(self, params):
         """
         watches for child changes for the given path
@@ -778,6 +808,38 @@ child_watches=%s"""
         child_watch / true
         """
         get_child_watcher(self._zk).update(params.path, params.verbose)
+
+    @connected
+    @ensure_params(Required("path_a"), Required("path_b"))
+    @check_paths_exists("path_a", "path_b")
+    def do_diff(self, params):
+        """
+        diffs two branches
+
+        example:
+
+        diff /configs /new-configs
+        -- service-x/hosts
+        ++ service-x/hosts.json
+        +- service-x/params
+
+        where:
+          -- means the znode is missing in /new-configs
+          ++ means the znode is new in /new-configs
+          +- means the znode's content differ between /configs and /new-configs
+
+        """
+        count = 0
+        for count, (diff, path) in enumerate(self._zk.diff(params.path_a, params.path_b), 1):
+            if diff == -1:
+                self.do_output("-- %s", path)
+            elif diff == 0:
+                self.do_output("-+ %s", path)
+            elif diff == 1:
+                self.do_output("++ %s", path)
+
+        if count == 0:
+            self.do_output("Branches are equal.")
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

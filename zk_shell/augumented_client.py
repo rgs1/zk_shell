@@ -86,6 +86,10 @@ class AugumentedClient(KazooClient):
 
         return (value, stat)
 
+    def get_bytes(self, *args, **kwargs):
+        """ no string decoding performed """
+        return super(AugumentedClient, self).get(*args, **kwargs)
+
     def set(self, path, value, version=-1):
         """ wraps the default set() and handles encoding (Py3k) """
         value = to_bytes(value)
@@ -247,6 +251,56 @@ class AugumentedClient(KazooClient):
                 for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
                     yield rchild_rlevel_rstat
 
+    def diff(self, path_a, path_b):
+        """ Performs a deep comparison of path_a/ and path_b/
+
+            For each child, it yields (rv, child) where rv:
+             -1 if doesn't exist in path_b (destination)
+              0 if they are different
+              1 if it doesn't exist in path_a (source)
+        """
+        path_a = path_a.rstrip("/")
+        path_b = path_b.rstrip("/")
+
+        if not self.exists(path_a) or not self.exists(path_b):
+            return
+
+        if not self.equal(path_a, path_b):
+            yield 0, "/"
+
+        seen = set()
+
+        len_a = len(path_a)
+        len_b = len(path_b)
+
+        # first, check what's missing & changed in dst
+        for child_a, level in self.tree(path_a, 0, True):
+            child_sub = child_a[len_a + 1:]
+            child_b = "%s/%s" % (path_b, child_sub)
+
+            if not self.exists(child_b):
+                yield -1, child_sub
+            else:
+                if not self.equal(child_a, child_b):
+                    yield 0, child_sub
+
+            seen.add(child_sub)
+
+        # now, check what's new in dst
+        for child_b, level in self.tree(path_b, 0, True):
+            child_sub = child_b[len_b + 1:]
+            if child_sub not in seen:
+                yield 1, child_sub
+
+    def equal(self, path_a, path_b):
+        """
+        compare if a and b have the same bytes
+        """
+        content_a, _ = self.get_bytes(path_a)
+        content_b, _ = self.get_bytes(path_b)
+
+        return content_a == content_b
+
     def stat(self, path):
         """ safely gets the Znode's Stat """
         try:
@@ -301,7 +355,7 @@ class AugumentedClient(KazooClient):
             return host.rsplit(":", 1) if ":" in host else (host, 2181)
 
         if not self.connected:
-            raise ValueError("Not connected and no host given")
+            raise self.CmdFailed("Not connected and no host given.")
 
         return self._connection._socket.getpeername()
 

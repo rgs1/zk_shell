@@ -286,7 +286,7 @@ class ZKProxy(Proxy):
 
     def read_path(self):
         # TODO: propose a new ZK opcode (GetWithACLs) so we can do this in 1 rt
-        value, _ = self.client.get(self.path)
+        value = self.get_value(self.path)
         acl, _ = self.client.get_acls(self.path)
         return self.ZKPathValue(value, acl)
 
@@ -297,7 +297,7 @@ class ZKProxy(Proxy):
             acl = [ACLReader.from_dict(a) for a in path_value.acl]
 
         if self.client.exists(self.path):
-            value, _ = self.client.get(self.path)
+            value = self.get_value(self.path)
             if path_value.value != value:
                 self.client.set(self.path, path_value.value)
         else:
@@ -314,6 +314,14 @@ class ZKProxy(Proxy):
                 raise CopyError("Ephemeral znodes can't have children")
             except ZookeeperError:
                 raise CopyError("ZooKeeper server error")
+
+    def get_value(self, path):
+        if hasattr(self.client, 'get_bytes'):
+            v, _ = self.client.get_bytes(path)
+        else:
+            v, _ = self.client.get(path)
+
+        return v
 
     def delete_path(self):
         try:
@@ -464,14 +472,21 @@ class JSONProxy(Proxy):
     def read_path(self):
         value = self._tree[self.path]["content"]
         if value is not None:
-            value = b64decode(value)
+            try:
+                value = b64decode(value)
+            except:
+                print("Failed to b64decode %s" % self.path)
+
         acl = self._tree[self.path].get("acls", [])
         return PathValue(value, acl)
 
     def write_path(self, path_value):
         content = path_value.value_as_bytes
         if content is not None:
-            content = b64encode(content).decode(encoding="utf-8")
+            try:
+                content = b64encode(content).decode(encoding="utf-8")
+            except:
+                print("Failed to b64encode %s" % self.path)
 
         self._tree[self.path]["content"] = content
         self._tree[self.path]["acls"] = path_value.acl_as_dict

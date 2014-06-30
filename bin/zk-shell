@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-from zk_shell.cli import CLI
+try:
+    from zk_shell.cli import CLI
+except ImportError:
+    # running from source?
+    import sys
+    sys.path.extend((".", ".."))
+    from zk_shell.cli import CLI
 
 
 if __name__ == "__main__":
