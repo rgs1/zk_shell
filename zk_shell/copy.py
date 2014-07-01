@@ -167,10 +167,22 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
     def children_of(self):
         raise NotImplementedError("children_of must be implemented")
 
-    def copy(self, dst, recursive, max_items):
+    def delete_path(self):
+        raise NotImplementedError("delete_path must be implemented")
+
+    def copy(self, dst, recursive, max_items, mirror):
+        opname = "Copy" if not mirror else "Mirror"
+
         # basic sanity check
+        if mirror and self.scheme == "zk" and dst.scheme == "file":
+            raise CopyError("Mirror from zk to fs isn't supported")
+
         if recursive and self.scheme == "zk" and dst.scheme == "file":
-            raise CopyError("Recursive copy from zk to fs isn't supported")
+            raise CopyError("Recursive %s from zk to fs isn't supported" %
+                            opname.lower())
+
+        if mirror and not recursive:
+            raise CopyError("Mirroring must be recursive")
 
         start = time.time()
 
@@ -179,29 +191,43 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
         with self:
             with dst:
-                self.do_copy(dst)
+                if mirror:
+                    try:
+                        dst_children = set(c for c in dst.children_of())
+                    except NoNodeError:
+                        dst_children = set()
+
+                self.do_copy(dst, opname)
+
                 if recursive:
                     for i, child in enumerate(self.children_of()):
+                        if mirror and child in dst_children:
+                            dst_children.remove(child)
                         if max_items > 0 and i == max_items:
                             break
                         self.set_url(url_join(src_url, child))
                         dst.set_url(url_join(dst_url, child))
-                        self.do_copy(dst)
+                        self.do_copy(dst, opname)
 
                         # reset to base urls
                         self.set_url(src_url)
                         dst.set_url(dst_url)
 
+                if mirror:
+                    for child in dst_children:
+                        dst.set_url(url_join(dst_url, child))
+                        dst.delete_path()
+
         end = time.time()
 
-        print("Copying took %.2f secs" % (round(end - start, 2)))
+        print("%sing took %.2f secs" % (opname, round(end - start, 2)))
 
-    def do_copy(self, dst):
+    def do_copy(self, dst, opname):
         if self.verbose:
             if self.async:
-                print("Copying (asynchronously) from %s to %s" % (self.url, dst.url))
+                print("%sing (asynchronously) from %s to %s" % (opname, self.url, dst.url))
             else:
-                print("Copying from %s to %s" % (self.url, dst.url))
+                print("%sing from %s to %s" % (opname, self.url, dst.url))
 
         dst.write_path(self.read_path())
 
@@ -298,6 +324,14 @@ class ZKProxy(Proxy):
 
         return v
 
+    def delete_path(self):
+        try:
+            self.client.delete(self.path, recursive=True)
+        except NoNodeError:
+            pass
+        except ZookeeperError:
+            raise CopyError("Zookeeper server error")
+
     def children_of(self):
         if self.async:
             return AsyncWalker(self.client).walk(self.path.rstrip("/"))
@@ -346,7 +380,6 @@ class FileProxy(Proxy):
 
     def write_path(self, path_value):
         """ this will overwrite dst path - be careful """
-
         parent_dir = os.path.dirname(self.path)
         try:
             os.makedirs(parent_dir)
@@ -365,6 +398,14 @@ class FileProxy(Proxy):
                 yield path
             for filename in files:
                 yield "%s/%s" % (path, filename) if path != "" else filename
+
+    def delete_path(self):
+        if os.access(self.path, os.F_OK):
+            for root, dirs, files in os.walk(self.path, topDown=False):
+                for name in files:
+                    os.remove(os.path.join(self.path, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(self.path, name))
 
 
 class JSONProxy(Proxy):
@@ -458,3 +499,9 @@ class JSONProxy(Proxy):
         for child in self._tree.keys():
             if good(child):
                 yield child[offs:]
+
+    def delete_path(self):
+        if self.path in self._tree:
+            for c in self.children_of():
+                self._tree.pop(url_join(self.path, c))
+            self._tree.pop(self.path)
