@@ -24,8 +24,13 @@ class ConnectTestCase(unittest.TestCase):
         self.shell = Shell([], 1, self.output, setup_readline=False, async=False)
 
     def tearDown(self):
-        self.output = None
-        self.shell = None
+        if self.output:
+            self.output.close()
+            self.output = None
+
+        if self.shell:
+            self.shell._disconnect()
+            self.shell = None
 
     def test_start_connected(self):
         """ test connect command """

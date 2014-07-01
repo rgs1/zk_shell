@@ -885,6 +885,7 @@ child_watches=%s"""
     def _disconnect(self):
         if self._zk:
             self._zk.stop()
+            self._zk.close()
             self._zk = None
         self.connected = False
 

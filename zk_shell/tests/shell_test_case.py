@@ -60,16 +60,24 @@ class ShellTestCase(unittest.TestCase):
         return "%s:%s" % (self.username, self.digested_password)
 
     def tearDown(self):
-        self.output = None
-        self.shell = None
+        if self.output is not None:
+            self.output.close()
+            self.output = None
+
+        if self.shell is not None:
+            self.shell._disconnect()
+            self.shell = None
 
         if os.path.isdir(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-        if self.client.exists(self.tests_path):
-            self.client.delete(self.tests_path, recursive=True)
+        if self.client is not None:
+            if self.client.exists(self.tests_path):
+                self.client.delete(self.tests_path, recursive=True)
 
-        self.client.stop()
+            self.client.stop()
+            self.client.close()
+            self.client = None
 
     ###
     # Helpers.
