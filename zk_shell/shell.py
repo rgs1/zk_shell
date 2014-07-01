@@ -295,7 +295,7 @@ class Shell(AugumentedCmd):
     @ensure_params(Required("src"), Required("dst"),
                    BooleanOptional("recursive"), BooleanOptional("overwrite"),
                    BooleanOptional("async"), BooleanOptional("verbose"),
-                   IntegerOptional("max_items", 0), BooleanOptional("mirror"))
+                   IntegerOptional("max_items", 0))
     def do_cp(self, params):
         """
         copy from/to local/remote or remote/remote paths.

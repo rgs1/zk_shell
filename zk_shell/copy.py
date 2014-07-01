@@ -178,7 +178,8 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
             raise CopyError("Mirror from zk to fs isn't supported")
 
         if recursive and self.scheme == "zk" and dst.scheme == "file":
-            raise CopyError("Recursive %s from zk to fs isn't supported" % opname.lower())
+            raise CopyError("Recursive %s from zk to fs isn't supported" %
+                            opname.lower())
 
         if mirror and not recursive:
             raise CopyError("Mirroring must be recursive")
@@ -504,4 +505,3 @@ class JSONProxy(Proxy):
             for c in self.children_of():
                 self._tree.pop(url_join(self.path, c))
             self._tree.pop(self.path)
-
