@@ -142,12 +142,21 @@ class CLI(object):
         intro = "Welcome to zk-shell (%s)" % (__version__)
         first = True
         while True:
+            wants_exit = False
+
             try:
                 shell.run(intro if first else None)
             except StateTransition:
                 pass
             except KeyboardInterrupt:
-                done = raw_input("\nExit? (y|n) ")
-                if done == "y":
-                    break
+                wants_exit = True
+
+            if wants_exit:
+                try:
+                    done = raw_input("\nExit? (y|n) ")
+                    if done == "y":
+                        break
+                except EOFError:
+                    pass
+
             first = False
