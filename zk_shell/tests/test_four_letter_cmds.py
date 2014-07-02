@@ -25,7 +25,7 @@ class FourLetterCmdsTestCase(ShellTestCase):
         self.assertIn("127.0.0.1", self.output.getvalue())
 
     def test_disconnected(self):
-        """ test mntr """
+        """ test disconnected """
         self.shell.onecmd("disconnect")
         self.shell.onecmd("mntr")
         self.shell.onecmd("cons")
