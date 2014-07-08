@@ -3,6 +3,7 @@
 from collections import namedtuple
 import sys
 
+from distutils.util import strtobool
 
 PYTHON3 = sys.version_info > (3, )
 
@@ -50,6 +51,14 @@ def decoded(s):
         return str.encode(s).decode('unicode_escape')
     else:
         return s.decode('string_escape')
+
+def prompt_yes_no(question):
+    print('%s [y/n]: ' % question)
+    while True:
+        try:
+            return strtobool(raw_input().lower())
+        except ValueError:
+            print('Please respond with \'y\' or \'n\'.\n')
 
 
 class Netloc(namedtuple("Netloc", "host scheme credential")):

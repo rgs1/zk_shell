@@ -3,6 +3,9 @@
 from collections import deque, namedtuple
 import threading
 import time
+from kazoo.exceptions import (
+    NoNodeError,
+)
 
 
 class WalkContext(object):
@@ -80,9 +83,11 @@ class AsyncWalker(object):
             if vpath:
                 yield vpath
 
-            for child in self.client.get_children(full_path):
-                result = self.client.exists_async("%s/%s" % (full_path, child))
-                ctxt.add_candidate(vpath, child, result)
-
+                try:
+                    for child in self.client.get_children(full_path):
+                        result = self.client.exists_async("%s/%s" % (full_path, child))
+                        ctxt.add_candidate(vpath, child, result)
+                except NoNodeError:
+                    pass
         ctxt.working = False
         validator_.join()
