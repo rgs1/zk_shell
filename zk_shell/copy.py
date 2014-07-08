@@ -64,6 +64,13 @@ class CopyError(Exception):
         return self._early_error
 
 
+class AuthError(CopyError):
+    """ authentication exception for Copy """
+    def __init__(self, operation, path):
+        super(AuthError, self).__init__(
+            "Permission denied: Could not %s znode %s." % (operation, path))
+
+
 class PathValue(object):
     def __init__(self, value, acl=None):
         self._value = value
@@ -282,7 +289,11 @@ class ZKProxy(Proxy):
         self.disconnect()
 
     def check_path(self):
-        retval = True if self.client.exists(self.path) else False
+        try:
+            retval = True if self.client.exists(self.path) else False
+        except NoAuthError:
+            raise AuthError("read", self.path)
+
         if retval is not self.exists:
             if self.exists:
                 error = "znode %s in %s doesn't exist" % \
@@ -292,10 +303,13 @@ class ZKProxy(Proxy):
             raise CopyError(error)
 
     def read_path(self):
-        # TODO: propose a new ZK opcode (GetWithACLs) so we can do this in 1 rt
-        value = self.get_value(self.path)
-        acl, _ = self.client.get_acls(self.path)
-        return self.ZKPathValue(value, acl)
+        try:
+            # TODO: propose a new ZK opcode (GetWithACLs) so we can do this in 1 rt
+            value = self.get_value(self.path)
+            acl, _ = self.client.get_acls(self.path)
+            return self.ZKPathValue(value, acl)
+        except NoAuthError:
+            raise AuthError("read", self.path)
 
     def write_path(self, path_value):
         if isinstance(path_value, self.ZKPathValue):
@@ -304,15 +318,20 @@ class ZKProxy(Proxy):
             acl = [ACLReader.from_dict(a) for a in path_value.acl]
 
         if self.client.exists(self.path):
-            value = self.get_value(self.path)
-            if path_value.value != value:
-                self.client.set(self.path, path_value.value)
+            try:
+                value = self.get_value(self.path)
+                if path_value.value != value:
+                    self.client.set(self.path, path_value.value)
+            except NoAuthError:
+                raise AuthError("write", self.path)
         else:
             try:
                 # Kazoo's create() doesn't handle acl=[] correctly
                 # See: https://github.com/python-zk/kazoo/pull/164
                 acl = acl or None
                 self.client.create(self.path, path_value.value, acl=acl, makepath=True)
+            except NoAuthError:
+                raise AuthError("create", self.path)
             except NodeExistsError:
                 raise CopyError("Node %s exists" % (self.path))
             except NoNodeError:
@@ -323,10 +342,13 @@ class ZKProxy(Proxy):
                 raise CopyError("ZooKeeper server error")
 
     def get_value(self, path):
-        if hasattr(self.client, 'get_bytes'):
-            v, _ = self.client.get_bytes(path)
-        else:
-            v, _ = self.client.get(path)
+        try:
+            if hasattr(self.client, 'get_bytes'):
+                v, _ = self.client.get_bytes(path)
+            else:
+                v, _ = self.client.get(path)
+        except NoAuthError:
+            raise AuthError("read", path)
 
         return v
 
@@ -336,7 +358,7 @@ class ZKProxy(Proxy):
         except NoNodeError:
             pass
         except NoAuthError:
-            raise CopyError("Permission denied: Cannot delete %s" % self.path)
+            raise AuthError("delete", self.path)
         except ZookeeperError:
             raise CopyError("Zookeeper server error")
 
@@ -356,10 +378,17 @@ class ZKProxy(Proxy):
             children = self.client.get_children(full_path)
         except NoNodeError:
             children = set()
+        except NoAuthError:
+            raise AuthError("read children", full_path)
 
         for child in children:
             child_path = "%s/%s" % (branch_path, child) if branch_path else child
-            stat = self.client.exists("%s/%s" % (root_path, child_path))
+
+            try:
+                stat = self.client.exists("%s/%s" % (root_path, child_path))
+            except NoAuthError:
+                raise AuthError("read", child)
+
             if stat is None or stat.ephemeralOwner != 0:
                 continue
             yield child_path
