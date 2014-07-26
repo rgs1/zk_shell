@@ -1,9 +1,18 @@
 #!/usr/bin/env python
 
+def src_override_system_setup():
+    import os
+    return os.getenv("ZKSHELL_SRC") is not None
+
+if src_override_system_setup():
+    import sys
+    sys.path.insert(0,  "..")
+    sys.path.insert(0, ".")
+
 try:
     from zk_shell.cli import CLI
 except ImportError:
-    # running from source?
+    # running from src and no system install
     import sys
     sys.path.extend((".", ".."))
     from zk_shell.cli import CLI
