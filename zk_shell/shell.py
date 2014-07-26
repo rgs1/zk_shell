@@ -28,6 +28,7 @@ It supports the basic ops plus a few handy extensions:
 from __future__ import print_function
 
 from functools import partial, wraps
+import json
 import os
 import re
 import shlex
@@ -854,6 +855,101 @@ child_watches=%s"""
 
         if count == 0:
             self.do_output("Branches are equal.")
+
+    @connected
+    @ensure_params(Required("path"), BooleanOptional("recursive"))
+    @check_paths_exists("path")
+    def do_json_valid(self, params):
+        """
+        prints yes if it's valid JSON, no otherwise
+
+        example:
+
+        json_valid /some/valid/json_znode
+        yes.
+
+        json_valid /some/invalid/json_znode
+        no.
+
+        Or recursively:
+
+        json_valid /configs true
+        /configs/a: yes.
+        /configs/b: no.
+        """
+        def check_valid(path, print_path):
+            value, _ = self._zk.get(path)
+            try:
+                x = json.loads(value)
+                result = "yes"
+            except ValueError:
+                result = "no"
+
+            if print_path:
+                self.do_output("%s: %s.", path, result)
+            else:
+                self.do_output("%s.", result)
+
+        if not params.recursive:
+            check_valid(params.path, False)
+        else:
+            for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
+                check_valid(cpath, True)
+
+    complete_json_valid = _complete_path
+
+    @connected
+    @ensure_params(Required("path"), BooleanOptional("recursive"))
+    @check_paths_exists("path")
+    def do_json_cat(self, params):
+        """
+        pretty prints a JSON blob within a znode
+
+        example:
+
+        json_cat /configs/clusters
+        {
+          "dc0": {
+            "network": "10.2.0.0/16",
+          },
+          .....
+        }
+
+        Or recursively:
+
+        json_cat /configs true
+        /configs/clusters:
+        {
+          "dc0": {
+            "network": "10.2.0.0/16",
+          },
+          .....
+        }
+        /configs/dns_servers:
+        [
+          "10.2.0.1",
+          "10.3.0.1"
+        ]
+        """
+        def json_output(path, print_path):
+            value, _ = self._zk.get(path)
+            try:
+                value = json.dumps(json.loads(value), indent=4)
+            except ValueError:
+                pass
+
+            if print_path:
+                self.do_output("%s:\n%s", path, value)
+            else:
+                self.do_output(value)
+
+        if not params.recursive:
+            json_output(params.path, False)
+        else:
+            for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
+                json_output(cpath, True)
+
+    complete_json_cat = _complete_path
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
