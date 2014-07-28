@@ -951,6 +951,77 @@ child_watches=%s"""
 
     complete_json_cat = _complete_path
 
+    @connected
+    @ensure_params(Required("path"), Required("keys"), BooleanOptional("recursive"))
+    @check_paths_exists("path")
+    def do_json_get(self, params):
+        """
+        get key (or keys, if nested) from a JSON object serialized in the given path
+
+        example:
+
+        json_get /configs/primary_service endpoint.clientPort
+        32768
+
+        Or recursively:
+
+        json_get /configs endpoint.clientPorts true
+        primary_service: 32768
+        secondary_service: 32769
+        """
+        if re.match(r"\w+(?:\.\w+)*$", params.keys) is None:
+            self.do_output("Bad key syntax, should be: key1.key2...")
+            return
+
+        class MissingKey(Exception): pass
+        class BadJSON(Exception): pass
+
+        def get_from_obj(obj, keys):
+            current = obj
+            for key in keys.split("."):
+                if type(current) == list:
+                    try:
+                        key = int(key)
+                    except TypeError:
+                        raise MissingKey(key)
+
+                try:
+                    current = current[key]
+                except (IndexError, KeyError, TypeError) as ex:
+                    raise MissingKey(key)
+            return current
+
+        def get(path, keys, print_path):
+            jstr, _ = self._zk.get(path)
+            try:
+                obj = json.loads(jstr)
+            except ValueError:
+                raise BadJSON(path)
+
+            value = get_from_obj(obj, keys)
+
+            if print_path:
+                self.do_output("%s: %s", path, value)
+            else:
+                self.do_output(value)
+
+        if params.recursive:
+            paths = self._zk.tree(params.path, 0, full_path=True)
+            print_path = True
+        else:
+            paths = [(params.path, 0)]
+            print_path = False
+
+        for cpath, _ in paths:
+            try:
+                get(cpath, params.keys, print_path)
+            except BadJSON as ex:
+                self.do_output("Path %s has bad JSON.", cpath)
+            except MissingKey as ex:
+                self.do_output("Path %s is missing key %s.", cpath, ex)
+
+    complete_json_get = _complete_path
+
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """

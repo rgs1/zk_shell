@@ -73,3 +73,21 @@ class JsonCmdsTestCase(ShellTestCase):
         for path, obj in by_path.items():
             self.assertEqual(obj["a"], ["foo", "bar"])
             self.assertEqual(obj["b"], ["foo", 3])
+
+    def test_json_get(self):
+        """ test get """
+        jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
+
+        self.assertEqual("value\n", self.output.getvalue())
+
+    def test_json_get_recursive(self):
+        """ test get recursively """
+        jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
+        self.shell.onecmd("create %s/a '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_get %s a.b.c.d true" % (self.tests_path))
+
+        expected_output = "/tests/b: value\n/tests/a: value\n"
+        self.assertEqual(expected_output, self.output.getvalue())
