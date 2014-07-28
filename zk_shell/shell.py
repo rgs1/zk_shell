@@ -878,12 +878,15 @@ child_watches=%s"""
         /configs/b: no.
         """
         def check_valid(path, print_path):
+            result = "no"
             value, _ = self._zk.get(path)
-            try:
-                x = json.loads(value)
-                result = "yes"
-            except ValueError:
-                result = "no"
+
+            if value is not None:
+                try:
+                    x = json.loads(value)
+                    result = "yes"
+                except ValueError:
+                    pass
 
             if print_path:
                 self.do_output("%s: %s.", os.path.basename(path), result)
@@ -933,10 +936,12 @@ child_watches=%s"""
         """
         def json_output(path, print_path):
             value, _ = self._zk.get(path)
-            try:
-                value = json.dumps(json.loads(value), indent=4)
-            except ValueError:
-                pass
+
+            if value is not None:
+                try:
+                    value = json.dumps(json.loads(value), indent=4)
+                except ValueError:
+                    pass
 
             if print_path:
                 self.do_output("%s:\n%s", os.path.basename(path), value)
@@ -993,6 +998,10 @@ child_watches=%s"""
 
         def get(path, keys, print_path):
             jstr, _ = self._zk.get(path)
+
+            if jstr is None:
+                raise BadJSON(path)
+
             try:
                 obj = json.loads(jstr)
             except ValueError:
