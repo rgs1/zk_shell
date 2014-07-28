@@ -30,8 +30,7 @@ class JsonCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/valid '%s'" % (self.tests_path, valid))
         self.shell.onecmd("create %s/invalid '%s'" % (self.tests_path, invalid))
         self.shell.onecmd("json_valid %s true" % (self.tests_path))
-        expected_output = "%s/valid: yes.\n%s/invalid: no.\n" % (
-            self.tests_path, self.tests_path)
+        expected_output = "valid: yes.\ninvalid: no.\n"
         self.assertEqual(expected_output, self.output.getvalue())
 
     def test_json_cat(self):
@@ -48,15 +47,15 @@ class JsonCmdsTestCase(ShellTestCase):
     def test_json_cat_recursive(self):
         """ test cat recursively """
         jsonstr = '{"a": ["foo", "bar"], "b": ["foo", 3]}'
-        self.shell.onecmd("create %s/a '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("create %s/json_a '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("create %s/json_b '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("json_cat %s true" % (self.tests_path))
 
         def dict_by_path(output):
             paths = defaultdict(str)
             curpath = ""
             for line in output.split("\n"):
-                if line.startswith("/"):
+                if line.startswith("json_"):
                     curpath = line.rstrip(":")
                 else:
                     paths[curpath] += line
@@ -89,5 +88,5 @@ class JsonCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("json_get %s a.b.c.d true" % (self.tests_path))
 
-        expected_output = "/tests/b: value\n/tests/a: value\n"
+        expected_output = "b: value\na: value\n"
         self.assertEqual(expected_output, self.output.getvalue())

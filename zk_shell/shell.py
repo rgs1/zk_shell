@@ -886,7 +886,7 @@ child_watches=%s"""
                 result = "no"
 
             if print_path:
-                self.do_output("%s: %s.", path, result)
+                self.do_output("%s: %s.", os.path.basename(path), result)
             else:
                 self.do_output("%s.", result)
 
@@ -939,7 +939,7 @@ child_watches=%s"""
                 pass
 
             if print_path:
-                self.do_output("%s:\n%s", path, value)
+                self.do_output("%s:\n%s", os.path.basename(path), value)
             else:
                 self.do_output(value)
 
@@ -1001,7 +1001,7 @@ child_watches=%s"""
             value = get_from_obj(obj, keys)
 
             if print_path:
-                self.do_output("%s: %s", path, value)
+                self.do_output("%s: %s", os.path.basename(path), value)
             else:
                 self.do_output(value)
 
