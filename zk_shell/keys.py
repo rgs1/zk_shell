@@ -80,7 +80,7 @@ class Keys(object):
             keys = cls.from_template(keystr)
             for k in keys:
                 v = cls.fetch(obj, cls.extract(k))
-                keystr = keystr.replace(k, v)
+                keystr = keystr.replace(k, str(v))
 
             value = keystr
         else:
