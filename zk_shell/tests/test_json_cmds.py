@@ -90,3 +90,21 @@ class JsonCmdsTestCase(ShellTestCase):
 
         expected_output = "b: value\na: value\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_json_get_template(self):
+        """ test get """
+        jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_get %s/json 'key = #{a.b.c.d}' " % (self.tests_path))
+
+        self.assertEqual("key = value\n", self.output.getvalue())
+
+    def test_json_get_recursive_template(self):
+        """ test get recursively """
+        jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
+        self.shell.onecmd("create %s/a '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_get %s 'the value is: #{a.b.c.d}' true" % (self.tests_path))
+
+        expected_output = "b: the value is: value\na: the value is: value\n"
+        self.assertEqual(expected_output, self.output.getvalue())

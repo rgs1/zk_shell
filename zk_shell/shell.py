@@ -63,6 +63,7 @@ from .augumented_cmd import (
     Required,
 )
 from .copy import CopyError, Proxy
+from .keys import Keys
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import Netloc, pretty_bytes, to_bool, to_int, decoded, prompt_yes_no
@@ -970,31 +971,22 @@ child_watches=%s"""
 
         Or recursively:
 
-        json_get /configs endpoint.clientPorts true
+        json_get /configs endpoint.clientPort true
         primary_service: 32768
         secondary_service: 32769
+
+        You can also use template strings to access various keys at once:
+
+        json_get /configs/primary_service '#{endpoint.ipAddress}:#{endpoint.clientPort}'
+        10.2.2.3:32768
         """
-        if re.match(r"\w+(?:\.\w+)*$", params.keys) is None:
-            self.do_output("Bad key syntax, should be: key1.key2...")
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.do_output(str(ex))
             return
 
-        class MissingKey(Exception): pass
         class BadJSON(Exception): pass
-
-        def get_from_obj(obj, keys):
-            current = obj
-            for key in keys.split("."):
-                if type(current) == list:
-                    try:
-                        key = int(key)
-                    except TypeError:
-                        raise MissingKey(key)
-
-                try:
-                    current = current[key]
-                except (IndexError, KeyError, TypeError) as ex:
-                    raise MissingKey(key)
-            return current
 
         def get(path, keys, print_path):
             jstr, _ = self._zk.get(path)
@@ -1007,7 +999,7 @@ child_watches=%s"""
             except ValueError:
                 raise BadJSON(path)
 
-            value = get_from_obj(obj, keys)
+            value = Keys.value(obj, keys)
 
             if print_path:
                 self.do_output("%s: %s", os.path.basename(path), value)
@@ -1026,7 +1018,7 @@ child_watches=%s"""
                 get(cpath, params.keys, print_path)
             except BadJSON as ex:
                 self.do_output("Path %s has bad JSON.", cpath)
-            except MissingKey as ex:
+            except Keys.Missing as ex:
                 self.do_output("Path %s is missing key %s.", cpath, ex)
 
     complete_json_get = _complete_path
