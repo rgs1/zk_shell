@@ -309,35 +309,43 @@ class AugumentedClient(KazooClient):
             stat = None
         return stat
 
-    def mntr(self, host=None):
+    def _to_endpoints(self, hosts):
+        return [self.current_endpoint] if hosts is None else self.hosts_to_endpoints(hosts)
+
+    def mntr(self, hosts=None):
         """ send an mntr cmd to either host or the connected server """
-        address = self.address_from_server(host)
-        return self.zk_cmd(address, "mntr")
+        return self.cmd(self._to_endpoints(hosts), "mntr")
 
-    def cons(self, host=None):
+    def cons(self, hosts=None):
         """ send a cons cmd to either host or the connected server """
-        address = self.address_from_server(host)
-        return self.zk_cmd(address, "cons")
+        return self.cmd(self._to_endpoints(hosts), "cons")
 
-    def dump(self, host=None):
+    def dump(self, hosts=None):
         """ send a dump cmd to either host or the connected server """
-        address = self.address_from_server(host)
-        return self.zk_cmd(address, "dump")
+        return self.cmd(self._to_endpoints(hosts), "dump")
 
-    def zk_cmd(self, address, cmd):
-        """address is a (host, port) tuple"""
+    def cmd(self, endpoints, cmd):
+        """endpoints is [(host1, port1), (host2, port), ...]"""
+        replies = []
+        for ep in endpoints:
+            replies.append(self._cmd(ep, cmd))
+        return "".join(replies)
+
+    def _cmd(self, endpoint, cmd):
+        """ endpoint is (host, port) """
         replies = []
         records = []
+        host, port = endpoint
 
         try:
-            records = socket.getaddrinfo(address[0], address[1], socket.AF_INET, socket.SOCK_STREAM)
+            records = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
         except socket.gaierror as ex:
             raise self.CmdFailed("Failed to resolve: %s" % (ex))
 
+        cmdbuf = "%s\n" % (cmd)
         for rec in records:
             try:
                 with connected_socket(rec[4]) as sock:
-                    cmdbuf = "%s\n" % (cmd)
                     sock.send(cmdbuf.encode())
                     while True:
                         buf = sock.recv(1024).decode("utf-8")
@@ -349,11 +357,15 @@ class AugumentedClient(KazooClient):
 
         return "".join(replies)
 
-    def address_from_server(self, host=None):
+    def hosts_to_endpoints(self, hosts):
         """ return a (host, port) tuple from a host[:port] str """
-        if host:
-            return host.rsplit(":", 1) if ":" in host else (host, 2181)
+        endpoints = []
+        for host in hosts.split(","):
+            endpoints.append(host.rsplit(":", 1) if ":" in host else (host, 2181))
+        return endpoints
 
+    @property
+    def current_endpoint(self):
         if not self.connected:
             raise self.CmdFailed("Not connected and no host given.")
 
@@ -361,8 +373,7 @@ class AugumentedClient(KazooClient):
 
     def zk_url(self):
         """ returns `zk://host:port` for the connected host:port """
-        host, port = self.address_from_server()
-        return "zk://%s:%d" % (host, port)
+        return "zk://%s:%d" % self.current_endpoint
 
     def reconnect(self):
         """ forces a reconnect by shutting down the connected socket
