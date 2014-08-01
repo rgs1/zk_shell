@@ -66,7 +66,7 @@ from .copy import CopyError, Proxy
 from .keys import Keys
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, to_int, decoded, prompt_yes_no
+from .util import Netloc, pretty_bytes, to_bool, to_int, decoded, prompt_yes_no, invalid_hosts
 
 
 def connected(func):
@@ -740,48 +740,60 @@ child_watches=%s"""
             if params.match == "" or params.match in hcmd:
                 self.do_output("%s", hcmd)
 
-    @ensure_params(Optional("host"))
+    @ensure_params(Optional("hosts"))
     def do_mntr(self, params):
         """
-        runs the mntr 4 letter command on current or given host
+        runs the mntr 4 letter command on current or given hosts
         """
-        host = params.host if params.host != "" else None
+        hosts = params.hosts if params.hosts != "" else None
+
+        if hosts is not None and invalid_hosts(hosts):
+            self.do_output("List of hosts has the wrong syntax.")
+            return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.mntr(host))
+            self.do_output(self._zk.mntr(hosts))
         except AugumentedClient.CmdFailed as ex:
             self.do_output(str(ex))
 
-    @ensure_params(Optional("host"))
+    @ensure_params(Optional("hosts"))
     def do_cons(self, params):
         """
-        runs the cons 4 letter command on current or given host
+        runs the cons 4 letter command on current or given hosts
         """
-        host = params.host if params.host != "" else None
+        hosts = params.hosts if params.hosts != "" else None
+
+        if hosts is not None and invalid_hosts(hosts):
+            self.do_output("List of hosts has the wrong syntax.")
+            return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.cons(host))
+            self.do_output(self._zk.cons(hosts))
         except AugumentedClient.CmdFailed as ex:
             self.do_output(str(ex))
 
-    @ensure_params(Optional("host"))
+    @ensure_params(Optional("hosts"))
     def do_dump(self, params):
         """
-        runs the cons 4 letter command on current or given host
+        runs the cons 4 letter command on current or given hosts
         """
-        host = params.host if params.host != "" else None
+        hosts = params.hosts if params.hosts != "" else None
+
+        if hosts is not None and invalid_hosts(hosts):
+            self.do_output("List of hosts has the wrong syntax.")
+            return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.dump(host))
+            self.do_output(self._zk.dump(hosts))
         except AugumentedClient.CmdFailed as ex:
             self.do_output(str(ex))
 

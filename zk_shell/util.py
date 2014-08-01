@@ -1,6 +1,7 @@
 """ helpers """
 
 from collections import namedtuple
+import re
 import sys
 
 from distutils.util import strtobool
@@ -79,3 +80,11 @@ class Netloc(namedtuple("Netloc", "host scheme credential")):
             scheme, credential = scheme_credential.split(":", 1)
 
         return cls(host, scheme, credential)
+
+
+_hosts = re.compile(r"\A\w+(?:\.\w+)*(?::\d+)?(?:,\w+(?:\.\w+)*(?::\d+)?)*\Z")
+def invalid_hosts(hosts):
+    """
+    vaguely matches a list of host1[:port1][,host2[:port2]],...
+    """
+    return _hosts.match(hosts) is None
