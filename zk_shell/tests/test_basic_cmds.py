@@ -207,3 +207,9 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("get %s/a" % (self.tests_path))
         expected_output = u"hello\n\nbye\n\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_loop(self):
+        self.shell.onecmd("create %s/a 'hello'" % (self.tests_path))
+        self.shell.onecmd("loop 3 0 'get %s/a'" % (self.tests_path))
+        expected_output = u"hello\nhello\nhello\n"
+        self.assertEqual(expected_output, self.output.getvalue())

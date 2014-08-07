@@ -66,7 +66,16 @@ from .copy import CopyError, Proxy
 from .keys import Keys
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
-from .util import Netloc, pretty_bytes, to_bool, to_int, decoded, prompt_yes_no, invalid_hosts
+from .util import (
+    Netloc,
+    pretty_bytes,
+    to_bool,
+    to_float,
+    to_int,
+    decoded,
+    prompt_yes_no,
+    invalid_hosts
+)
 
 
 def connected(func):
@@ -1034,6 +1043,35 @@ child_watches=%s"""
                 self.do_output("Path %s is missing key %s.", cpath, ex)
 
     complete_json_get = _complete_path
+
+    @connected
+    @ensure_params(Required("repeat"), Required("pause"), Required("cmd"))
+    def do_loop(self, params):
+        """
+        runs <cmd> <repeat> times, with a pause of <pause> secs inbetween
+
+        example:
+        loop 3 0 "get /foo"
+        """
+        repeat = to_int(params.repeat, -1)
+        if repeat < 0:
+            self.do_output("<repeat> must be >= 0.")
+            return
+        pause = to_float(params.pause, -1)
+        if pause < 0:
+            self.do_output("<pause> must be >= 0.")
+            return
+
+        cmd = params.cmd
+        i = 0
+        while True:
+            self.onecmd(cmd)
+            if pause > 0.0:
+                time.sleep(pause)
+            i += 1
+            if repeat > 0 and i >= repeat:
+                break
+
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
