@@ -16,11 +16,38 @@ from .util import to_bytes
 
 
 @contextmanager
-def connected_socket(address):
+def connected_socket(address, timeout=3):
     """ yields a connected socket """
-    sock = socket.create_connection(address)
+    sock = socket.create_connection(address, timeout)
     yield sock
     sock.close()
+
+
+class ClientInfo(object):
+    __slots__ = "id", "ip", "port", "hostname"
+
+    def __init__(self, sid=None, ip=None, port=None):
+        setattr(self, "hostname", None)
+        setattr(self, "id", sid)
+        self(ip, port)
+
+    def __call__(self, ip, port):
+        setattr(self, "ip", ip)
+        setattr(self, "port", port)
+
+    def __str__(self):
+        return "%s %s:%s" % (self.id, self.ip, self.port)
+
+    @property
+    def resolved(self):
+        if self.hostname is None and self.ip:
+            try:
+                hname = socket.gethostbyaddr(self.ip)[0]
+                setattr(self, "hostname", hname)
+            except socket.herror:
+                pass
+
+        return "%s %s:%s" % (self.id, self.hostname, self.port)
 
 
 class AugumentedClient(KazooClient):
@@ -328,7 +355,14 @@ class AugumentedClient(KazooClient):
         """endpoints is [(host1, port1), (host2, port), ...]"""
         replies = []
         for ep in endpoints:
-            replies.append(self._cmd(ep, cmd))
+            try:
+                replies.append(self._cmd(ep, cmd))
+            except self.CmdFailed as ex:
+                # if there's only 1 endpoint, give up.
+                # if there's more, keep trying.
+                if len(endpoints) == 1:
+                    raise ex
+
         return "".join(replies)
 
     def _cmd(self, endpoint, cmd):
@@ -342,18 +376,22 @@ class AugumentedClient(KazooClient):
         except socket.gaierror as ex:
             raise self.CmdFailed("Failed to resolve: %s" % (ex))
 
+        recvsize = 8192
         cmdbuf = "%s\n" % (cmd)
         for rec in records:
             try:
                 with connected_socket(rec[4]) as sock:
                     sock.send(cmdbuf.encode())
                     while True:
-                        buf = sock.recv(1024).decode("utf-8")
+                        buf = sock.recv(recvsize).decode("utf-8")
                         if buf == "":
                             break
                         replies.append(buf)
             except socket.error as ex:
-                raise self.CmdFailed("Error: %s" % (ex))
+                # if there's only 1 record, give up.
+                # if there's more, keep trying.
+                if len(records) == 1:
+                    raise self.CmdFailed("Error(%s): %s" % (rec[4], ex))
 
         return "".join(replies)
 
@@ -398,3 +436,42 @@ class AugumentedClient(KazooClient):
             time.sleep(0.1)
 
         return True
+
+    def ephemerals_info(self, hosts):
+        """
+        hosts is a comma separated lists of members of the ZK ensemble
+        returns a {path, ClientInfo}
+        """
+        info_by_path, info_by_id = {}, {}
+
+        dump = self.dump(hosts)
+
+        session = re.compile(r"^(0x\w+):")
+        ip_port = re.compile(r"^\tip:\s/(\d+\.\d+\.\d+\.\d+):(\d+)\ssessionId:\s(0x\w+)\Z")
+        path = re.compile(r"^\t((?:/.*)+)\Z")
+
+        sid = None
+        for line in dump.split("\n"):
+            mat = session.match(line)
+            if mat:
+                sid = mat.group(1)
+                continue
+
+            mat = path.match(line)
+            if mat:
+                info = info_by_id.get(sid, None)
+                if info is None:
+                    info = info_by_id[sid] = ClientInfo(sid)
+                info_by_path[mat.group(1)] = info
+                continue
+
+            mat = ip_port.match(line)
+            if mat:
+                ip, port, sid = mat.groups()
+
+                if sid not in info_by_id:
+                    continue
+
+                info_by_id[sid](ip, int(port))
+
+        return info_by_path

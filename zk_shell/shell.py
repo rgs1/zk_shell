@@ -1122,6 +1122,64 @@ child_watches=%s"""
                 if repeat > 0 and i >= repeat:
                     break
 
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("hosts"),
+        BooleanOptional("recursive"),
+        BooleanOptional("reverse")
+    )
+    @check_paths_exists("path")
+    def do_client_endpoint(self, params):
+        """
+        gets the session and ip:port for an ephemeral znode
+
+        client_endpoint <path> <hosts> [recursive: bool] [reverse_lookup: bool]
+
+        where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
+
+        examples:
+
+        client_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
+        0xa4788b919450e6 10.3.2.12:54250
+
+        """
+        if invalid_hosts(params.hosts):
+            self.do_output("List of hosts has the wrong syntax.")
+            return
+
+        stat = self._zk.exists(params.path)
+        if stat is None:
+            self.do_output("%s is gone.", params.path)
+            return
+
+        if not params.recursive and stat.ephemeralOwner == 0:
+            self.do_output("%s is not ephemeral.", params.path)
+            return
+
+        try:
+            info_by_path = self._zk.ephemerals_info(params.hosts)
+        except AugumentedClient.CmdFailed as ex:
+            self.do_output(str(ex))
+            return
+
+        def check(path, show_path, resolved):
+            info = info_by_path.get(path, None)
+            if info is None:
+                self.do_output("No session info for %s.", path)
+            else:
+                self.do_output("%s%s",
+                               "%s: " % (path) if show_path else "",
+                               info.resolved if resolved else str(info))
+
+        if not params.recursive:
+            check(params.path, False, params.reverse)
+        else:
+            for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
+                check(cpath, True, params.reverse)
+
+    complete_client_endpoint = _complete_path
+
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
