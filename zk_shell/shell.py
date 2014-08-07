@@ -27,6 +27,7 @@ It supports the basic ops plus a few handy extensions:
 
 from __future__ import print_function
 
+from contextlib import contextmanager
 from functools import partial, wraps
 import json
 import os
@@ -155,6 +156,7 @@ class Shell(AugumentedCmd):
         self._async = async
         self._zk = None
         self.connected = False
+        self.state_transitions_enabled = True
 
         if len(self._hosts) > 0:
             self._connect(self._hosts)
@@ -1044,6 +1046,18 @@ child_watches=%s"""
 
     complete_json_get = _complete_path
 
+    @contextmanager
+    def transitions_disabled(self):
+        """
+        use this when you want to ignore state transitions (i.e.: inside loop)
+        """
+        self.state_transitions_enabled = False
+        try:
+            yield
+        except KeyboardInterrupt:
+            pass
+        self.state_transitions_enabled = True
+
     @connected
     @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
@@ -1070,15 +1084,18 @@ child_watches=%s"""
 
         cmds = params.cmds
         i = 0
-        while True:
-            for cmd in cmds:
-                self.onecmd(cmd)
-            if pause > 0.0:
-                time.sleep(pause)
-            i += 1
-            if repeat > 0 and i >= repeat:
-                break
-
+        with self.transitions_disabled():
+            while True:
+                for cmd in cmds:
+                    try:
+                        self.onecmd(cmd)
+                    except Exception as ex:
+                        self.do_output("Command failed: %s.", ex)
+                if pause > 0.0:
+                    time.sleep(pause)
+                i += 1
+                if repeat > 0 and i >= repeat:
+                    break
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

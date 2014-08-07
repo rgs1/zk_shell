@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 from collections import namedtuple
+from functools import partial
 import logging
 import signal
 import sys
@@ -78,9 +79,10 @@ class StateTransition(Exception):
     pass
 
 
-def sigusr_handler(*_):
+def sigusr_handler(shell, *_):
     """ handler for SIGUSR2 """
-    raise StateTransition()
+    if shell.state_transitions_enabled:
+        raise StateTransition()
 
 
 def set_unbuffered_mode():
@@ -137,7 +139,7 @@ class CLI(object):
             sys.exit(rc)
 
         if not params.sync_connect:
-            signal.signal(signal.SIGUSR2, sigusr_handler)
+            signal.signal(signal.SIGUSR2, partial(sigusr_handler, shell))
 
         intro = "Welcome to zk-shell (%s)" % (__version__)
         first = True
