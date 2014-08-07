@@ -1045,13 +1045,19 @@ child_watches=%s"""
     complete_json_get = _complete_path
 
     @connected
-    @ensure_params(Required("repeat"), Required("pause"), Required("cmd"))
+    @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
         """
-        runs <cmd> <repeat> times, with a pause of <pause> secs inbetween
+        runs <cmds> <repeat> times, with a pause of <pause> secs inbetween
 
         example:
+
         loop 3 0 "get /foo"
+
+        Or multiple cmds:
+
+        loop 3 0 "get /foo" "get /bar"
+
         """
         repeat = to_int(params.repeat, -1)
         if repeat < 0:
@@ -1062,10 +1068,11 @@ child_watches=%s"""
             self.do_output("<pause> must be >= 0.")
             return
 
-        cmd = params.cmd
+        cmds = params.cmds
         i = 0
         while True:
-            self.onecmd(cmd)
+            for cmd in cmds:
+                self.onecmd(cmd)
             if pause > 0.0:
                 time.sleep(pause)
             i += 1
