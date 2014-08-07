@@ -42,8 +42,8 @@ def get_params():
     """ get the cmdline params """
     parser = argparse.ArgumentParser()
     parser.add_argument("--connect-timeout",
-                        type=int,
-                        default=10,
+                        type=float,
+                        default=10.0,
                         help="ZK connect timeout")
     parser.add_argument("--run-once",
                         type=str,
