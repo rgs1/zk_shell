@@ -591,7 +591,19 @@ class Shell(AugumentedCmd):
 
         example:
         exists /foo
-        ZnodeStat(czxid=101, mzxid=102, ctime=1382820644375, mtime=1382820693801, version=1, cversion=0, aversion=0, ephemeralOwner=0, dataLength=6, numChildren=0, pzxid=101)
+        Stat(
+          czxid=101,
+          mzxid=102,
+          ctime=1382820644375,
+          mtime=1382820693801,
+          version=1,
+          cversion=0,
+          aversion=0,
+          ephemeralOwner=0,
+          dataLength=6,
+          numChildren=0,
+          pzxid=101
+        )
 
         # sets a watch
         exists /foo true
@@ -604,7 +616,20 @@ class Shell(AugumentedCmd):
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
         if stat:
-            self.do_output(str(stat))
+            session = stat.ephemeralOwner if stat.ephemeralOwner else 0
+            self.do_output("Stat(")
+            self.do_output("  czxid=%s", stat.czxid)
+            self.do_output("  mzxid=%s", stat.mzxid)
+            self.do_output("  ctime=%s", stat.ctime)
+            self.do_output("  mtime=%s", stat.mtime)
+            self.do_output("  version=%s", stat.version)
+            self.do_output("  cversion=%s", stat.cversion)
+            self.do_output("  aversion=%s", stat.aversion)
+            self.do_output("  ephemeralOwner=0x%x", session)
+            self.do_output("  dataLength=%s", stat.dataLength)
+            self.do_output("  numChildren=%s", stat.numChildren)
+            self.do_output("  pzxid=%s", stat.pzxid)
+            self.do_output(")")
         else:
             self.do_output("Path %s doesn't exist", params.path)
 
