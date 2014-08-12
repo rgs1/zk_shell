@@ -91,9 +91,84 @@ class Netloc(namedtuple("Netloc", "host scheme credential")):
         return cls(host, scheme, credential)
 
 
-_hosts = re.compile(r"\A\w+(?:\.\w+)*(?::\d+)?(?:,\w+(?:\.\w+)*(?::\d+)?)*\Z")
+_empty = re.compile("\A\s*\Z")
+_valid_host_part = re.compile("(?!-)[a-z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+_valid_ipv4 = re.compile("\A(\d+)\.(\d+)\.(\d+)\.(\d+)\Z")
+
+
+def valid_port(port):
+    try:
+        port = int(port)
+        return port >= 0 and port <= 65536
+    except ValueError: pass
+
+    return False
+
+
+def valid_ipv4(ip):
+    """ check if ip is a valid ipv4 """
+    match =  _valid_ipv4.match(ip)
+    if match is None:
+        return False
+
+    octets  = match.groups()
+    if len(octets) != 4:
+        return False
+
+    first = int(octets[0])
+    if first < 1 or first > 254:
+        return False
+
+    for i in range(1, 4):
+        octet = int(octets[i])
+        if octet < 0 or octet > 255:
+            return False
+
+    return True
+
+
+def valid_host(host):
+    """ check valid hostname """
+    for part in host.split("."):
+        if not _valid_host_part.match(part):
+            return False
+
+    return True
+
+
+def valid_host_with_port(hostport):
+    """
+    matches hostname or an IP, optionally with a port
+    """
+    host, port = hostport.rsplit(":", 1) if ":" in hostport else (hostport, None)
+
+    # first, validate host or IP
+    if not valid_ipv4(host) and not valid_host(host):
+        return False
+
+    # now, validate port
+    if port is not None and not valid_port(port):
+        return False
+
+    return True
+
+
+def valid_hosts(hosts):
+    """
+    matches a comma separated list of hosts (possibly with ports)
+    """
+    if _empty.match(hosts):
+        return False
+
+    for host in hosts.split(","):
+        if not valid_host_with_port(host):
+            return False
+
+    return True
+
+
 def invalid_hosts(hosts):
     """
-    vaguely matches a list of host1[:port1][,host2[:port2]],...
+    the inverse of valid_hosts()
     """
-    return _hosts.match(hosts) is None
+    return not valid_hosts(hosts)
