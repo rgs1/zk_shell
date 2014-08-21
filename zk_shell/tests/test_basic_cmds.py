@@ -220,3 +220,8 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("loop 3 0  '%s' '%s'" % (cmd, cmd))
         expected_output = u"hello\nhello\nhello\n" * 2
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_bad_arguments(self):
+        self.shell.onecmd("rm /")
+        expected_output = u"Bad arguments.\n"
+        self.assertEqual(expected_output, self.output.getvalue())

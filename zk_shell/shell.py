@@ -39,6 +39,7 @@ import time
 import zlib
 
 from kazoo.exceptions import (
+    BadArgumentsError,
     BadVersionError,
     InvalidACLError,
     NoAuthError,
@@ -712,7 +713,9 @@ class Shell(AugumentedCmd):
         except NotEmptyError:
             self.do_output("%s is not empty.", params.path)
         except NotReadOnlyCallError:
-            self.do_output("Not a read-only operation")
+            self.do_output("Not a read-only operation.")
+        except BadArgumentsError:
+            self.do_output("Bad arguments.")
 
     complete_rm = _complete_path
 
@@ -847,6 +850,8 @@ child_watches=%s"""
             self._zk.delete(params.path, recursive=True)
         except NotReadOnlyCallError:
             self.do_output("Not a read-only operation")
+        except BadArgumentsError:
+            self.do_output("Bad arguments.")
 
     complete_rmr = _complete_path
 
