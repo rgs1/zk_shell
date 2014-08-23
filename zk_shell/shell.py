@@ -1135,18 +1135,18 @@ child_watches=%s"""
         BooleanOptional("reverse")
     )
     @check_paths_exists("path")
-    def do_client_endpoint(self, params):
+    def do_ephemeral_endpoint(self, params):
         """
         gets the session and ip:port for an ephemeral znode
 
-        client_endpoint <path> <hosts> [recursive: bool] [reverse_lookup: bool]
+        ephemeral_endpoint <path> <hosts> [recursive: bool] [reverse_lookup: bool]
 
         where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
 
         examples:
 
-        client_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
-        0xa4788b919450e6 10.3.2.12:54250
+        ephemeral_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
+        0xa4788b919450e6 10.3.2.12:54250 10.0.0.2:2181
 
         """
         if invalid_hosts(params.hosts):
@@ -1183,7 +1183,38 @@ child_watches=%s"""
             for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
                 check(cpath, True, params.reverse)
 
-    complete_client_endpoint = _complete_path
+    complete_ephemeral_endpoint = _complete_path
+
+    @connected
+    @ensure_params(Required("session"), Required("hosts"), BooleanOptional("reverse"))
+    def do_session_endpoint(self, params):
+        """
+        gets the client_ip:port and server_ip:port for the given session
+
+        session_endpoint <session> <hosts>
+
+        where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
+
+        examples:
+
+        session_endpoint 0xa4788b919450e6 10.0.0.1,10.0.0.2,10.0.0.3
+        10.3.2.12:54250 10.0.0.2:2181
+        """
+        if invalid_hosts(params.hosts):
+            self.do_output("List of hosts has the wrong syntax.")
+            return
+
+        try:
+            info_by_id = self._zk.sessions_info(params.hosts)
+        except AugumentedClient.CmdFailed as ex:
+            self.do_output(str(ex))
+            return
+
+        info = info_by_id.get(params.session, None)
+        if info is None:
+            self.do_output("No session info for %s.", params.session)
+        else:
+            self.do_output("%s", info.resolved_endpoints if params.reverse else info.endpoints)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

@@ -24,30 +24,54 @@ def connected_socket(address, timeout=3):
 
 
 class ClientInfo(object):
-    __slots__ = "id", "ip", "port", "hostname"
+    __slots__ = "id", "ip", "port", "client_hostname", "server_ip", "server_port", "server_hostname"
 
-    def __init__(self, sid=None, ip=None, port=None):
-        setattr(self, "hostname", None)
+    def __init__(self, sid=None, ip=None, port=None, server_ip=None, server_port=None):
         setattr(self, "id", sid)
-        self(ip, port)
-
-    def __call__(self, ip, port):
         setattr(self, "ip", ip)
         setattr(self, "port", port)
+        setattr(self, "server_ip", server_ip)
+        setattr(self, "server_port", server_port)
+        setattr(self, "client_hostname", None)
+        setattr(self, "server_hostname", None)
+
+    def __call__(self, ip, port, server_ip, server_port):
+        setattr(self, "ip", ip)
+        setattr(self, "port", port)
+        setattr(self, "server_ip", server_ip)
+        setattr(self, "server_port", server_port)
 
     def __str__(self):
-        return "%s %s:%s" % (self.id, self.ip, self.port)
+        return "%s %s" % (self.id, self.endpoints)
+
+    @property
+    def endpoints(self):
+        return "%s:%s %s:%s" % (self.ip, self.port, self.server_ip, self.server_port)
 
     @property
     def resolved(self):
-        if self.hostname is None and self.ip:
-            try:
-                hname = socket.gethostbyaddr(self.ip)[0]
-                setattr(self, "hostname", hname)
-            except socket.herror:
-                pass
+        self._resolve_hostnames()
+        return "%s %s" % (self.id, self.resolved_endpoints)
 
-        return "%s %s:%s" % (self.id, self.hostname, self.port)
+    @property
+    def resolved_endpoints(self):
+        self._resolve_hostnames()
+        return "%s:%s %s:%s" % (
+            self.client_hostname, self.port, self.server_hostname, self.server_port)
+
+    def _resolve_hostnames(self):
+        if self.client_hostname is None and self.ip:
+            self.resolve_ip("client_hostname", self.ip)
+
+        if self.server_hostname is None and self.server_ip:
+            self.resolve_ip("server_hostname", self.server_ip)
+
+    def resolve_ip(self, attr, ip):
+        try:
+            hname = socket.gethostbyaddr(ip)[0]
+            setattr(self, attr, hname)
+        except socket.herror:
+            pass
 
 
 class AugumentedClient(KazooClient):
@@ -56,6 +80,10 @@ class AugumentedClient(KazooClient):
     class CmdFailed(Exception):
         """ 4 letter cmd failed """
         pass
+
+    SESSION_REGEX = re.compile(r"^(0x\w+):")
+    IP_PORT_REGEX = re.compile(r"^\tip:\s/(\d+\.\d+\.\d+\.\d+):(\d+)\ssessionId:\s(0x\w+)\Z")
+    PATH_REGEX = re.compile(r"^\t((?:/.*)+)\Z")
 
     @property
     def xid(self):
@@ -399,7 +427,7 @@ class AugumentedClient(KazooClient):
         """ return a (host, port) tuple from a host[:port] str """
         endpoints = []
         for host in hosts.split(","):
-            endpoints.append(host.rsplit(":", 1) if ":" in host else (host, 2181))
+            endpoints.append(tuple(host.rsplit(":", 1)) if ":" in host else (host, 2181))
         return endpoints
 
     @property
@@ -437,41 +465,76 @@ class AugumentedClient(KazooClient):
 
         return True
 
-    def ephemerals_info(self, hosts):
+    def dump_by_server(self, hosts):
+        """Returns the output of dump for each server.
+
+        :param hosts: comma separated lists of members of the ZK ensemble.
+        :returns: A dictionary of ((server_ip, port), ClientInfo).
+
         """
-        hosts is a comma separated lists of members of the ZK ensemble
-        returns a {path, ClientInfo}
+        dump_by_endpoint = {}
+
+        for endpoint in self._to_endpoints(hosts):
+            try:
+                out = self.cmd([endpoint], "dump")
+            except self.CmdFailed as ex:
+                out = ""
+            dump_by_endpoint[endpoint] = out
+
+        return dump_by_endpoint
+
+    def ephemerals_info(self, hosts):
+        """Returns ClientInfo per path.
+
+        :param hosts: comma separated lists of members of the ZK ensemble.
+        :returns: A dictionary of (path, ClientInfo).
+
         """
         info_by_path, info_by_id = {}, {}
 
-        dump = self.dump(hosts)
-
-        session = re.compile(r"^(0x\w+):")
-        ip_port = re.compile(r"^\tip:\s/(\d+\.\d+\.\d+\.\d+):(\d+)\ssessionId:\s(0x\w+)\Z")
-        path = re.compile(r"^\t((?:/.*)+)\Z")
-
-        sid = None
-        for line in dump.split("\n"):
-            mat = session.match(line)
-            if mat:
-                sid = mat.group(1)
-                continue
-
-            mat = path.match(line)
-            if mat:
-                info = info_by_id.get(sid, None)
-                if info is None:
-                    info = info_by_id[sid] = ClientInfo(sid)
-                info_by_path[mat.group(1)] = info
-                continue
-
-            mat = ip_port.match(line)
-            if mat:
-                ip, port, sid = mat.groups()
-
-                if sid not in info_by_id:
+        for server_endpoint, dump in self.dump_by_server(hosts).items():
+            server_ip, server_port = server_endpoint
+            sid = None
+            for line in dump.split("\n"):
+                mat = self.SESSION_REGEX.match(line)
+                if mat:
+                    sid = mat.group(1)
                     continue
 
-                info_by_id[sid](ip, int(port))
+                mat = self.PATH_REGEX.match(line)
+                if mat:
+                    info = info_by_id.get(sid, None)
+                    if info is None:
+                        info = info_by_id[sid] = ClientInfo(sid)
+                    info_by_path[mat.group(1)] = info
+                    continue
+
+                mat = self.IP_PORT_REGEX.match(line)
+                if mat:
+                    ip, port, sid = mat.groups()
+                    if sid not in info_by_id:
+                        continue
+                    info_by_id[sid](ip, int(port), server_ip, server_port)
 
         return info_by_path
+
+    def sessions_info(self, hosts):
+        """Returns ClientInfo per session.
+
+        :param hosts: comma separated lists of members of the ZK ensemble.
+        :returns: A dictionary of (session_id, ClientInfo).
+
+        """
+        info_by_id = {}
+
+        for server_endpoint, dump in self.dump_by_server(hosts).items():
+            server_ip, server_port = server_endpoint
+            for line in dump.split("\n"):
+                mat = self.IP_PORT_REGEX.match(line)
+                if mat is None:
+                    continue
+                ip, port, sid = mat.groups()
+                info_by_id[sid] = ClientInfo(sid, ip, port, server_ip, server_port)
+
+        return info_by_id
+
