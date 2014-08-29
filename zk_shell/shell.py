@@ -98,6 +98,8 @@ def connected(func):
                 self.show_output("Connection loss.")
             except NotReadOnlyCallError:
                 self.show_output("Not a read-only operation.")
+            except BadArgumentsError:
+                self.show_output("Bad arguments.")
 
     return wrapper
 
@@ -687,10 +689,9 @@ class Shell(AugumentedCmd):
         except NodeExistsError:
             self.show_output("Path %s exists", params.path)
         except NoNodeError:
-            self.show_output("Part of the parent path for %s doesn't exist (try recursive)",
-                           params.path)
-        except NotReadOnlyCallError:
-            self.show_output("Not a read-only operation")
+            self.show_output(
+                "Part of the parent path for %s doesn't exist (try recursive)",
+                params.path)
 
     complete_create = _complete_path
 
@@ -704,10 +705,7 @@ class Shell(AugumentedCmd):
         example:
         set /foo 'bar'
         """
-        try:
-            self._zk.set(params.path, decoded(params.value))
-        except NotReadOnlyCallError:
-            self.show_output("Not a read-only operation")
+        self._zk.set(params.path, decoded(params.value))
 
     complete_set = _complete_path
 
@@ -719,10 +717,6 @@ class Shell(AugumentedCmd):
             self._zk.delete(params.path)
         except NotEmptyError:
             self.show_output("%s is not empty.", params.path)
-        except NotReadOnlyCallError:
-            self.show_output("Not a read-only operation.")
-        except BadArgumentsError:
-            self.show_output("Bad arguments.")
 
     complete_rm = _complete_path
 
@@ -853,12 +847,7 @@ child_watches=%s"""
         example:
         rmr /foo
         """
-        try:
-            self._zk.delete(params.path, recursive=True)
-        except NotReadOnlyCallError:
-            self.show_output("Not a read-only operation")
-        except BadArgumentsError:
-            self.show_output("Bad arguments.")
+        self._zk.delete(params.path, recursive=True)
 
     complete_rmr = _complete_path
 
