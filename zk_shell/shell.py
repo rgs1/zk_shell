@@ -86,12 +86,12 @@ def connected(func):
     def wrapper(*args, **kwargs):
         self = args[0]
         if not self.connected:
-            self.do_output("Not connected.")
+            self.show_output("Not connected.")
         else:
             try:
                 return func(*args, **kwargs)
             except NoAuthError:
-                self.do_output("Not authenticated.")
+                self.show_output("Not authenticated.")
     return wrapper
 
 
@@ -106,7 +106,7 @@ def check_path_exists_foreach(paths, func):
             path = self.resolve_path(path)
             setattr(params, path_param_name, path)
             if not self.client.exists(path):
-                self.do_output("Path %s=%s doesn't exist", path_param_name, path)
+                self.show_output("Path %s=%s doesn't exist", path_param_name, path)
                 return False
 
         return func(self, params)
@@ -129,7 +129,7 @@ def check_path_absent(func):
         params.path = self.resolve_path(path)
         if not self.client.exists(params.path):
             return func(self, params)
-        self.do_output("Path %s already exists", path)
+        self.show_output("Path %s already exists", path)
     return wrapper
 
 
@@ -216,13 +216,13 @@ class Shell(AugumentedCmd):
         try:
             acls = ACLReader.extract(params.acls)
         except ACLReader.BadACL as ex:
-            self.do_output("Failed to set ACLs: %s.", ex)
+            self.show_output("Failed to set ACLs: %s.", ex)
             return
 
         try:
             self._zk.set_acls(params.path, acls)
         except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
-            self.do_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
+            self.show_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
 
     complete_set_acls = _complete_path
 
@@ -257,7 +257,7 @@ class Shell(AugumentedCmd):
         for path, acls in self._zk.get_acls_recursive(params.path, params.depth, params.ephemerals):
             replace(acls, READ_ACL_UNSAFE[0], "WORLD_READ")
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
-            self.do_output("%s: %s", path, acls)
+            self.show_output("%s: %s", path, acls)
 
     complete_get_acls = _complete_path
 
@@ -267,7 +267,7 @@ class Shell(AugumentedCmd):
     def do_ls(self, params):
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
-        self.do_output(" ".join(znodes))
+        self.show_output(" ".join(znodes))
 
     complete_ls = _complete_path
 
@@ -416,7 +416,7 @@ class Shell(AugumentedCmd):
                        "command or manually revert.\nFailure reason:"
                        "\n%s") % ("Copy" if not mirror else "Mirror", str(ex))
 
-            self.do_output(msg)
+            self.show_output(msg)
 
     @connected
     @interruptible
@@ -438,9 +438,9 @@ class Shell(AugumentedCmd):
         ├── foo
         ├── bar
         """
-        self.do_output(".")
+        self.show_output(".")
         for child, level in self._zk.tree(params.path, params.max_depth):
-            self.do_output(u"%s├── %s", u"│   " * level, child)
+            self.show_output(u"%s├── %s", u"│   " * level, child)
 
     complete_tree = _complete_path
 
@@ -459,7 +459,7 @@ class Shell(AugumentedCmd):
         /bar: 3
         """
         for child, level in self._zk.tree(params.path, params.path_depth, full_path=True):
-            self.do_output("%s: %d", child, self._zk.child_count(child))
+            self.show_output("%s: %d", child, self._zk.child_count(child))
 
     complete_child_count = _complete_path
 
@@ -467,7 +467,7 @@ class Shell(AugumentedCmd):
     @ensure_params(Optional("path"))
     @check_paths_exists("path")
     def do_du(self, params):
-        self.do_output(pretty_bytes(self._zk.du(params.path)))
+        self.show_output(pretty_bytes(self._zk.du(params.path)))
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
@@ -483,7 +483,7 @@ class Shell(AugumentedCmd):
         /copy/foo
         """
         for path in self._zk.find(params.path, params.match, 0):
-            self.do_output(path)
+            self.show_output(path)
 
     complete_find = _complete_path
 
@@ -501,7 +501,7 @@ class Shell(AugumentedCmd):
         /copy/Foo
         """
         for path in self._zk.find(params.path, params.match, re.IGNORECASE):
-            self.do_output(path)
+            self.show_output(path)
 
     complete_ifind = _complete_path
 
@@ -538,11 +538,11 @@ class Shell(AugumentedCmd):
     def grep(self, path, content, flags, show_matches):
         for path, matches in self._zk.grep(path, content, flags):
             if show_matches:
-                self.do_output("%s:", path)
+                self.show_output("%s:", path)
                 for match in matches:
-                    self.do_output(match)
+                    self.show_output(match)
             else:
-                self.do_output(path)
+                self.show_output(path)
 
     @connected
     @ensure_params(Required("path"))
@@ -580,7 +580,7 @@ class Shell(AugumentedCmd):
             except:
                 pass
 
-        self.do_output(value)
+        self.show_output(value)
 
     complete_get = _complete_path
 
@@ -618,21 +618,21 @@ class Shell(AugumentedCmd):
         stat = self._zk.exists(path, **kwargs)
         if stat:
             session = stat.ephemeralOwner if stat.ephemeralOwner else 0
-            self.do_output("Stat(")
-            self.do_output("  czxid=%s", stat.czxid)
-            self.do_output("  mzxid=%s", stat.mzxid)
-            self.do_output("  ctime=%s", stat.ctime)
-            self.do_output("  mtime=%s", stat.mtime)
-            self.do_output("  version=%s", stat.version)
-            self.do_output("  cversion=%s", stat.cversion)
-            self.do_output("  aversion=%s", stat.aversion)
-            self.do_output("  ephemeralOwner=0x%x", session)
-            self.do_output("  dataLength=%s", stat.dataLength)
-            self.do_output("  numChildren=%s", stat.numChildren)
-            self.do_output("  pzxid=%s", stat.pzxid)
-            self.do_output(")")
+            self.show_output("Stat(")
+            self.show_output("  czxid=%s", stat.czxid)
+            self.show_output("  mzxid=%s", stat.mzxid)
+            self.show_output("  ctime=%s", stat.ctime)
+            self.show_output("  mtime=%s", stat.mtime)
+            self.show_output("  version=%s", stat.version)
+            self.show_output("  cversion=%s", stat.cversion)
+            self.show_output("  aversion=%s", stat.aversion)
+            self.show_output("  ephemeralOwner=0x%x", session)
+            self.show_output("  dataLength=%s", stat.dataLength)
+            self.show_output("  numChildren=%s", stat.numChildren)
+            self.show_output("  pzxid=%s", stat.pzxid)
+            self.show_output(")")
         else:
-            self.do_output("Path %s doesn't exist", params.path)
+            self.show_output("Path %s doesn't exist", params.path)
 
     complete_exists = _complete_path
 
@@ -678,12 +678,12 @@ class Shell(AugumentedCmd):
                             sequence=params.sequence,
                             makepath=params.recursive)
         except NodeExistsError:
-            self.do_output("Path %s exists", params.path)
+            self.show_output("Path %s exists", params.path)
         except NoNodeError:
-            self.do_output("Part of the parent path for %s doesn't exist (try recursive)",
+            self.show_output("Part of the parent path for %s doesn't exist (try recursive)",
                            params.path)
         except NotReadOnlyCallError:
-            self.do_output("Not a read-only operation")
+            self.show_output("Not a read-only operation")
 
     complete_create = _complete_path
 
@@ -700,7 +700,7 @@ class Shell(AugumentedCmd):
         try:
             self._zk.set(params.path, decoded(params.value))
         except NotReadOnlyCallError:
-            self.do_output("Not a read-only operation")
+            self.show_output("Not a read-only operation")
 
     complete_set = _complete_path
 
@@ -711,11 +711,11 @@ class Shell(AugumentedCmd):
         try:
             self._zk.delete(params.path)
         except NotEmptyError:
-            self.do_output("%s is not empty.", params.path)
+            self.show_output("%s is not empty.", params.path)
         except NotReadOnlyCallError:
-            self.do_output("Not a read-only operation.")
+            self.show_output("Not a read-only operation.")
         except BadArgumentsError:
-            self.do_output("Bad arguments.")
+            self.show_output("Bad arguments.")
 
     complete_rm = _complete_path
 
@@ -743,7 +743,7 @@ client=%s
 server=%s
 data_watches=%s
 child_watches=%s"""
-        self.do_output(fmt_str,
+        self.show_output(fmt_str,
                        self._zk.client_state,
                        self._zk.sessionid,
                        self._zk.protocol_version,
@@ -777,7 +777,7 @@ child_watches=%s"""
                 continue
 
             if params.match == "" or params.match in hcmd:
-                self.do_output("%s", hcmd)
+                self.show_output("%s", hcmd)
 
     @ensure_params(Optional("hosts"))
     def do_mntr(self, params):
@@ -787,16 +787,16 @@ child_watches=%s"""
         hosts = params.hosts if params.hosts != "" else None
 
         if hosts is not None and invalid_hosts(hosts):
-            self.do_output("List of hosts has the wrong syntax.")
+            self.show_output("List of hosts has the wrong syntax.")
             return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.mntr(hosts))
+            self.show_output(self._zk.mntr(hosts))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
 
     @ensure_params(Optional("hosts"))
     def do_cons(self, params):
@@ -806,16 +806,16 @@ child_watches=%s"""
         hosts = params.hosts if params.hosts != "" else None
 
         if hosts is not None and invalid_hosts(hosts):
-            self.do_output("List of hosts has the wrong syntax.")
+            self.show_output("List of hosts has the wrong syntax.")
             return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.cons(hosts))
+            self.show_output(self._zk.cons(hosts))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
 
     @ensure_params(Optional("hosts"))
     def do_dump(self, params):
@@ -825,16 +825,16 @@ child_watches=%s"""
         hosts = params.hosts if params.hosts != "" else None
 
         if hosts is not None and invalid_hosts(hosts):
-            self.do_output("List of hosts has the wrong syntax.")
+            self.show_output("List of hosts has the wrong syntax.")
             return
 
         if self._zk is None:
             self._zk = AugumentedClient()
 
         try:
-            self.do_output(self._zk.dump(hosts))
+            self.show_output(self._zk.dump(hosts))
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
 
     @connected
     @ensure_params(Required("path"))
@@ -849,9 +849,9 @@ child_watches=%s"""
         try:
             self._zk.delete(params.path, recursive=True)
         except NotReadOnlyCallError:
-            self.do_output("Not a read-only operation")
+            self.show_output("Not a read-only operation")
         except BadArgumentsError:
-            self.do_output("Bad arguments.")
+            self.show_output("Bad arguments.")
 
     complete_rmr = _complete_path
 
@@ -901,14 +901,14 @@ child_watches=%s"""
         count = 0
         for count, (diff, path) in enumerate(self._zk.diff(params.path_a, params.path_b), 1):
             if diff == -1:
-                self.do_output("-- %s", path)
+                self.show_output("-- %s", path)
             elif diff == 0:
-                self.do_output("-+ %s", path)
+                self.show_output("-+ %s", path)
             elif diff == 1:
-                self.do_output("++ %s", path)
+                self.show_output("++ %s", path)
 
         if count == 0:
-            self.do_output("Branches are equal.")
+            self.show_output("Branches are equal.")
 
     @connected
     @ensure_params(Required("path"), BooleanOptional("recursive"))
@@ -943,9 +943,9 @@ child_watches=%s"""
                     pass
 
             if print_path:
-                self.do_output("%s: %s.", os.path.basename(path), result)
+                self.show_output("%s: %s.", os.path.basename(path), result)
             else:
-                self.do_output("%s.", result)
+                self.show_output("%s.", result)
 
         if not params.recursive:
             check_valid(params.path, False)
@@ -998,9 +998,9 @@ child_watches=%s"""
                     pass
 
             if print_path:
-                self.do_output("%s:\n%s", os.path.basename(path), value)
+                self.show_output("%s:\n%s", os.path.basename(path), value)
             else:
-                self.do_output(value)
+                self.show_output(value)
 
         if not params.recursive:
             json_output(params.path, False)
@@ -1036,7 +1036,7 @@ child_watches=%s"""
         try:
             Keys.validate(params.keys)
         except Keys.Bad as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
             return
 
         class BadJSON(Exception): pass
@@ -1055,9 +1055,9 @@ child_watches=%s"""
             value = Keys.value(obj, keys)
 
             if print_path:
-                self.do_output("%s: %s", os.path.basename(path), value)
+                self.show_output("%s: %s", os.path.basename(path), value)
             else:
-                self.do_output(value)
+                self.show_output(value)
 
         if params.recursive:
             paths = self._zk.tree(params.path, 0, full_path=True)
@@ -1070,9 +1070,9 @@ child_watches=%s"""
             try:
                 get(cpath, params.keys, print_path)
             except BadJSON as ex:
-                self.do_output("Path %s has bad JSON.", cpath)
+                self.show_output("Path %s has bad JSON.", cpath)
             except Keys.Missing as ex:
-                self.do_output("Path %s is missing key %s.", cpath, ex)
+                self.show_output("Path %s is missing key %s.", cpath, ex)
 
     complete_json_get = _complete_path
 
@@ -1105,11 +1105,11 @@ child_watches=%s"""
         """
         repeat = to_int(params.repeat, -1)
         if repeat < 0:
-            self.do_output("<repeat> must be >= 0.")
+            self.show_output("<repeat> must be >= 0.")
             return
         pause = to_float(params.pause, -1)
         if pause < 0:
-            self.do_output("<pause> must be >= 0.")
+            self.show_output("<pause> must be >= 0.")
             return
 
         cmds = params.cmds
@@ -1120,7 +1120,7 @@ child_watches=%s"""
                     try:
                         self.onecmd(cmd)
                     except Exception as ex:
-                        self.do_output("Command failed: %s.", ex)
+                        self.show_output("Command failed: %s.", ex)
                 if pause > 0.0:
                     time.sleep(pause)
                 i += 1
@@ -1150,30 +1150,30 @@ child_watches=%s"""
 
         """
         if invalid_hosts(params.hosts):
-            self.do_output("List of hosts has the wrong syntax.")
+            self.show_output("List of hosts has the wrong syntax.")
             return
 
         stat = self._zk.exists(params.path)
         if stat is None:
-            self.do_output("%s is gone.", params.path)
+            self.show_output("%s is gone.", params.path)
             return
 
         if not params.recursive and stat.ephemeralOwner == 0:
-            self.do_output("%s is not ephemeral.", params.path)
+            self.show_output("%s is not ephemeral.", params.path)
             return
 
         try:
             info_by_path = self._zk.ephemerals_info(params.hosts)
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
             return
 
         def check(path, show_path, resolved):
             info = info_by_path.get(path, None)
             if info is None:
-                self.do_output("No session info for %s.", path)
+                self.show_output("No session info for %s.", path)
             else:
-                self.do_output("%s%s",
+                self.show_output("%s%s",
                                "%s: " % (path) if show_path else "",
                                info.resolved if resolved else str(info))
 
@@ -1201,20 +1201,20 @@ child_watches=%s"""
         10.3.2.12:54250 10.0.0.2:2181
         """
         if invalid_hosts(params.hosts):
-            self.do_output("List of hosts has the wrong syntax.")
+            self.show_output("List of hosts has the wrong syntax.")
             return
 
         try:
             info_by_id = self._zk.sessions_info(params.hosts)
         except AugumentedClient.CmdFailed as ex:
-            self.do_output(str(ex))
+            self.show_output(str(ex))
             return
 
         info = info_by_id.get(params.session, None)
         if info is None:
-            self.do_output("No session info for %s.", params.session)
+            self.show_output("No session info for %s.", params.session)
         else:
-            self.do_output("%s", info.resolved_endpoints if params.reverse else info.endpoints)
+            self.show_output("%s", info.resolved_endpoints if params.reverse else info.endpoints)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
@@ -1246,7 +1246,7 @@ child_watches=%s"""
 
     @connected
     def do_pwd(self, args):
-        self.do_output("%s", self.curdir)
+        self.show_output("%s", self.curdir)
 
     def do_EOF(self, *args):
         self._exit(True)
@@ -1301,7 +1301,7 @@ child_watches=%s"""
             self.connected = state == KazooState.CONNECTED
             self.update_curdir("/")
             # hack to restart sys.stdin.readline()
-            self.do_output("")
+            self.show_output("")
             os.kill(os.getpid(), signal.SIGUSR2)
 
         self._zk.add_listener(listener)
@@ -1313,7 +1313,7 @@ child_watches=%s"""
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
         except self._zk.handler.timeout_exception as ex:
-            self.do_output("Failed to connect: %s", ex)
+            self.show_output("Failed to connect: %s", ex)
         self.update_curdir("/")
 
     @property

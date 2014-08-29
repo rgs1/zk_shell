@@ -165,7 +165,7 @@ class AugumentedCmd(cmd.Cmd):
         """ the io output object """
         return self._output
 
-    def do_output(self, fmt_str, *params):
+    def show_output(self, fmt_str, *params):
         """ MAX_OUTPUT chars of the last output is available via $? """
         if PYTHON3:
             fmt_str = str(fmt_str)
