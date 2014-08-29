@@ -34,6 +34,11 @@ class Required(BasicParam):
     pass
 
 
+class IntegerRequired(BasicParam):
+    """ a required int param """
+    pass
+
+
 class Optional(BasicParam):
     """ an optional param """
     @property
@@ -81,6 +86,8 @@ class ShellParser(argparse.ArgumentParser):
         for param in params:
             if isinstance(param, Required):
                 parser.add_argument(param.label)
+            elif isinstance(param, IntegerRequired):
+                parser.add_argument(param.label, type=int)
             elif isinstance(param, Optional):
                 parser.add_argument(param.label, nargs="?", default="")
             elif isinstance(param, BooleanOptional):

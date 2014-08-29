@@ -41,6 +41,7 @@ import zlib
 from kazoo.exceptions import (
     BadArgumentsError,
     BadVersionError,
+    ConnectionLoss,
     InvalidACLError,
     NoAuthError,
     NodeExistsError,
@@ -58,6 +59,7 @@ from .augumented_cmd import (
     AugumentedCmd,
     BooleanOptional,
     IntegerOptional,
+    IntegerRequired,
     interruptible,
     ensure_params,
     Multi,
@@ -92,6 +94,11 @@ def connected(func):
                 return func(*args, **kwargs)
             except NoAuthError:
                 self.show_output("Not authenticated.")
+            except ConnectionLoss:
+                self.show_output("Connection loss.")
+            except NotReadOnlyCallError:
+                self.show_output("Not a read-only operation.")
+
     return wrapper
 
 
@@ -1215,6 +1222,23 @@ child_watches=%s"""
             self.show_output("No session info for %s.", params.session)
         else:
             self.show_output("%s", info.resolved_endpoints if params.reverse else info.endpoints)
+
+    @connected
+    @ensure_params(Required("path"), Required("val"), IntegerRequired("repeat"))
+    @check_paths_exists("path")
+    def do_fill(self, params):
+        """
+        fills a znode with <count> repeats of <val> (i.e.: useful for testing max bytes per znode)
+
+        fill <path> <char> <count>
+
+        examples:
+
+        fill /some/znode X 1048576
+        """
+        self._zk.set(params.path, decoded(params.val * params.repeat))
+
+    complete_fill = _complete_path
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

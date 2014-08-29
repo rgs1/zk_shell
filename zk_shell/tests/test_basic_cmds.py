@@ -225,3 +225,11 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("rm /")
         expected_output = u"Bad arguments.\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_fill(self):
+        path = "%s/a" % (self.tests_path)
+        self.shell.onecmd("create %s 'hello'" % (path))
+        self.shell.onecmd("fill %s hello 5" % (path))
+        self.shell.onecmd("get %s" % (path))
+        expected_output = u"hellohellohellohellohello\n"
+        self.assertEqual(expected_output, self.output.getvalue())
