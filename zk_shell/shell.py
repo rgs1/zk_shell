@@ -48,6 +48,7 @@ from kazoo.exceptions import (
     NoNodeError,
     NotEmptyError,
     NotReadOnlyCallError,
+    SessionExpiredError,
     ZookeeperError,
 )
 from kazoo.protocol.states import KazooState
@@ -100,6 +101,8 @@ def connected(func):
                 self.show_output("Not a read-only operation.")
             except BadArgumentsError:
                 self.show_output("Bad arguments.")
+            except SessionExpiredError:
+                self.show_output("Session expired.")
 
     return wrapper
 
