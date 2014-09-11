@@ -134,7 +134,7 @@ def ensure_params_with_parser(parser, func):
         try:
             params = parser.parse_args(shlex.split(args[1]))
             return func(args[0], params)
-        except ShellParser.ParserException as ex:
+        except (ShellParser.ParserException, ValueError) as ex:
             print(ex)
     return wrapper
 
