@@ -481,6 +481,8 @@ class Shell(AugumentedCmd):
     def do_du(self, params):
         self.show_output(pretty_bytes(self._zk.du(params.path)))
 
+    complete_du = _complete_path
+
     @connected
     @ensure_params(Optional("path"), Required("match"))
     @check_paths_exists("path")
