@@ -12,6 +12,7 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
 from kazoo.protocol.states import KazooState
 
+from .usage import Usage
 from .util import to_bytes
 
 
@@ -163,19 +164,7 @@ class AugumentedClient(KazooClient):
 
     def du(self, path):
         """ returns the bytes used under path """
-        stat = self.exists(path)
-        if stat is None:
-            return 0
-
-        total = stat.dataLength
-
-        try:
-            for child in self.get_children(path):
-                total += self.du(os.path.join(path, child))
-        except (NoNodeError, NoAuthError):
-            pass
-
-        return total
+        return Usage(self, path).value
 
     def get_acls_recursive(self, path, depth, include_ephemerals):
         """A recursive generator wrapper for get_acls
