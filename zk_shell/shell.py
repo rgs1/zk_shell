@@ -911,6 +911,8 @@ child_watches=%s"""
         if count == 0:
             self.show_output("Branches are equal.")
 
+    complete_diff = _complete_path
+
     @connected
     @ensure_params(Required("path"), BooleanOptional("recursive"))
     @check_paths_exists("path")
