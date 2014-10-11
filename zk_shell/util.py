@@ -172,3 +172,7 @@ def invalid_hosts(hosts):
     the inverse of valid_hosts()
     """
     return not valid_hosts(hosts)
+
+
+def join(parent, child):
+    return '%s%s' % (parent if parent == '/' else parent + '/', child)

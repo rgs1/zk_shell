@@ -14,6 +14,7 @@ try:
 except ImportError:
     HAVE_READLINE = False
 
+from .util import join
 
 PYTHON3 = sys.version_info > (3, )
 
@@ -227,7 +228,7 @@ class AugumentedCmd(cmd.Cmd):
             path = os.path.dirname(self.curdir)
 
         if not path.startswith("/"):
-            path = "%s/%s" % (self.curdir.rstrip("/"), path.rstrip("/"))
+            path = join(self.curdir, path.rstrip("/"))
 
         return os.path.normpath(path)
 

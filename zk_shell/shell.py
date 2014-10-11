@@ -72,6 +72,7 @@ from .keys import Keys
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import (
+    join,
     Netloc,
     pretty_bytes,
     to_bool,
@@ -188,7 +189,7 @@ class Shell(AugumentedCmd):
 
         if self._zk.exists(path):
             children = self._zk.get_children(self.resolve_path(path))
-            opts = ["%s/%s" % (path, znode) for znode in children]
+            opts = [join(path, znode) for znode in children]
         elif "/" not in path:
             znodes = self._zk.get_children(self.curdir)
             opts = [znode for znode in znodes if znode.startswith(path)]
@@ -196,7 +197,7 @@ class Shell(AugumentedCmd):
             parent = os.path.dirname(path)
             child = os.path.basename(path)
             matching = [znode for znode in self._zk.get_children(parent) if znode.startswith(child)]
-            opts = ["%s/%s" % (parent, znode) for znode in matching]
+            opts = [join(parent, znode) for znode in matching]
 
         return [opt[offs:] for opt in opts]
 

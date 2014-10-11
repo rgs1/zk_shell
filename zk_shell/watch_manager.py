@@ -7,6 +7,8 @@ from collections import defaultdict
 from kazoo.protocol.states import EventType, KazooState
 from kazoo.exceptions import NoNodeError
 
+from .util import join
+
 
 class PathStats(object):
     """ per path stats """
@@ -101,7 +103,7 @@ class WatchManager(object):
             return
 
         for child in children:
-            self._watch("%s/%s" % (path, child), current_level + 1, max_level)
+            self._watch(join(path, child), current_level + 1, max_level)
 
     def _watcher(self, watched_event):
         for path, stats in self._stats_by_path.items():

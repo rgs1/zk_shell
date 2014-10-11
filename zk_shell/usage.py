@@ -19,9 +19,7 @@ except ImportError: # py3k
 
 from kazoo.exceptions import NoAuthError, NoNodeError
 
-
-def join(parent, child):
-    return '%s%s' % (parent if parent == '/' else parent + '/', child)
+from .util import join
 
 
 class Request(object):

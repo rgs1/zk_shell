@@ -27,7 +27,7 @@ from kazoo.exceptions import (
 
 from .acl import ACLReader
 from .async_walker import AsyncWalker
-from .util import Netloc, to_bytes
+from .util import join, Netloc, to_bytes
 
 
 DEFAULT_ZK_PORT = 2181
@@ -46,10 +46,6 @@ def zk_client(host, scheme, credential):
         client.add_auth(scheme, credential)
 
     return client
-
-
-def url_join(url_root, child_path):
-    return "%s/%s" % (url_root.rstrip("/"), child_path)
 
 
 class CopyError(Exception):
@@ -218,8 +214,8 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
                             dst_children.remove(child)
                         if max_items > 0 and i == max_items:
                             break
-                        self.set_url(url_join(src_url, child))
-                        dst.set_url(url_join(dst_url, child))
+                        self.set_url(join(src_url, child))
+                        dst.set_url(join(dst_url, child))
                         self.do_copy(dst, opname)
 
                         # reset to base urls
@@ -228,7 +224,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
                 if mirror:
                     for child in dst_children:
-                        dst.set_url(url_join(dst_url, child))
+                        dst.set_url(join(dst_url, child))
                         dst.delete_path_recursively()
 
         end = time.time()
@@ -372,7 +368,7 @@ class ZKProxy(Proxy):
         """
         skip ephemeral znodes since there's no point in copying those
         """
-        full_path = "%s/%s" % (root_path, branch_path) if branch_path else root_path
+        full_path = join(root_path, branch_path) if branch_path else root_path
 
         try:
             children = self.client.get_children(full_path)
@@ -382,10 +378,10 @@ class ZKProxy(Proxy):
             raise AuthError("read children", full_path)
 
         for child in children:
-            child_path = "%s/%s" % (branch_path, child) if branch_path else child
+            child_path = join(branch_path, child) if branch_path else child
 
             try:
-                stat = self.client.exists("%s/%s" % (root_path, child_path))
+                stat = self.client.exists(join(root_path, child_path))
             except NoAuthError:
                 raise AuthError("read", child)
 
@@ -438,7 +434,7 @@ class FileProxy(Proxy):
             if path != "":
                 yield path
             for filename in files:
-                yield "%s/%s" % (path, filename) if path != "" else filename
+                yield join(path, filename) if path != "" else filename
 
     def delete_path_recursively(self):
         shutil.rmtree(self.path, True)
@@ -540,5 +536,5 @@ class JSONProxy(Proxy):
         if self.path in self._tree:
             # build a set from the iterable so we don't change the dictionary during iteration
             for c in set(self.children_of()):
-                self._tree.pop(url_join(self.path, c))
+                self._tree.pop(join(self.path, c))
             self._tree.pop(self.path)

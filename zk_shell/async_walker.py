@@ -3,9 +3,12 @@
 from collections import deque, namedtuple
 import threading
 import time
+
 from kazoo.exceptions import (
     NoNodeError,
 )
+
+from .util import join
 
 
 class WalkContext(object):
@@ -85,7 +88,7 @@ class AsyncWalker(object):
 
                 try:
                     for child in self.client.get_children(full_path):
-                        result = self.client.exists_async("%s/%s" % (full_path, child))
+                        result = self.client.exists_async(join(full_path, child))
                         ctxt.add_candidate(vpath, child, result)
                 except NoNodeError:
                     pass

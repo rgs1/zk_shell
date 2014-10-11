@@ -13,7 +13,7 @@ from kazoo.exceptions import NoAuthError, NoNodeError
 from kazoo.protocol.states import KazooState
 
 from .usage import Usage
-from .util import to_bytes
+from .util import join, to_bytes
 
 
 @contextmanager
@@ -283,15 +283,14 @@ class AugumentedClient(KazooClient):
             children = []
 
         for child in children:
-            cpath = u"%s/%s" % (path.rstrip("/"), child) if full_path else child
+            cpath = join(path, child) if full_path else child
             if include_stat:
-                stat_path = str(u"%s/%s" % (path.rstrip("/"), child))
-                yield cpath, level, self.stat(stat_path)
+                yield cpath, level, self.stat(join(path, child))
             else:
                 yield cpath, level
 
             if max_depth == 0 or level + 1 < max_depth:
-                cpath = u"%s/%s" % (path.rstrip("/"), child)
+                cpath = join(path, child)
                 for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
                     yield rchild_rlevel_rstat
 
@@ -320,7 +319,7 @@ class AugumentedClient(KazooClient):
         # first, check what's missing & changed in dst
         for child_a, level in self.tree(path_a, 0, True):
             child_sub = child_a[len_a + 1:]
-            child_b = "%s/%s" % (path_b, child_sub)
+            child_b = join(path_b, child_sub)
 
             if not self.exists(child_b):
                 yield -1, child_sub
