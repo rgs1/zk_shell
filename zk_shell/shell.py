@@ -27,6 +27,7 @@ It supports the basic ops plus a few handy extensions:
 
 from __future__ import print_function
 
+from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial, wraps
 import json
@@ -69,6 +70,7 @@ from .augumented_cmd import (
 )
 from .copy import CopyError, Proxy
 from .keys import Keys
+from .pathmap import PathMap
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import (
@@ -151,6 +153,21 @@ def default_watcher(watched_event):
 
 
 HISTORY_FILENAME = ".kz-shell-history"
+
+
+class BadJSON(Exception): pass
+
+
+def json_deserialize(data):
+    if data is None:
+        raise BadJSON(path)
+
+    try:
+        obj = json.loads(data)
+    except ValueError:
+        raise BadJSON(path)
+
+    return obj
 
 
 # pylint: disable=R0904
@@ -1043,26 +1060,6 @@ child_watches=%s"""
             self.show_output(str(ex))
             return
 
-        class BadJSON(Exception): pass
-
-        def get(path, keys, print_path):
-            jstr, _ = self._zk.get(path)
-
-            if jstr is None:
-                raise BadJSON(path)
-
-            try:
-                obj = json.loads(jstr)
-            except ValueError:
-                raise BadJSON(path)
-
-            value = Keys.value(obj, keys)
-
-            if print_path:
-                self.show_output("%s: %s", os.path.basename(path), value)
-            else:
-                self.show_output(value)
-
         if params.recursive:
             paths = self._zk.tree(params.path, 0, full_path=True)
             print_path = True
@@ -1072,13 +1069,82 @@ child_watches=%s"""
 
         for cpath, _ in paths:
             try:
-                get(cpath, params.keys, print_path)
+                jstr, _ = self._zk.get(cpath)
+                value = Keys.value(json_deserialize(jstr), params.keys)
+
+                if print_path:
+                    self.show_output("%s: %s", os.path.basename(cpath), value)
+                else:
+                    self.show_output(value)
             except BadJSON as ex:
                 self.show_output("Path %s has bad JSON.", cpath)
             except Keys.Missing as ex:
                 self.show_output("Path %s is missing key %s.", cpath, ex)
 
     complete_json_get = _complete_path
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
+        IntegerOptional("top", 0),
+        IntegerOptional("minfreq", 1),
+        BooleanOptional("reverse", default=True)
+    )
+    @check_paths_exists("path")
+    def do_json_count_values(self, params):
+        """
+        Counts the frequency of values associated with <keys>, for all JSON dicts stored in <path>'s children
+
+        json_count_values <path> <keys> [top] [minfreq] [reverse]
+
+        Example:
+
+        json_count_values /configs/primary_service endpoint.host
+        10.20.0.2  3
+        10.20.0.4  3
+        10.20.0.5  3
+        10.20.0.6  1
+        10.20.0.7  1
+        ...
+
+        By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
+        They are sorted by frequency in descendant order (reverse = true).
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        path_map = PathMap(self._zk, params.path)
+
+        values = defaultdict(int)
+        for path, data in path_map.get():
+            try:
+                value = Keys.value(json_deserialize(data), params.keys)
+                values[value] += 1
+            except BadJSON as ex:
+                self.show_output("Path %s has bad JSON.", path)
+            except Keys.Missing as ex:
+                self.show_output("Path %s is missing key %s.", path, ex)
+
+        results = sorted(values.items(), key=lambda item: item[1], reverse=params.reverse)
+
+        i = 0
+        for value, frequency in results:
+            if frequency < params.minfreq:
+                continue
+
+            self.show_output("%s = %d", value, frequency)
+
+            if params.top > 0 and i > params.top:
+                break
+
+            i += 1
+
+    complete_json_count_values = _complete_path
 
     @contextmanager
     def transitions_disabled(self):
