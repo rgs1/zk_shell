@@ -108,3 +108,13 @@ class JsonCmdsTestCase(ShellTestCase):
 
         expected_output = "b: the value is: value\na: the value is: value\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_json_count_values(self):
+        """ test count values in JSON dicts """
+        self.shell.onecmd("create %s/a '%s'" % (self.tests_path, '{"host": "10.0.0.1"}'))
+        self.shell.onecmd("create %s/b '%s'" % (self.tests_path, '{"host": "10.0.0.2"}'))
+        self.shell.onecmd("create %s/c '%s'" % (self.tests_path, '{"host": "10.0.0.2"}'))
+        self.shell.onecmd("json_count_values %s 'host'" % (self.tests_path))
+
+        expected_output = u"10.0.0.2 = 2\n10.0.0.1 = 1\n"
+        self.assertEqual(expected_output, self.output.getvalue())
