@@ -12,6 +12,7 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
 from kazoo.protocol.states import KazooState
 
+from .tree import Tree
 from .usage import Usage
 from .util import join, to_bytes
 
@@ -197,28 +198,9 @@ class AugumentedClient(KazooClient):
             print("Bad regexp: %s" % (ex))
             return
 
-        for fpath in self.do_find(path, match, True):
-            yield fpath
-
-    def do_find(self, path, match, check_match):
-        """ find's work horse """
-        try:
-            children = self.get_children(path)
-        except (NoNodeError, NoAuthError):
-            children = []
-
-        for child in children:
-            check = check_match
-            full_path = os.path.join(path, child)
-            if check:
-                if match.search(full_path):
-                    yield full_path
-                    check = False
-            else:
-                yield full_path
-
-            for fpath in self.do_find(full_path, match, check):
-                yield fpath
+        for cpath in Tree(self, path).get():
+            if match.search(cpath):
+                yield cpath
 
     def grep(self, path, content, flags):
         """ grep every child path under path for content """
