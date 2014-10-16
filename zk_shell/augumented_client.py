@@ -276,6 +276,11 @@ class AugumentedClient(KazooClient):
                 for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
                     yield rchild_rlevel_rstat
 
+    def fast_tree(self, path):
+        """ a fast async version of tree() """
+        for cpath in Tree(self, path).get():
+            yield cpath
+
     def diff(self, path_a, path_b):
         """ Performs a deep comparison of path_a/ and path_b/
 

@@ -233,3 +233,12 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("get %s" % (path))
         expected_output = u"hellohellohellohellohello\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_child_matches(self):
+        self.shell.onecmd("create %s/foo ''" % (self.tests_path))
+        self.shell.onecmd("create %s/foo/member_00001 ''" % (self.tests_path))
+        self.shell.onecmd("create %s/bar ''" % (self.tests_path))
+        self.shell.onecmd("child_matches %s member_" % (self.tests_path))
+
+        expected_output = u"%s/foo\n" % (self.tests_path)
+        self.assertEqual(expected_output, self.output.getvalue())

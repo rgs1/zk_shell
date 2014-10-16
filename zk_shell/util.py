@@ -175,4 +175,22 @@ def invalid_hosts(hosts):
 
 
 def join(parent, child):
+    """
+    properly joins parent and child
+    """
     return '%s%s' % (parent if parent == '/' else parent + '/', child)
+
+
+def split(path):
+    """
+    splits path into parent, child
+    """
+    if path == '/':
+        return ('/', None)
+
+    parent, child = path.rsplit('/', 1)
+
+    if parent == '':
+        parent = '/'
+
+    return (parent, child)

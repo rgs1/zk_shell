@@ -74,15 +74,16 @@ from .pathmap import PathMap
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import (
+    decoded,
     join,
+    invalid_hosts,
     Netloc,
     pretty_bytes,
+    prompt_yes_no,
+    split,
     to_bool,
     to_float,
     to_int,
-    decoded,
-    prompt_yes_no,
-    invalid_hosts
 )
 
 
@@ -518,6 +519,50 @@ class Shell(AugumentedCmd):
             self.show_output(path)
 
     complete_find = _complete_path
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("pattern"),
+        BooleanOptional("inverse", default=False)
+    )
+    @check_paths_exists("path")
+    def do_child_matches(self, params):
+        """
+        Prints paths that have at least 1 child that matches <pattern>
+
+        child_matches <path> <pattern> [inverse]
+
+        Example:
+
+        child_matches /services/registrations member_
+        /services/registrations/foo
+        /services/registrations/bar
+        ...
+
+        Output can be inverted (inverse = true) to display all paths that don't have children matching
+        the given pattern.
+
+        """
+        seen = set()
+
+        for path in self._zk.fast_tree(params.path):
+            parent, child = split(path)
+
+            if parent in seen:
+                continue
+
+            match = params.pattern in child
+            if params.inverse:
+                if not match:
+                    self.show_output(parent)
+                    seen.add(parent)
+            else:
+                if match:
+                    self.show_output(parent)
+                    seen.add(parent)
+
+    complete_child_matches = _complete_path
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
