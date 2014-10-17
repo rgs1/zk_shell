@@ -161,12 +161,12 @@ class BadJSON(Exception): pass
 
 def json_deserialize(data):
     if data is None:
-        raise BadJSON(path)
+        raise BadJSON()
 
     try:
         obj = json.loads(data)
     except ValueError:
-        raise BadJSON(path)
+        raise BadJSON()
 
     return obj
 
