@@ -276,9 +276,9 @@ class AugumentedClient(KazooClient):
                 for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
                     yield rchild_rlevel_rstat
 
-    def fast_tree(self, path):
+    def fast_tree(self, path, exclude_recurse=None):
         """ a fast async version of tree() """
-        for cpath in Tree(self, path).get():
+        for cpath in Tree(self, path).get(exclude_recurse):
             yield cpath
 
     def diff(self, path_a, path_b):

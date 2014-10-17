@@ -546,7 +546,8 @@ class Shell(AugumentedCmd):
         """
         seen = set()
 
-        for path in self._zk.fast_tree(params.path):
+        # we don't want to recurse once there's a child matching, hence exclude_recurse=
+        for path in self._zk.fast_tree(params.path, exclude_recurse=params.pattern):
             parent, child = split(path)
 
             if parent in seen:

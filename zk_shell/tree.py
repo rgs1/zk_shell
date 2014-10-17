@@ -43,7 +43,10 @@ class Tree(object):
     def __init__(self, zk, path):
         self.zk, self.path = zk, path
 
-    def get(self):
+    def get(self, exclude_recurse=None):
+        """
+        Paths matching exclude_recurse will not be recursed.
+        """
         reqs = Queue()
         pending = 1
         path = self.path
@@ -64,8 +67,9 @@ class Tree(object):
                 children = req.value
                 for child in children:
                     cpath = join(req.path, child)
-                    pending += 1
-                    reqs.put(dispatch(cpath))
+                    if exclude_recurse is None or not exclude_recurse in child:
+                        pending += 1
+                        reqs.put(dispatch(cpath))
                     yield cpath
             except (NoNodeError, NoAuthError): pass
 
