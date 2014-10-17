@@ -12,6 +12,7 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
 from kazoo.protocol.states import KazooState
 
+from .statmap import StatMap
 from .tree import Tree
 from .usage import Usage
 from .util import join, to_bytes
@@ -280,6 +281,10 @@ class AugumentedClient(KazooClient):
         """ a fast async version of tree() """
         for cpath in Tree(self, path).get(exclude_recurse):
             yield cpath
+
+    def stat_map(self, path):
+        """ a generator for <child, Stat> """
+        return StatMap(self, path).get()
 
     def diff(self, path_a, path_b):
         """ Performs a deep comparison of path_a/ and path_b/

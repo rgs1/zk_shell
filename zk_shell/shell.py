@@ -566,6 +566,61 @@ class Shell(AugumentedCmd):
     complete_child_matches = _complete_path
 
     @connected
+    @ensure_params(
+        Optional("path"),
+        IntegerOptional("top", 0)
+    )
+    @check_paths_exists("path")
+    def do_summary(self, params):
+        """
+        Prints a summary of the children for the given [path] (or the current one if none is given)
+
+        summary [path] [top]
+
+        Example:
+
+        summary /services/registrations
+        Created                    Last modified               Owner                Name
+        Thu Oct 11 09:14:39 2014   Thu Oct 11 09:14:39 2014     -                   bar
+        Thu Oct 16 18:54:39 2014   Thu Oct 16 18:54:39 2014     -                   foo
+        Thu Oct 12 10:04:01 2014   Thu Oct 12 10:04:01 2014     0x14911e869aa0dc1   member_0000001
+
+        The results are sorted by name. The top parameter decides the number of results to be
+        displayed.
+
+        """
+
+        self.show_output("%s%s%s%s",
+                         "Created".ljust(32),
+                         "Last modified".ljust(32),
+                         "Owner".ljust(23),
+                         "Name")
+
+        results = sorted(self._zk.stat_map(params.path))
+
+        # what slice do we want?
+        if params.top == 0:
+            start, end = 0, len(results)
+        elif params.top > 0:
+            start, end = 0, params.top if params.top < len(results) else len(results)
+        else:
+            start = len(results) + params.top if abs(params.top) < len(results) else 0
+            end = len(results)
+
+        for i in range(start, end):
+            path, stat = results[i]
+
+            self.show_output(
+                "%s%s%s%s",
+                time.ctime(stat.created).ljust(32),
+                time.ctime(stat.last_modified).ljust(32),
+                ("0x%x" % stat.ephemeralOwner).ljust(23),
+                path[len(params.path) + 1:]
+            )
+
+    complete_summary = _complete_path
+
+    @connected
     @ensure_params(Optional("path"), Required("match"))
     @check_paths_exists("path")
     def do_ifind(self, params):
