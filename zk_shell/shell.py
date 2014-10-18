@@ -1190,14 +1190,15 @@ child_watches=%s"""
         Required("keys"),
         IntegerOptional("top", 0),
         IntegerOptional("minfreq", 1),
-        BooleanOptional("reverse", default=True)
+        BooleanOptional("reverse", default=True),
+        BooleanOptional("report_errors", default=False)
     )
     @check_paths_exists("path")
     def do_json_count_values(self, params):
         """
         Counts the frequency of values associated with <keys>, for all JSON dicts stored in <path>'s children
 
-        json_count_values <path> <keys> [top] [minfreq] [reverse]
+        json_count_values <path> <keys> [top] [minfreq] [reverse] [report_errors]
 
         Example:
 
@@ -1210,7 +1211,8 @@ child_watches=%s"""
         ...
 
         By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
-        They are sorted by frequency in descendant order (reverse = true).
+        They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
+        or missing keys are not reported by default (report_errors = false).
 
         """
         try:
@@ -1227,9 +1229,11 @@ child_watches=%s"""
                 value = Keys.value(json_deserialize(data), params.keys)
                 values[value] += 1
             except BadJSON as ex:
-                self.show_output("Path %s has bad JSON.", path)
+                if params.report_errors:
+                    self.show_output("Path %s has bad JSON.", path)
             except Keys.Missing as ex:
-                self.show_output("Path %s is missing key %s.", path, ex)
+                if params.report_errors:
+                    self.show_output("Path %s is missing key %s.", path, ex)
 
         results = sorted(values.items(), key=lambda item: item[1], reverse=params.reverse)
 
@@ -1244,6 +1248,10 @@ child_watches=%s"""
                 break
 
             i += 1
+
+        # if no results were found we call it a failure (i.e.: exit(1) from --run-once)
+        if len(results) == 0:
+            return False
 
     complete_json_count_values = _complete_path
 
