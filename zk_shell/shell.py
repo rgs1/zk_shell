@@ -1236,18 +1236,20 @@ child_watches=%s"""
                     self.show_output("Path %s is missing key %s.", path, ex)
 
         results = sorted(values.items(), key=lambda item: item[1], reverse=params.reverse)
+        results = [r for r in results if r[1] >= params.minfreq]
 
-        i = 0
-        for value, frequency in results:
-            if frequency < params.minfreq:
-                continue
+        # what slice do we want?
+        if params.top == 0:
+            start, end = 0, len(results)
+        elif params.top > 0:
+            start, end = 0, params.top if params.top < len(results) else len(results)
+        else:
+            start = len(results) + params.top if abs(params.top) < len(results) else 0
+            end = len(results)
 
+        for i in range(start, end):
+            value, frequency = results[i]
             self.show_output("%s = %d", value, frequency)
-
-            if params.top > 0 and i > params.top:
-                break
-
-            i += 1
 
         # if no results were found we call it a failure (i.e.: exit(1) from --run-once)
         if len(results) == 0:
