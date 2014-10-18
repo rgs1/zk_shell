@@ -1191,14 +1191,15 @@ child_watches=%s"""
         IntegerOptional("top", 0),
         IntegerOptional("minfreq", 1),
         BooleanOptional("reverse", default=True),
-        BooleanOptional("report_errors", default=False)
+        BooleanOptional("report_errors", default=False),
+        BooleanOptional("print_path", default=False),
     )
     @check_paths_exists("path")
     def do_json_count_values(self, params):
         """
         Counts the frequency of values associated with <keys>, for all JSON dicts stored in <path>'s children
 
-        json_count_values <path> <keys> [top] [minfreq] [reverse] [report_errors]
+        json_count_values <path> <keys> [top] [minfreq] [reverse] [report_errors] [print_path]
 
         Example:
 
@@ -1212,7 +1213,8 @@ child_watches=%s"""
 
         By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
         They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
-        or missing keys are not reported by default (report_errors = false).
+        or missing keys are not reported by default (report_errors = false). The path is not printed
+        by default (print_path = false).
 
         """
         try:
@@ -1246,6 +1248,9 @@ child_watches=%s"""
         else:
             start = len(results) + params.top if abs(params.top) < len(results) else 0
             end = len(results)
+
+        if len(results) > 0:
+            self.show_output(params.path)
 
         for i in range(start, end):
             value, frequency = results[i]
