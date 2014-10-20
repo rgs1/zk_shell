@@ -1213,8 +1213,8 @@ child_watches=%s"""
 
         By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
         They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
-        or missing keys are not reported by default (report_errors = false). The path is not printed
-        by default (print_path = false).
+        or missing keys are not reported by default (report_errors = false). To print the path when
+        there are more than 0 results use print_path = true.
 
         """
         try:
@@ -1249,7 +1249,7 @@ child_watches=%s"""
             start = len(results) + params.top if abs(params.top) < len(results) else 0
             end = len(results)
 
-        if len(results) > 0:
+        if len(results) > 0 and params.print_path:
             self.show_output(params.path)
 
         for i in range(start, end):

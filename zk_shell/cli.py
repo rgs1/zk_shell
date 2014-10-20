@@ -130,9 +130,10 @@ class CLI(object):
                 if params.run_once != "":
                     rc = 0 if shell.onecmd(params.run_once) == None else 1
                 else:
-                    rc = 0
                     for cmd in sys.stdin.readlines():
-                        shell.onecmd(cmd.rstrip())
+                        cur_rc = 0 if shell.onecmd(cmd.rstrip()) == None else 1
+                        if cur_rc != 0:
+                            rc = cur_rc
             except IOError:
                 rc = 1
 
