@@ -138,7 +138,7 @@ class AugumentedClient(KazooClient):
 
         try:
             if value is not None:
-                value = value.decode(encoding="utf-8")
+                value = value.decode("utf-8")
         except UnicodeDecodeError:
             pass
 
