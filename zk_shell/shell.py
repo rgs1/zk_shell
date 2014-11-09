@@ -56,7 +56,7 @@ from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 
 from .acl import ACLReader
-from .augumented_client import AugumentedClient
+from .xclient import XClient
 from .augumented_cmd import (
     AugumentedCmd,
     BooleanOptional,
@@ -916,11 +916,11 @@ child_watches=%s"""
             return
 
         if self._zk is None:
-            self._zk = AugumentedClient()
+            self._zk = XClient()
 
         try:
             self.show_output(self._zk.mntr(hosts))
-        except AugumentedClient.CmdFailed as ex:
+        except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
     @ensure_params(Optional("hosts"))
@@ -935,11 +935,11 @@ child_watches=%s"""
             return
 
         if self._zk is None:
-            self._zk = AugumentedClient()
+            self._zk = XClient()
 
         try:
             self.show_output(self._zk.cons(hosts))
-        except AugumentedClient.CmdFailed as ex:
+        except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
     @ensure_params(Optional("hosts"))
@@ -954,11 +954,11 @@ child_watches=%s"""
             return
 
         if self._zk is None:
-            self._zk = AugumentedClient()
+            self._zk = XClient()
 
         try:
             self.show_output(self._zk.dump(hosts))
-        except AugumentedClient.CmdFailed as ex:
+        except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
     @connected
@@ -1350,7 +1350,7 @@ child_watches=%s"""
 
         try:
             info_by_path = self._zk.ephemerals_info(params.hosts)
-        except AugumentedClient.CmdFailed as ex:
+        except XClient.CmdFailed as ex:
             self.show_output(str(ex))
             return
 
@@ -1392,7 +1392,7 @@ child_watches=%s"""
 
         try:
             info_by_id = self._zk.sessions_info(params.hosts)
-        except AugumentedClient.CmdFailed as ex:
+        except XClient.CmdFailed as ex:
             self.show_output(str(ex))
             return
 
@@ -1490,10 +1490,10 @@ child_watches=%s"""
             if nl.scheme != "":
                 auth_data.append((nl.scheme, nl.credential))
 
-        self._zk = AugumentedClient(",".join(hosts),
-                                    read_only=self._read_only,
-                                    timeout=self._connect_timeout,
-                                    auth_data=auth_data if len(auth_data) > 0 else None)
+        self._zk = XClient(",".join(hosts),
+                           read_only=self._read_only,
+                           timeout=self._connect_timeout,
+                           auth_data=auth_data if len(auth_data) > 0 else None)
         if self._async:
             self._connect_async()
         else:

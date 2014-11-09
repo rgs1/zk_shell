@@ -77,7 +77,7 @@ class ClientInfo(object):
             pass
 
 
-class AugumentedClient(KazooClient):
+class XClient(KazooClient):
     """ adds some extra methods to KazooClient """
 
     class CmdFailed(Exception):
@@ -134,7 +134,7 @@ class AugumentedClient(KazooClient):
 
     def get(self, *args, **kwargs):
         """ wraps the default get() and deals with encoding """
-        value, stat = super(AugumentedClient, self).get(*args, **kwargs)
+        value, stat = super(XClient, self).get(*args, **kwargs)
 
         try:
             if value is not None:
@@ -146,23 +146,17 @@ class AugumentedClient(KazooClient):
 
     def get_bytes(self, *args, **kwargs):
         """ no string decoding performed """
-        return super(AugumentedClient, self).get(*args, **kwargs)
+        return super(XClient, self).get(*args, **kwargs)
 
     def set(self, path, value, version=-1):
         """ wraps the default set() and handles encoding (Py3k) """
         value = to_bytes(value)
-        super(AugumentedClient, self).set(path, value, version)
+        super(XClient, self).set(path, value, version)
 
-    def create(self, path, value=b"", acl=None, ephemeral=False,
-               sequence=False, makepath=False):
+    def create(self, path, value=b"", acl=None, ephemeral=False, sequence=False, makepath=False):
         """ wraps the default create() and handles encoding (Py3k) """
         value = to_bytes(value)
-        super(AugumentedClient, self).create(path,
-                                             value,
-                                             acl,
-                                             ephemeral,
-                                             sequence,
-                                             makepath)
+        super(XClient, self).create(path, value, acl, ephemeral, sequence, makepath)
 
     def du(self, path):
         """ returns the bytes used under path """
