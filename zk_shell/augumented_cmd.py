@@ -226,9 +226,8 @@ class AugumentedCmd(cmd.Cmd):
             path = self.curdir
         elif path == "..":
             path = os.path.dirname(self.curdir)
-
-        if not path.startswith("/"):
-            path = join(self.curdir, path.rstrip("/"))
+        elif not path.startswith("/"):
+            path = join(self.curdir, path)
 
         return os.path.normpath(path)
 
