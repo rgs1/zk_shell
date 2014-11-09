@@ -57,8 +57,8 @@ from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 
 from .acl import ACLReader
 from .xclient import XClient
-from .augumented_cmd import (
-    AugumentedCmd,
+from .xcmd import (
+    XCmd,
     BooleanOptional,
     IntegerOptional,
     IntegerRequired,
@@ -172,7 +172,7 @@ def json_deserialize(data):
 
 
 # pylint: disable=R0904
-class Shell(AugumentedCmd):
+class Shell(XCmd):
     """ main class """
     def __init__(self,
                  hosts=None,
@@ -181,7 +181,7 @@ class Shell(AugumentedCmd):
                  setup_readline=True,
                  async=True,
                  read_only=False):
-        AugumentedCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
+        XCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
         self._read_only = read_only

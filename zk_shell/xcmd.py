@@ -149,7 +149,7 @@ def ensure_params(*params):
 MAX_OUTPUT = 1 << 20
 
 
-class AugumentedCmd(cmd.Cmd):
+class XCmd(cmd.Cmd):
     """ extends cmd.Cmd """
     curdir = "/"
 
