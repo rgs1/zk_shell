@@ -199,24 +199,21 @@ class Shell(XCmd):
         """ completes paths """
         pieces = shlex.split(full_cmd)
         cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
-        offs = len(cmd_param) - len(cmd_param_text)
         path = cmd_param[:-1] if cmd_param.endswith("/") else cmd_param
 
         if re.match(r"^\s*$", path):
             return self._zk.get_children(self.curdir)
 
-        if self._zk.exists(path):
-            children = self._zk.get_children(self.resolve_path(path))
-            opts = [join(path, znode) for znode in children]
-        elif "/" not in path:
-            znodes = self._zk.get_children(self.curdir)
-            opts = [znode for znode in znodes if znode.startswith(path)]
+        rpath = self.resolve_path(path)
+        if self._zk.exists(rpath):
+            opts = [join(path, znode) for znode in self._zk.get_children(rpath)]
         else:
-            parent = os.path.dirname(path)
-            child = os.path.basename(path)
-            matching = [znode for znode in self._zk.get_children(parent) if znode.startswith(child)]
-            opts = [join(parent, znode) for znode in matching]
+            parent, child = os.path.dirname(rpath), os.path.basename(rpath)
+            relpath = os.path.dirname(path)
+            to_rel = lambda n: join(relpath, n) if relpath != "" else n
+            opts = [to_rel(n) for n in self._zk.get_children(parent) if n.startswith(child)]
 
+        offs = len(cmd_param) - len(cmd_param_text)
         return [opt[offs:] for opt in opts]
 
     @property
