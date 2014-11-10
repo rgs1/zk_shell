@@ -197,9 +197,15 @@ class Shell(XCmd):
 
     def _complete_path(self, cmd_param_text, full_cmd, *_):
         """ completes paths """
-        pieces = shlex.split(full_cmd)
-        cmd_param = pieces[1] if len(pieces) > 1 else cmd_param_text
-        path = cmd_param[:-1] if cmd_param.endswith("/") else cmd_param
+        if full_cmd.endswith(" "):
+            cmd_param, path = " ", " "
+        else:
+            pieces = shlex.split(full_cmd)
+            if len(pieces) > 1:
+                cmd_param = pieces[-1]
+            else:
+                cmd_param = cmd_param_text
+            path = cmd_param.rstrip("/") if cmd_param != "/" else "/"
 
         if re.match(r"^\s*$", path):
             return self._zk.get_children(self.curdir)
