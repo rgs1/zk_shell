@@ -42,6 +42,10 @@ class IntegerRequired(BasicParam):
 
 class Optional(BasicParam):
     """ an optional param """
+    def __init__(self, label, default=""):
+        super(Optional, self).__init__(label)
+        self.default = default
+
     @property
     def pretty_label(self):
         return "<%s>" % (self.label)
@@ -90,7 +94,7 @@ class ShellParser(argparse.ArgumentParser):
             elif isinstance(param, IntegerRequired):
                 parser.add_argument(param.label, type=int)
             elif isinstance(param, Optional):
-                parser.add_argument(param.label, nargs="?", default="")
+                parser.add_argument(param.label, nargs="?", default=param.default, type=str)
             elif isinstance(param, BooleanOptional):
                 parser.add_argument(param.label, nargs="?", default=param.default, action=BooleanAction)
             elif isinstance(param, IntegerOptional):
@@ -151,10 +155,11 @@ MAX_OUTPUT = 1 << 20
 
 class XCmd(cmd.Cmd):
     """ extends cmd.Cmd """
-    curdir = "/"
-
     def __init__(self, hist_file_name=None, setup_readline=True, output_io=sys.stdout):
         cmd.Cmd.__init__(self)
+
+        self.curdir = "/"
+        self.olddir = "/"
 
         self._output = output_io
         self._last_output = ""
@@ -226,25 +231,18 @@ class XCmd(cmd.Cmd):
             path = self.curdir
         elif path == "..":
             path = os.path.dirname(self.curdir)
+        elif path == "-":
+            path = self.olddir
         elif not path.startswith("/"):
             path = join(self.curdir, path)
 
         return os.path.normpath(path)
 
-    def update_curdir(self, dirpath):
-        if dirpath == "..":
-            if self.curdir == "/":
-                dirpath = "/"
-            else:
-                dirpath = os.path.dirname(self.curdir)
-        elif not dirpath.startswith("/"):
-            prefix = self.curdir
-            if prefix != "/":
-                prefix += "/"
-            dirpath = prefix + dirpath
-
-        self.curdir = dirpath
-        self.prompt = "%s%s> " % (self.state, dirpath)
+    def update_curdir(self, path):
+        """ path is a resolved path """
+        self.olddir = self.curdir
+        self.curdir = path
+        self.prompt = "%s%s> " % (self.state, path)
 
     @property
     def state(self):

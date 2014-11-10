@@ -681,7 +681,7 @@ class Shell(XCmd):
                 self.show_output(path)
 
     @connected
-    @ensure_params(Required("path"))
+    @ensure_params(Optional("path", "/"))
     @check_paths_exists("path")
     def do_cd(self, params):
         self.update_curdir(params.path)
