@@ -68,6 +68,7 @@ from .xcmd import (
     Optional,
     Required,
 )
+from .complete import complete, complete_boolean, complete_values
 from .copy import CopyError, Proxy
 from .keys import Keys
 from .pathmap import PathMap
@@ -231,21 +232,31 @@ class Shell(XCmd):
     @ensure_params(Required("scheme"), Required("credential"))
     def do_add_auth(self, params):
         """
-        allows you to authenticate your session.
-        example:
-        add_auth digest super:s3cr3t
+        Authenticates the session
+
+        Examples:
+
+        > add_auth digest super:s3cr3t
+
         """
         self._zk.add_auth(params.scheme, params.credential)
+
+    def complete_add_auth(self, cmd_param_text, full_cmd, *rest):
+        completers = [partial(complete_values, ["digest"])]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), Multi("acls"))
     @check_paths_exists("path")
     def do_set_acls(self, params):
         """
-        sets ACLs for a given path.
-        example:
-        set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
-        set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
+        Sets ACLs for a given path
+
+        Examples:
+
+        > set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
+        > set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
+
         """
         try:
             acls = ACLReader.extract(params.acls)
@@ -258,7 +269,20 @@ class Shell(XCmd):
         except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
             self.show_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
 
-    complete_set_acls = _complete_path
+    def complete_set_acls(self, cmd_param_text, full_cmd, *rest):
+        possible_acl = [
+            "digest:",
+            "username_password:",
+            "world:anyone:c",
+            "world:anyone:cd",
+            "world:anyone:cdr",
+            "world:anyone:cdrw",
+            "world:anyone:cdrwa",
+        ]
+        complete_acl = partial(complete_values, possible_acl)
+        complete_many = [complete_acl for i in range(0, 10)]  # 10 ACLs is probably enough
+        completers = [self._complete_path] + complete_many
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @interruptible
@@ -266,20 +290,22 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_get_acls(self, params):
         """
-        gets ACLs for a given path.
+        Gets ACLs for a given path
 
         get_acls <path> [depth] [ephemerals]
 
-        by the default this won't recurse. 0 means infinite recursion.
+        By default, this won't recurse. 0 means infinite recursion.
 
-        examples:
-        get_acls /zookeeper
+        Examples:
+
+        > get_acls /zookeeper
         [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
 
-        get_acls /zookeeper -1
+        > get_acls /zookeeper -1
         /zookeeper: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         /zookeeper/config: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
         /zookeeper/quota: [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
+
         """
         def replace(plist, oldv, newv):
             try:
@@ -293,17 +319,41 @@ class Shell(XCmd):
             replace(acls, OPEN_ACL_UNSAFE[0], "WORLD_ALL")
             self.show_output("%s: %s", path, acls)
 
-    complete_get_acls = _complete_path
+    def complete_get_acls(self, cmd_param_text, full_cmd, *rest):
+        complete_depth = partial(complete_values, [str(i) for i in range(-1, 11)])
+        completers = [self._complete_path, complete_depth, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Optional("path"), Optional("watch"))
     @check_paths_exists("path")
     def do_ls(self, params):
+        """
+        Lists the znodes for the given <path>
+
+        ls <path> [watch]
+
+        Examples:
+
+        > ls /
+        zookeeper configs
+
+        Setting a watch:
+
+        > ls / true
+        zookeeper configs
+
+        > create /foo 'bar'
+        WatchedEvent(type='CHILD', state='CONNECTED', path=u'/')
+
+        """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
         self.show_output(" ".join(znodes))
 
-    complete_ls = _complete_path
+    def complete_ls(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @interruptible
@@ -312,10 +362,15 @@ class Shell(XCmd):
     def do_watch(self, params):
         """
         Recursively watch for all changes under a path.
-        examples:
-        watch start /foo/bar [debug] [childrenLevel]
-        watch stop /foo/bar
-        watch stats /foo/bar [repeatN] [sleepN]
+
+        watch <start|stop|stats> <path> [debug|repeat] [sleep|childrenLevel]
+
+        Examples:
+
+        > watch start /foo/bar
+        > watch stop /foo/bar
+        > watch stats /foo/bar
+
         """
         wm = get_watch_manager(self._zk)
         if params.command == "start":
@@ -336,70 +391,109 @@ class Shell(XCmd):
                     wm.stats(params.path)
                     time.sleep(sleep)
         else:
-            print("watch <start|stop> <path> [verbose]")
+            print("watch <start|stop|stats> <path> [verbose]")
 
-    complete_watch = _complete_path
+    def complete_watch(self, cmd_param_text, full_cmd, *rest):
+        complete_cmd = partial(complete_values, ["start", "stats", "stop"])
+        complete_sleep = partial(complete_values, [str(i) for i in range(-1, 11)])
+        completers = [complete_cmd, self._complete_path, complete_boolean, complete_sleep]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
-    @ensure_params(Required("src"), Required("dst"),
-                   BooleanOptional("recursive"), BooleanOptional("overwrite"),
-                   BooleanOptional("async"), BooleanOptional("verbose"),
-                   IntegerOptional("max_items", 0))
+    @ensure_params(
+        Required("src"),
+        Required("dst"),
+        BooleanOptional("recursive"),
+        BooleanOptional("overwrite"),
+        BooleanOptional("async"),
+        BooleanOptional("verbose"),
+        IntegerOptional("max_items", 0)
+    )
     def do_cp(self, params):
         """
-        copy from/to local/remote or remote/remote paths.
+        Copy from/to local/remote or remote/remote paths
 
-        src and dst can be any of:
+        cp <src> <dst> [recursive] [overwrite] [async] [verbose] [max_items]
 
-        /some/path (in the connected server)
-        file://<path>
-        zk://[user:passwd@]host/<path>
-        json://!some!path!backup.json/some/path
+        where src and dst can be:
 
-        with a few restrictions. bare in mind the semantic differences
-        that znodes have with filesystem directories - so recursive copying
-        from znodes to an fs could lose data, but to a JSON file it would
-        work just fine.
+           /some/path (in the connected server)
+           file://<path>
+           zk://[user:passwd@]host/<path>
+           json://!some!path!backup.json/some/path
 
-        examples:
-        cp /some/znode /backup/copy-znode  # local
-        cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose> <max_items>
-        cp /some/path json://!home!user!backup.json/ true true
+        with a few restrictions. Given the semantic differences that znodes have with filesystem
+        directories recursive copying from znodes to an fs could lose data, but to a JSON file it
+        would work just fine.
+
+        Examples:
+
+        > cp /some/znode /backup/copy-znode  # local
+        > cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose> <max_items>
+        > cp /some/path json://!home!user!backup.json/ true true
+
         """
         self.copy(params, params.recursive, params.overwrite, params.max_items, False)
 
-    complete_cp = _complete_path
+    def complete_cp(self, cmd_param_text, full_cmd, *rest):
+        complete_max = partial(complete_values, [str(i) for i in range(0, 11)])
+        completers = [
+            self._complete_path,
+            self._complete_path,
+            complete_boolean,
+            complete_boolean,
+            complete_boolean,
+            complete_boolean,
+            complete_max
+        ]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
-    @ensure_params(Required("src"), Required("dst"),
-                   BooleanOptional("async"), BooleanOptional("verbose"),
-                   BooleanOptional("skip_prompt"))
+    @ensure_params(
+        Required("src"),
+        Required("dst"),
+        BooleanOptional("async"),
+        BooleanOptional("verbose"),
+        BooleanOptional("skip_prompt")
+    )
     def do_mirror(self, params):
         """
-        mirrors from/to local/remote or remote/remote paths. the dst subtree
-        will be modified to look the same as the src subtree with the exception
-        of ephemeral nodes
+        Mirrors from/to local/remote or remote/remote paths
 
-        src and dst can be any of:
+        mirror <src> <dst> [async] [verbose] [skip_prompt]
 
-        /some/path (in the connected server)
-        file://<path>
-        zk://[user:passwd@]host/<path>
-        json://!some!path!backup.json/some/path
+        where src and dst can be:
 
-        with a few restrictions. bare in mind the semantic differences
-        that znodes have with filesystem directories - so mirror
-        from znodes to an fs could lose data, but to a JSON file it would
-        work just fine. these are the same restrictions as with copy.
+           /some/path (in the connected server)
+           file://<path>
+           zk://[user:passwd@]host/<path>
+           json://!some!path!backup.json/some/path
 
-        examples:
-        mirror /some/znode /backup/copy-znode  # local
-        mirror file://<path> zk://[user:passwd@]host/<path> <async> <verbose> <max_items>
-        mirror /some/path json://!home!user!backup.json/ true true
+        with a few restrictions. Given the semantic differences that znodes have with filesystem
+        directories recursive copying from znodes to an fs could lose data, but to a JSON file it
+        would work just fine.
+
+        The dst subtree will be modified to look the same as the src subtree with the exception
+        of ephemeral nodes.
+
+        Examples:
+
+        > mirror /some/znode /backup/copy-znode  # local
+        > mirror file://<path> zk://[user:passwd@]host/<path> <async> <verbose> <max_items>
+        > mirror /some/path json://!home!user!backup.json/ true true
+
         """
         question = "Are you sure you want to replace %s with %s?" % (params.dst, params.src)
         if params.skip_prompt or prompt_yes_no(question):
             self.copy(params, True, True, 0, True)
 
-    complete_mirror = _complete_path
+    def complete_mirror(self, cmd_param_text, full_cmd, *rest):
+        completers = [
+            self._complete_path,
+            self._complete_path,
+            complete_boolean,
+            complete_boolean,
+            complete_boolean
+        ]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     def copy(self, params, recursive, overwrite, max_items, mirror):
         # default to zk://connected_host, if connected
@@ -458,49 +552,78 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_tree(self, params):
         """
-        print the tree under a given path (optionally only up to a given max depth).
-        examples:
-        tree
+        Print the tree under a given path
+
+        tree [path] [max_depth]
+
+        Examples:
+
+        > tree
         .
         ├── zookeeper
         │   ├── config
         │   ├── quota
 
-        tree 1
+        > tree 1
         .
         ├── zookeeper
         ├── foo
         ├── bar
+
         """
         self.show_output(".")
         for child, level in self._zk.tree(params.path, params.max_depth):
             self.show_output(u"%s├── %s", u"│   " * level, child)
 
-    complete_tree = _complete_path
+    def complete_tree(self, cmd_param_text, full_cmd, *rest):
+        complete_depth = partial(complete_values, [str(i) for i in range(0, 11)])
+        completers = [self._complete_path, complete_depth]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @interruptible
-    @ensure_params(Optional("path"), IntegerOptional("path_depth", 1))
+    @ensure_params(Optional("path"), IntegerOptional("depth", 1))
     @check_paths_exists("path")
     def do_child_count(self, params):
         """
-        prints the child count for paths, of depth <path_depth>, under the given <path>.
-        the default <path_depth> is 1.
-        examples:
-        child-count /
+        Prints the child count for paths
+
+        child_count [path] [depth]
+
+        Examples:
+
+        > child-count /
         /zookeeper: 2
         /foo: 0
         /bar: 3
+
         """
-        for child, level in self._zk.tree(params.path, params.path_depth, full_path=True):
+        for child, level in self._zk.tree(params.path, params.depth, full_path=True):
             self.show_output("%s: %d", child, self._zk.child_count(child))
 
-    complete_child_count = _complete_path
+    def complete_child_count(self, cmd_param_text, full_cmd, *rest):
+        complete_depth = partial(complete_values, [str(i) for i in range(1, 11)])
+        completers = [self._complete_path, complete_depth]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Optional("path"))
     @check_paths_exists("path")
     def do_du(self, params):
+        """
+        Total number of bytes under a path
+
+        find [path] [match]
+
+        Examples:
+
+        > find / foo
+        /foo2
+        /fooish/wayland
+        /fooish/xorg
+        /copy/foo
+
+        """
         self.show_output(pretty_bytes(self._zk.du(params.path)))
 
     complete_du = _complete_path
@@ -510,13 +633,18 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_find(self, params):
         """
-        find znodes whose path matches a given text.
-        example:
-        find / foo
+        Find znodes whose path matches a given text
+
+        find [path] [match]
+
+        Examples:
+
+        > find / foo
         /foo2
         /fooish/wayland
         /fooish/xorg
         /copy/foo
+
         """
         for path in self._zk.find(params.path, params.match, 0):
             self.show_output(path)
@@ -536,15 +664,15 @@ class Shell(XCmd):
 
         child_matches <path> <pattern> [inverse]
 
+        Output can be inverted (inverse = true) to display all paths that don't have children matching
+        the given pattern.
+
         Example:
 
-        child_matches /services/registrations member_
+        > child_matches /services/registrations member_
         /services/registrations/foo
         /services/registrations/bar
         ...
-
-        Output can be inverted (inverse = true) to display all paths that don't have children matching
-        the given pattern.
 
         """
         seen = set()
@@ -566,7 +694,10 @@ class Shell(XCmd):
                     self.show_output(parent)
                     seen.add(parent)
 
-    complete_child_matches = _complete_path
+    def complete_child_matches(self, cmd_param_text, full_cmd, *rest):
+        complete_pats = partial(complete_values, ["some-pattern"])
+        completers = [self._complete_path, complete_pats, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(
@@ -576,20 +707,20 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_summary(self, params):
         """
-        Prints a summary of the children for the given [path] (or the current one if none is given)
+        Prints summarized details of a path's children
 
         summary [path] [top]
 
+        The results are sorted by name. The top parameter decides the number of results to be
+        displayed.
+
         Example:
 
-        summary /services/registrations
+        > summary /services/registrations
         Created                    Last modified               Owner                Name
         Thu Oct 11 09:14:39 2014   Thu Oct 11 09:14:39 2014     -                   bar
         Thu Oct 16 18:54:39 2014   Thu Oct 16 18:54:39 2014     -                   foo
         Thu Oct 12 10:04:01 2014   Thu Oct 12 10:04:01 2014     0x14911e869aa0dc1   member_0000001
-
-        The results are sorted by name. The top parameter decides the number of results to be
-        displayed.
 
         """
 
@@ -621,55 +752,79 @@ class Shell(XCmd):
                 path[len(params.path) + 1:]
             )
 
-    complete_summary = _complete_path
+    def complete_summary(self, cmd_param_text, full_cmd, *rest):
+        complete_top = partial(complete_values, [str(i) for i in range(1, 11)])
+        completers = [self._complete_path, complete_top]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Optional("path"), Required("match"))
     @check_paths_exists("path")
     def do_ifind(self, params):
         """
-        find znodes whose path matches a given text (regardless of the latter's case).
-        example:
-        ifind / fOO
+        Find znodes whose path (insensitively) matches a given text
+
+        ifind [path] <match>
+
+        Example:
+
+        > ifind / fOO
         /foo2
         /FOOish/wayland
         /fooish/xorg
         /copy/Foo
+
         """
         for path in self._zk.find(params.path, params.match, re.IGNORECASE):
             self.show_output(path)
 
-    complete_ifind = _complete_path
+    def complete_ifind(self, cmd_param_text, full_cmd, *rest):
+        complete_match = partial(complete_values, ["sometext"])
+        completers = [self._complete_path, complete_match]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
     @check_paths_exists("path")
     def do_grep(self, params):
         """
-        find znodes whose value matches a given text.
-        example:
-        grep / unbound true
+        Prints znodes with a value matching the given text
+
+        grep [path] <content> [show_matches]
+
+        Example:
+
+        > grep / unbound true
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+
         """
         self.grep(params.path, params.content, 0, params.show_matches)
 
-    complete_grep = _complete_path
+    def complete_grep(self, cmd_param_text, full_cmd, *rest):
+        complete_content = partial(complete_values, ["sometext"])
+        completers = [self._complete_path, complete_content, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
     @check_paths_exists("path")
     def do_igrep(self, params):
         """
-        find znodes whose value matches a given text (case-insensite).
-        example:
-        igrep / UNBound true
+        Prints znodes with a value matching the given text (ignoring case)
+
+        igrep [path] <content> [show_matches]
+
+        Example:
+
+        > igrep / UNBound true
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
+
         """
         self.grep(params.path, params.content, re.IGNORECASE, params.show_matches)
 
-    complete_igrep = _complete_path
+    complete_igrep = complete_grep
 
     def grep(self, path, content, flags, show_matches):
         for path, matches in self._zk.grep(path, content, flags):
@@ -684,6 +839,29 @@ class Shell(XCmd):
     @ensure_params(Optional("path", "/"))
     @check_paths_exists("path")
     def do_cd(self, params):
+        """
+        Change the working path
+
+        cd [path]
+
+        If no path is given, the path is /. If path is '-', move to the previous path.
+
+        Examples:
+
+        > cd /foo/bar
+        > pwd
+        /foo/bar
+        > cd ..
+        > pwd
+        /foo
+        > cd -
+        > pwd
+        /foo/bar
+        > cd
+        > pwd
+        /
+
+        """
         self.update_curdir(params.path)
 
     complete_cd = _complete_path
@@ -693,18 +871,23 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_get(self, params):
         """
-        gets the value for a given znode. a watch can be set.
+        Gets the znode's value
 
-        example:
-        get /foo
+        get <path> [watch]
+
+        Examples:
+
+        > get /foo
         bar
 
         # sets a watch
-        get /foo true
+        > get /foo true
+        bar
 
         # trigger the watch
-        set /foo 'notbar'
+        > set /foo 'notbar'
         WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
+
         """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         value, _ = self._zk.get(params.path, **kwargs)
@@ -718,15 +901,20 @@ class Shell(XCmd):
 
         self.show_output(value)
 
-    complete_get = _complete_path
+    def complete_get(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), Optional("watch"))
     def do_exists(self, params):
         """
-        checks if path exists and returns the stat for the znode. a watch can be set.
+        Gets the znode's stat information
 
-        example:
+        exists <path> [watch]
+
+        Examples:
+
         exists /foo
         Stat(
           czxid=101,
@@ -743,11 +931,13 @@ class Shell(XCmd):
         )
 
         # sets a watch
-        exists /foo true
+        > exists /foo true
+        ...
 
         # trigger the watch
-        rm /foo
+        > rm /foo
         WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
+
         """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         path = self.resolve_path(params.path)
@@ -770,33 +960,40 @@ class Shell(XCmd):
         else:
             self.show_output("Path %s doesn't exist", params.path)
 
-    complete_exists = _complete_path
+    def complete_exists(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"),
-                   Required("value"),
-                   BooleanOptional("ephemeral"),
-                   BooleanOptional("sequence"),
-                   BooleanOptional("recursive"))
+    @ensure_params(
+        Required("path"),
+        Required("value"),
+        BooleanOptional("ephemeral"),
+        BooleanOptional("sequence"),
+        BooleanOptional("recursive")
+    )
     @check_path_absent
     def do_create(self, params):
         """
-        creates a znode in a given path. it can also be ephemeral and/or sequential. it can also be created recursively.
+        Creates a znode
 
-        example:
-        create /foo 'bar'
+        create <path> <value> [ephemeral] [sequence] [recursive]
+
+        Examples:
+
+        > create /foo 'bar'
 
         # create an ephemeral znode
-        create /foo1 '' true
+        > create /foo1 '' true
 
         # create an ephemeral|sequential znode
-        create /foo1 '' true true
+        > create /foo1 '' true true
 
         # recursively create a path
-        create /very/long/path/here '' false false true
+        > create /very/long/path/here '' false false true
 
         # check the new subtree
-        tree
+        > tree
         .
         ├── zookeeper
         │   ├── config
@@ -805,6 +1002,7 @@ class Shell(XCmd):
         │   ├── long
         │   │   ├── path
         │   │   │   ├── here
+
         """
         try:
             self._zk.create(params.path,
@@ -820,26 +1018,53 @@ class Shell(XCmd):
                 "Part of the parent path for %s doesn't exist (try recursive)",
                 params.path)
 
-    complete_create = _complete_path
+    def complete_create(self, cmd_param_text, full_cmd, *rest):
+        complete_value = partial(complete_values, ["somevalue"])
+        completers = [
+            self._complete_path,
+            complete_value,
+            complete_boolean,
+            complete_boolean,
+            complete_boolean
+        ]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), Required("value"))
     @check_paths_exists("path")
     def do_set(self, params):
         """
-        sets the value for a znode.
+        Updates the znode's value
 
-        example:
-        set /foo 'bar'
+        set <path> <value>
+
+        Example:
+
+        > set /foo 'bar'
+
         """
         self._zk.set(params.path, decoded(params.value))
 
-    complete_set = _complete_path
+    def complete_set(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: suggest the old value """
+        complete_value = partial(complete_values, ["updated-value"])
+        completers = [self._complete_path, complete_value]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"))
     @check_paths_exists("path")
     def do_rm(self, params):
+        """
+        Remove the znode
+
+        rm <path>
+
+        Example:
+
+        > rm /foo
+
+        """
         try:
             self._zk.delete(params.path)
         except NotEmptyError:
@@ -851,15 +1076,19 @@ class Shell(XCmd):
     @ensure_params()
     def do_session_info(self, params):
         """
-        shows information about the current session (session id, timeout, etc.)
+        Shows information about the current session
 
-        example:
+        session_info
+
+        Example:
+        > session_info
         state=CONNECTED
         xid=4
         last_zxid=11
         timeout=10000
         client=('127.0.0.1', 60348)
         server=('127.0.0.1', 2181)
+
         """
         fmt_str = """state=%s
 sessionid=%s
@@ -886,19 +1115,23 @@ child_watches=%s"""
     @ensure_params(Optional("match"))
     def do_history(self, params):
         """
-        prints the commands history
+        Prints all previous commands
 
-        example:
+        history [match]
 
-        history
+        Examples:
+
+        > history
         ls
         create
         get /foo
         get /bar
 
-        history get
+        # only those that match 'get'
+        > history get
         get /foo
         get /bar
+
         """
         for hcmd in self.history:
             if hcmd is None:
@@ -907,10 +1140,24 @@ child_watches=%s"""
             if params.match == "" or params.match in hcmd:
                 self.show_output("%s", hcmd)
 
+    def complete_history(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: howto introspect & suggest all avail commands? """
+        completers = [partial(complete_values, ["get", "ls", "create", "set", "rm"])]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
     @ensure_params(Optional("hosts"))
     def do_mntr(self, params):
         """
-        runs the mntr 4 letter command on current or given hosts
+        Executes the mntr four-letter command
+
+        mntr [hosts]
+
+        If no hosts are given, use the current connected host.
+
+        Example:
+
+        > mntr
+
         """
         hosts = params.hosts if params.hosts != "" else None
 
@@ -929,7 +1176,16 @@ child_watches=%s"""
     @ensure_params(Optional("hosts"))
     def do_cons(self, params):
         """
-        runs the cons 4 letter command on current or given hosts
+        Executes the cons four-letter command
+
+        cons [hosts]
+
+        If no hosts are given, use the current connected host.
+
+        Example:
+
+        > cons
+
         """
         hosts = params.hosts if params.hosts != "" else None
 
@@ -948,7 +1204,16 @@ child_watches=%s"""
     @ensure_params(Optional("hosts"))
     def do_dump(self, params):
         """
-        runs the cons 4 letter command on current or given hosts
+        Executes the dump four-letter command
+
+        dump [hosts]
+
+        If no hosts are given, use the current connected host.
+
+        Example:
+
+        > dump
+
         """
         hosts = params.hosts if params.hosts != "" else None
 
@@ -969,10 +1234,14 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_rmr(self, params):
         """
-        recursively deletes a path.
+        Delete a path and all its children
 
-        example:
-        rmr /foo
+        rmr <path>
+
+        Example:
+
+        > rmr /foo
+
         """
         self._zk.delete(params.path, recursive=True)
 
@@ -982,40 +1251,63 @@ child_watches=%s"""
     @ensure_params(Required("path"))
     @check_paths_exists("path")
     def do_sync(self, params):
+        """
+        Forces the current server to sync with the rest of the cluster
+
+        sync <path>
+
+        Note that ZooKeeper currently ignore the path command.
+
+        Example:
+
+        > sync /foo
+
+        """
         self._zk.sync(params.path)
+
+    complete_sync = _complete_path
 
     @connected
     @ensure_params(Required("path"), BooleanOptional("verbose"))
     @check_paths_exists("path")
     def do_child_watch(self, params):
         """
-        watches for child changes for the given path
+        Watch a path for child changes
 
-        example:
+        child_watch <path> [verbose]
+
+        Examples:
 
         # only prints the current number of children
-        child_watch /
+        > child_watch /
 
         # prints num of children along with znodes listing
-        child_watch / true
+        > child_watch / true
+
         """
         get_child_watcher(self._zk).update(params.path, params.verbose)
+
+    def complete_child_watch(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path_a"), Required("path_b"))
     @check_paths_exists("path_a", "path_b")
     def do_diff(self, params):
         """
-        diffs two branches
+        Display the differences between two paths
 
-        example:
+        diff <src> <dst>
 
-        diff /configs /new-configs
+        Example:
+
+        > diff /configs /new-configs
         -- service-x/hosts
         ++ service-x/hosts.json
         +- service-x/params
 
-        where:
+        The output is interpreted as:
           -- means the znode is missing in /new-configs
           ++ means the znode is new in /new-configs
           +- means the znode's content differ between /configs and /new-configs
@@ -1033,28 +1325,31 @@ child_watches=%s"""
         if count == 0:
             self.show_output("Branches are equal.")
 
-    complete_diff = _complete_path
+    def complete_diff(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, self._complete_path]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), BooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_valid(self, params):
         """
-        prints yes if it's valid JSON, no otherwise
+        Checks znodes for valid JSON
 
-        example:
+        json_valid <path> [recursive]
 
-        json_valid /some/valid/json_znode
+        Examples:
+
+        > json_valid /some/valid/json_znode
         yes.
 
-        json_valid /some/invalid/json_znode
+        > json_valid /some/invalid/json_znode
         no.
 
-        Or recursively:
-
-        json_valid /configs true
+        > json_valid /configs true
         /configs/a: yes.
         /configs/b: no.
+
         """
         def check_valid(path, print_path):
             result = "no"
@@ -1078,18 +1373,22 @@ child_watches=%s"""
             for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
                 check_valid(cpath, True)
 
-    complete_json_valid = _complete_path
+    def complete_json_valid(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), BooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_cat(self, params):
         """
-        pretty prints a JSON blob within a znode
+        Pretty prints a znode's JSON
 
-        example:
+        json_cat <path> [recursive]
 
-        json_cat /configs/clusters
+        Examples:
+
+        > json_cat /configs/clusters
         {
           "dc0": {
             "network": "10.2.0.0/16",
@@ -1097,9 +1396,7 @@ child_watches=%s"""
           .....
         }
 
-        Or recursively:
-
-        json_cat /configs true
+        > json_cat /configs true
         /configs/clusters:
         {
           "dc0": {
@@ -1112,6 +1409,7 @@ child_watches=%s"""
           "10.2.0.1",
           "10.3.0.1"
         ]
+
         """
         def json_output(path, print_path):
             value, _ = self._zk.get(path)
@@ -1133,30 +1431,33 @@ child_watches=%s"""
             for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
                 json_output(cpath, True)
 
-    complete_json_cat = _complete_path
+    def complete_json_cat(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("path"), Required("keys"), BooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_get(self, params):
         """
-        get key (or keys, if nested) from a JSON object serialized in the given path
+        Get key (or keys, if nested) from a JSON object serialized in the given path
 
-        example:
+        json_get <path> <keys> [recursive]
 
-        json_get /configs/primary_service endpoint.clientPort
+        Example:
+
+        > json_get /configs/primary_service endpoint.clientPort
         32768
 
-        Or recursively:
-
-        json_get /configs endpoint.clientPort true
+        > json_get /configs endpoint.clientPort true
         primary_service: 32768
         secondary_service: 32769
 
-        You can also use template strings to access various keys at once:
+        # Use template strings to access various keys at once:
 
-        json_get /configs/primary_service '#{endpoint.ipAddress}:#{endpoint.clientPort}'
+        > json_get /configs/primary_service '#{endpoint.ipAddress}:#{endpoint.clientPort}'
         10.2.2.3:32768
+
         """
         try:
             Keys.validate(params.keys)
@@ -1185,7 +1486,11 @@ child_watches=%s"""
             except Keys.Missing as ex:
                 self.show_output("Path %s is missing key %s.", cpath, ex)
 
-    complete_json_get = _complete_path
+    def complete_json_get(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: prefetch & parse znodes & suggest keys """
+        complete_keys = partial(complete_values, ["key1", "key2", "#{key1.key2}"])
+        completers = [self._complete_path, complete_keys, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(
@@ -1200,24 +1505,24 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_count_values(self, params):
         """
-        Counts the frequency of values associated with <keys>, for all JSON dicts stored in <path>'s children
+        Gets the frequency of the values associated with the given keys
 
         json_count_values <path> <keys> [top] [minfreq] [reverse] [report_errors] [print_path]
 
+        By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
+        They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
+        or missing keys are not reported by default (report_errors = false). To print the path when
+        there are more than 0 results use print_path = true.
+
         Example:
 
-        json_count_values /configs/primary_service endpoint.host
+        > json_count_values /configs/primary_service endpoint.host
         10.20.0.2  3
         10.20.0.4  3
         10.20.0.5  3
         10.20.0.6  1
         10.20.0.7  1
         ...
-
-        By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
-        They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
-        or missing keys are not reported by default (report_errors = false). To print the path when
-        there are more than 0 results use print_path = true.
 
         """
         try:
@@ -1263,33 +1568,39 @@ child_watches=%s"""
         if len(results) == 0:
             return False
 
-    complete_json_count_values = _complete_path
-
-    @contextmanager
-    def transitions_disabled(self):
-        """
-        use this when you want to ignore state transitions (i.e.: inside loop)
-        """
-        self.state_transitions_enabled = False
-        try:
-            yield
-        except KeyboardInterrupt:
-            pass
-        self.state_transitions_enabled = True
+    def complete_json_count_values(self, cmd_param_text, full_cmd, *rest):
+        complete_keys = partial(complete_values, ["key1", "key2", "#{key1.key2}"])
+        complete_top = partial(complete_values, [str(i) for i in range(1, 11)])
+        complete_freq = partial(complete_values, [str(i) for i in range(1, 11)])
+        completers = [
+            self._complete_path,
+            complete_keys,
+            complete_top,
+            complete_freq,
+            complete_boolean,
+            complete_boolean,
+            complete_boolean,
+        ]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
         """
-        runs <cmds> <repeat> times, with a pause of <pause> secs inbetween
+        Runs commands in a loop
 
-        example:
+        loop <repeat> <pause> <cmd1> <cmd2> ... <cmdN>
 
-        loop 3 0 "get /foo"
+        Runs <cmds> <repeat> times (0 means forever), with a pause of <pause> secs inbetween
+        each <cmd> (0 means no pause).
 
-        Or multiple cmds:
+        Example:
 
-        loop 3 0 "get /foo" "get /bar"
+        > loop 3 0 "get /foo"
+        ...
+
+        > loop 3 0 "get /foo" "get /bar"
+        ...
 
         """
         repeat = to_int(params.repeat, -1)
@@ -1316,6 +1627,15 @@ child_watches=%s"""
                 if repeat > 0 and i >= repeat:
                     break
 
+    def complete_loop(self, cmd_param_text, full_cmd, *rest):
+        complete_repeat = partial(complete_values, [str(i) for i in range(0, 11)])
+        complete_pause = partial(complete_values, [str(i) for i in range(0, 11)])
+        cmds = ["\"get ", "\"ls ", "\"create ", "\"set ", "\"rm "]
+        # FIXME: complete_values doesn't work when vals includes quotes
+        complete_cmds = partial(complete_values, cmds)
+        completers = [complete_repeat, complete_pause, complete_cmds]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
     @connected
     @ensure_params(
         Required("path"),
@@ -1326,15 +1646,15 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_ephemeral_endpoint(self, params):
         """
-        gets the session and ip:port for an ephemeral znode
+        Gets the ephemeral znode owner's session and ip:port
 
-        ephemeral_endpoint <path> <hosts> [recursive: bool] [reverse_lookup: bool]
+        ephemeral_endpoint <path> <hosts> [recursive] [reverse_lookup]
 
-        where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
+        where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form.
 
-        examples:
+        Examples:
 
-        ephemeral_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
+        > ephemeral_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
         0xa4788b919450e6 10.3.2.12:54250 10.0.0.2:2181
 
         """
@@ -1372,22 +1692,27 @@ child_watches=%s"""
             for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
                 check(cpath, True, params.reverse)
 
-    complete_ephemeral_endpoint = _complete_path
+    def complete_ephemeral_endpoint(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: the hosts lists can be retrieved from self.zk.hosts """
+        complete_hosts = partial(complete_values, ["127.0.0.1:2181"])
+        completers = [self._complete_path, complete_hosts, complete_boolean, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("session"), Required("hosts"), BooleanOptional("reverse"))
     def do_session_endpoint(self, params):
         """
-        gets the client_ip:port and server_ip:port for the given session
+        Gets the session's IP endpoints
 
-        session_endpoint <session> <hosts>
+        session_endpoint <session> <hosts> [reverse]
 
         where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
 
-        examples:
+        Examples:
 
-        session_endpoint 0xa4788b919450e6 10.0.0.1,10.0.0.2,10.0.0.3
+        > session_endpoint 0xa4788b919450e6 10.0.0.1,10.0.0.2,10.0.0.3
         10.3.2.12:54250 10.0.0.2:2181
+
         """
         if invalid_hosts(params.hosts):
             self.show_output("List of hosts has the wrong syntax.")
@@ -1405,30 +1730,43 @@ child_watches=%s"""
         else:
             self.show_output("%s", info.resolved_endpoints if params.reverse else info.endpoints)
 
+    def complete_session_endpoint(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: the hosts lists can be retrieved from self.zk.hosts """
+        complete_hosts = partial(complete_values, ["127.0.0.1:2181"])
+        completers = [self._complete_path, complete_hosts, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
     @connected
     @ensure_params(Required("path"), Required("val"), IntegerRequired("repeat"))
     @check_paths_exists("path")
     def do_fill(self, params):
         """
-        fills a znode with <count> repeats of <val> (i.e.: useful for testing max bytes per znode)
+        Fills a znode with the given value
 
         fill <path> <char> <count>
 
-        examples:
+        Examples:
 
-        fill /some/znode X 1048576
+        > fill /some/znode X 1048576
+
         """
         self._zk.set(params.path, decoded(params.val * params.repeat))
 
-    complete_fill = _complete_path
+    def complete_fill(self, cmd_param_text, full_cmd, *rest):
+        complete_value = partial(complete_values, ["X", "Y"])
+        complete_repeat = partial(complete_values, [str(i) for i in range(0, 11)])
+        completers = [self._complete_path, complete_value, complete_repeat]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
-        connects to a host from a list of hosts given.
+        Connects to a host from a list of hosts given
 
-        example:
-        connect host1:2181,host2:2181
+        Example:
+
+        > connect host1:2181,host2:2181
+
         """
 
         # TODO: we should offer autocomplete based on prev hosts.
@@ -1437,7 +1775,8 @@ child_watches=%s"""
     @connected
     def do_disconnect(self, args):
         """
-        disconnects from the currently connected host.
+        Disconnects and closes the current session
+
         """
         self._disconnect()
         self.update_curdir("/")
@@ -1445,23 +1784,49 @@ child_watches=%s"""
     @connected
     def do_reconnect(self, args):
         """
-        forces a reconnect by shutting down the connected socket.
+        Forces a reconnect by shutting down the connected socket
+
         """
         self._zk.reconnect()
         self.update_curdir("/")
 
     @connected
     def do_pwd(self, args):
+        """
+        Prints the current path
+
+        """
         self.show_output("%s", self.curdir)
 
     def do_EOF(self, *args):
+        """
+        Exits via Ctrl-D
+        """
         self._exit(True)
 
     def do_quit(self, *args):
+        """
+        Give up on everything and just quit
+        """
         self._exit(False)
 
     def do_exit(self, *args):
+        """
+        Au revoir
+        """
         self._exit(False)
+
+    @contextmanager
+    def transitions_disabled(self):
+        """
+        use this when you want to ignore state transitions (i.e.: inside loop)
+        """
+        self.state_transitions_enabled = False
+        try:
+            yield
+        except KeyboardInterrupt:
+            pass
+        self.state_transitions_enabled = True
 
     def _disconnect(self):
         if self._zk and self.connected:
