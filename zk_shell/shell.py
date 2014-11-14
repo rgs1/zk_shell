@@ -1157,6 +1157,10 @@ child_watches=%s"""
         Example:
 
         > mntr
+        zk_version      3.5.0--1, built on 11/14/2014 10:45 GMT
+        zk_min_latency  0
+        zk_max_latency  8
+        zk_avg_latency  0
 
         """
         hosts = params.hosts if params.hosts != "" else None
@@ -1185,6 +1189,8 @@ child_watches=%s"""
         Example:
 
         > cons
+        /127.0.0.1:40535[0](queued=0,recved=1,sent=0)
+        ...
 
         """
         hosts = params.hosts if params.hosts != "" else None
@@ -1213,6 +1219,14 @@ child_watches=%s"""
         Example:
 
         > dump
+        SessionTracker dump:
+        Session Sets (3)/(1):
+        0 expire at Fri Nov 14 02:49:52 PST 2014:
+        0 expire at Fri Nov 14 02:49:56 PST 2014:
+        1 expire at Fri Nov 14 02:50:00 PST 2014:
+                0x149adea89940107
+        ephemeral nodes dump:
+        Sessions with Ephemerals (0):
 
         """
         hosts = params.hosts if params.hosts != "" else None
