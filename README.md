@@ -146,7 +146,7 @@ Grepping for content in znodes can be done via grep:
 
 Or via igrep for a case-insensitive version.
 
-zk-shell can be used in non-interactive mode:
+Non-interactive mode can be used passing commands via --run-once:
 
 ```
 $ zk-shell --run-once "create /foo 'bar'" localhost
@@ -154,14 +154,14 @@ $ zk-shell --run-once "get /foo" localhost
 bar
 ```
 
-Or from stdin:
+Or piping commands through stdin:
 
 ```
 $ echo "get /foo" | zk-shell --run-once "get /foo" localhost
 bar
 ```
 
-Or, you can write scripts with zk-shell:
+Or, writing scripts:
 
 ```
 $ cat <<EOF > my-script.zs
