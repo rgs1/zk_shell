@@ -1,16 +1,10 @@
 zk_shell
 ========
 
-A Python - [Kazoo](https://github.com/python-zk/kazoo "Kazoo") based - shell for [ZooKeeper](http://zookeeper.apache.org/ "ZooKeeper").
-
-This is a clone of the Java ZooKeeper CLI that ships with Apache ZooKeeper
-that I use for similar things. But I prefer to use a Kazoo based one since
-Kazoo is what the clients I deal with are using.
-
-It supports the basic ops:
+A powerful & scriptable shell for [Apache ZooKeeper](http://zookeeper.apache.org/ "ZooKeeper")
 
 ```
-bin/shell localhost:2181
+$ zk-shell localhost:2181
 (CONNECTED) /> ls
 zookeeper
 (CONNECTED) /> create foo 'bar'
@@ -33,12 +27,12 @@ zookeeper foo temp-0000000001
 │   ├── quota
 ```
 
-readline support is enabled (if readline is available).
+Line editing and command history is supported via readline (if readline is available). There's
+also autocomplete for most commands and their parameters.
 
-You can also copy individual files from your local filesystem to a znode
-in a ZooKeeper. Recursively copying from your filesystem to ZK is supported,
-but not from ZK to your local filesystem (since znodes can have content and
-children).
+Individual files can be copied between the local filesystem and ZooKeeper. Recursively copying
+from the filesystem to ZooKeeper is supported as well, but not the other way around since znodes
+can have content and children.
 
 ```
 (CONNECTED) /> cp /etc/passwd zk://localhost:2181/passwd
@@ -48,21 +42,20 @@ unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
 haldaemon:x:68:68:HAL daemon:/:/sbin/nologin
 ```
 
-Copying from one ZK cluster to another is supported, too:
+Copying between one ZooKeeper cluster to another is supported, too:
 
 ```
 (CONNECTED) /> cp zk://localhost:2181/passwd zk://othercluster:2183/mypasswd
 ```
 
-You can also copy from znodes to a JSON file:
+Copying between a ZooKeeper cluster and JSON files is supported as well:
 
 ```
 (CONNECTED) /> cp zk://localhost:2181/something json://!tmp!backup.json/ true true
 ```
 
-Mirroring one path to another path in ZK or from ZK to a JSON file or from the
-filesystem or a JSON to ZK is supported. Mirroring replaces the destination path
-with the content and structure of the source path.
+Mirroring paths to between clusters or JSON files is also supported. Mirroring replaces the destination
+path with the content and structure of the source path.
 
 ```
 (CONNECTED) /> create /source/znode1/znode11 'Hello' false false true
@@ -105,11 +98,8 @@ Mirroring took 0.03 secs
 (CONNECTED) />
 ```
 
-Sometimes you want to debug watches in ZooKeeper - i.e.: how often do watches fire
-under a given path? You can easily do that with the watch command.
-
-This allows you to continously monitor all the child watches that, recursively,
-fire under <path>:
+Debugging watches can be done with the watch command. It allows monitoring all the child watches
+that, recursively, fire under <path>:
 
 ```
 (CONNECTED) /> watch start /
@@ -126,7 +116,7 @@ Watches Stats
 (CONNECTED) /> watch stop /
 ```
 
-You can also search for paths or znodes which match a given text:
+Searching for paths or znodes which match a given text can be done via find:
 
 ```
 (CONNECTED) /> find / foo
@@ -135,7 +125,8 @@ You can also search for paths or znodes which match a given text:
 /fooish/xorg
 /copy/foo
 ```
-Or if you want a case-insensitive match try ifind:
+
+Or a case-insensitive match using ifind:
 
 ```
 (CONNECTED) /> ifind / foo
@@ -145,7 +136,7 @@ Or if you want a case-insensitive match try ifind:
 /copy/Foo
 ```
 
-Grepping for content in znodes can also be done via grep:
+Grepping for content in znodes can be done via grep:
 
 ```
 (CONNECTED) /> grep / unbound true
@@ -153,13 +144,39 @@ Grepping for content in znodes can also be done via grep:
 /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
 ```
 
-Or use igrep for a case-insensitive version.
+Or via igrep for a case-insensitive version.
 
-
-You can also use zk-shell in non-interactive mode:
+zk-shell can be used in non-interactive mode:
 
 ```
-$ zk-shell localhost --run-once "create /foo 'bar'"
-$ zk-shell localhost --run-once "get /foo"
+$ zk-shell --run-once "create /foo 'bar'" localhost
+$ zk-shell --run-once "get /foo" localhost
 bar
+```
+
+Or from stdin:
+
+```
+$ echo "get /foo" | zk-shell --run-once "get /foo" localhost
+bar
+```
+
+Or, you can write scripts with zk-shell:
+
+```
+$ cat <<EOF > my-script.zs
+#!/usr/bin/zk-shell -f
+
+connect localhost:2181
+create /foo 'xxx'
+create /bar 'yyy'
+ls /
+get /foo
+get /bar
+EOF
+$ chmod +x my-script.zs
+$ ./my-script.zs
+zookeeper foo bar
+xxx
+yyy
 ```
