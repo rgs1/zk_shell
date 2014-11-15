@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 from collections import namedtuple
+import errno
 from functools import partial
 import logging
 import signal
@@ -21,7 +22,7 @@ except NameError:
 
 class CLIParams(
         namedtuple("CLIParams",
-                   "connect_timeout run_once run_from_stdin sync_connect hosts readonly")):
+                   "connect_timeout run_once run_from_stdin sync_connect hosts readonly file")):
     """
     This defines the running params for a CLI() object. If you'd like to do parameters processing
     from some other point you'll need to fill up an instance of this class and pass it to
@@ -61,6 +62,11 @@ def get_params():
                         action="store_true",
                         default=False,
                         help="Enable readonly.")
+    parser.add_argument("-f",
+                        "--file",
+                        type=str,
+                        default="",
+                        help="Read and run commands from file")
     parser.add_argument("hosts",
                         nargs="*",
                         help="ZK hosts to connect")
@@ -71,7 +77,9 @@ def get_params():
         params.run_from_stdin,
         params.sync_connect,
         params.hosts,
-        params.readonly)
+        params.readonly,
+        params.file
+    )
 
 
 class StateTransition(Exception):
@@ -111,7 +119,7 @@ class CLI(object):
         if params is None:
             params = get_params()
 
-        interactive = params.run_once == "" and not params.run_from_stdin
+        interactive = params.run_once == "" and not params.run_from_stdin and params.file == ""
         async = False if params.sync_connect or not interactive else True
 
         if not interactive:
@@ -130,11 +138,16 @@ class CLI(object):
                 if params.run_once != "":
                     rc = 0 if shell.onecmd(params.run_once) == None else 1
                 else:
-                    for cmd in sys.stdin.readlines():
+                    fh = open(params.file, "r") if params.file != "" else sys.stdin
+                    for cmd in fh.readlines():
+                        if cmd.startswith("#"):
+                            continue
                         cur_rc = 0 if shell.onecmd(cmd.rstrip()) == None else 1
                         if cur_rc != 0:
                             rc = cur_rc
-            except IOError:
+            except IOError as ex:
+                if params.file != "" and ex.errno == errno.ENOENT:
+                    print("Couldn't read: %s" % (params.file), file=sys.stderr)
                 rc = 1
 
             sys.exit(rc)
