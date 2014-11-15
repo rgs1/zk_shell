@@ -161,22 +161,3 @@ $ echo "get /foo" | zk-shell --run-once "get /foo" localhost
 bar
 ```
 
-Or, writing scripts:
-
-```
-$ cat <<EOF > my-script.zs
-#!/usr/bin/zk-shell -f
-
-connect localhost:2181
-create /foo 'xxx'
-create /bar 'yyy'
-ls /
-get /foo
-get /bar
-EOF
-$ chmod +x my-script.zs
-$ ./my-script.zs
-zookeeper foo bar
-xxx
-yyy
-```
