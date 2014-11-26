@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import argparse
 import cmd
+import difflib
 from functools import partial, wraps
 import os
 import shlex
@@ -150,6 +151,15 @@ def ensure_params(*params):
     return partial(ensure_params_with_parser, parser)
 
 
+def matches(words, query, threshold):
+    query_len = float(len(query))
+    for word in words:
+        s = difflib.SequenceMatcher(None, word, query)
+        match = ''.join(word[i:i + n] for i, j, n in s.get_matching_blocks() if n)
+        if len(match) / query_len >= threshold:
+            yield word
+
+
 MAX_OUTPUT = 1 << 20
 
 
@@ -190,6 +200,21 @@ class XCmd(cmd.Cmd):
 
         print(out, file=self._output)
 
+    @property
+    def commands(self):
+        """ available commands, not including the special ones """
+        return  [name[3:] for name in self.get_names() if name[:3] == 'do_']
+
+    @property
+    def special_commands(self):
+        """ special, builtin, commands """
+        return self._special_commands.keys()
+
+    @property
+    def all_commands(self):
+        """ regular + special commands """
+        return self.commands + self.special_commands
+
     def default(self, line):
         args = shlex.split(line)
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
@@ -197,7 +222,15 @@ class XCmd(cmd.Cmd):
             if cmd:
                 cmd(args[1:])
             else:
-                print("Unknown command: %s" % (args[0]))
+                similar = list(matches(self.all_commands, args[0], 0.85))
+                if len(similar) == 1:
+                    print("Unknown command, maybe you meant: %s" % similar[0])
+                elif len(similar) > 1:
+                    options = ", ".join(similar[:-1])
+                    options += " or %s" % (similar[-1])
+                    print("Unknown command, maybe you meant: %s" % options)
+                else:
+                    print("Unknown command: %s" % (args[0]))
 
     def run_last_command(self, *args):
         self.onecmd(self.last_command)
