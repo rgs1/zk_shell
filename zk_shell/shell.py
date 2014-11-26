@@ -234,6 +234,8 @@ class Shell(XCmd):
         """
         Authenticates the session
 
+        add_auth <scheme> <credential>
+
         Examples:
 
         > add_auth digest super:s3cr3t
@@ -251,6 +253,8 @@ class Shell(XCmd):
     def do_set_acls(self, params):
         """
         Sets ACLs for a given path
+
+        set_acls <path> <acls>
 
         Examples:
 
