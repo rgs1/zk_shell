@@ -177,6 +177,9 @@ class XCmd(cmd.Cmd):
         if setup_readline:
             self._setup_readline(hist_file_name)
 
+        # build the list of regular commands
+        self._regular_commands = [name[3:] for name in self.get_names() if name[:3] == 'do_']
+
         # special commands dispatch map
         self._special_commands = {
             "!!": self.run_last_command,
@@ -203,7 +206,7 @@ class XCmd(cmd.Cmd):
     @property
     def commands(self):
         """ available commands, not including the special ones """
-        return  [name[3:] for name in self.get_names() if name[:3] == 'do_']
+        return  self._regular_commands
 
     @property
     def special_commands(self):
