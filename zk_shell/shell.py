@@ -1,28 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-zkCli.sh clone.
-It supports the basic ops plus a few handy extensions:
- (CONNECTED) /> ls
- zookeeper
- (CONNECTED) /> create foo 'bar'
- (CONNECTED) /> get foo
- bar
- (CONNECTED) /> cd foo
- (CONNECTED) /foo> create ish 'barish'
- (CONNECTED) /foo> cd ..
- (CONNECTED) /> ls foo
- ish
- (CONNECTED) /> create temp- 'temp' true true
- (CONNECTED) /> ls
- zookeeper foo temp-0000000001
- (CONNECTED) /> rmr foo
- (CONNECTED) />
- (CONNECTED) /> tree
- .
- ├── zookeeper
- │   ├── config
- │   ├── quota
+A powerful & scriptable ZooKeeper shell
 """
 
 from __future__ import print_function
