@@ -77,7 +77,7 @@ class BasicCmdsTestCase(ShellTestCase):
     def test_set_get_acls(self):
         """ test setting & getting acls for a path """
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))
-        self.shell.onecmd("set_acls %s/one world:anyone:r digest:%s:cdrwa" % (
+        self.shell.onecmd("set_acls %s/one 'world:anyone:r digest:%s:cdrwa'" % (
             self.tests_path, self.auth_digest))
         self.shell.onecmd("get_acls %s/one" % (self.tests_path))
 
@@ -96,9 +96,7 @@ class BasicCmdsTestCase(ShellTestCase):
         path_two = "%s/one/two" % (self.tests_path)
         self.shell.onecmd("create %s 'hello'" % (path_one))
         self.shell.onecmd("create %s 'goodbye'" % (path_two))
-        self.shell.onecmd("set_acls %s world:anyone:r digest:%s:cdrwa" % (
-            path_two, self.auth_digest))
-        self.shell.onecmd("set_acls %s world:anyone:r digest:%s:cdrwa" % (
+        self.shell.onecmd("set_acls %s 'world:anyone:r digest:%s:cdrwa' true" % (
             path_one, self.auth_digest))
         self.shell.onecmd("get_acls %s 0" % (path_one))
 
@@ -119,7 +117,7 @@ class BasicCmdsTestCase(ShellTestCase):
         path_one = "%s/one" % (self.tests_path)
         auth_id = "username_password:user:user"
         self.shell.onecmd("create %s 'hello'" % (path_one))
-        self.shell.onecmd("set_acls %s world:anyone:r %s" % (
+        self.shell.onecmd("set_acls %s 'world:anyone:r %s'" % (
             path_one, auth_id))
         expected_output = "Failed to set ACLs: "
         expected_output += "Bad ACL: username_password:user:user. "

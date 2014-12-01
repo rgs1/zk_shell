@@ -227,32 +227,41 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Multi("acls"))
+    @ensure_params(Required("path"), Required("acls"), BooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_set_acls(self, params):
         """
         Sets ACLs for a given path
 
-        set_acls <path> <acls>
+        set_acls <path> <acls> [recursive]
 
         Examples:
 
-        > set_acls /some/path world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa
-        > set_acls /some/path world:anyone:r username_password:user:p@ass0rd:cdrwa
+        > set_acls /some/path 'world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa'
+        > set_acls /some/path 'world:anyone:r username_password:user:p@ass0rd:cdrwa'
+        > set_acls /path 'world:anyone:r' true
 
         """
         try:
-            acls = ACLReader.extract(params.acls)
+            acls = ACLReader.extract(shlex.split(params.acls))
         except ACLReader.BadACL as ex:
             self.show_output("Failed to set ACLs: %s.", ex)
             return
 
-        try:
-            self._zk.set_acls(params.path, acls)
-        except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
-            self.show_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
+        def set_acls(path):
+            try:
+                self._zk.set_acls(path, acls)
+            except (NoNodeError, BadVersionError, InvalidACLError, ZookeeperError) as ex:
+                self.show_output("Failed to set ACLs: %s. Error: %s", str(acls), str(ex))
+
+        if params.recursive:
+            for cpath, _ in self._zk.tree(params.path, 0, full_path=True):
+                set_acls(cpath)
+
+        set_acls(params.path)
 
     def complete_set_acls(self, cmd_param_text, full_cmd, *rest):
+        """ FIXME: complete inside a quoted param is broken """
         possible_acl = [
             "digest:",
             "username_password:",
@@ -263,8 +272,7 @@ class Shell(XCmd):
             "world:anyone:cdrwa",
         ]
         complete_acl = partial(complete_values, possible_acl)
-        complete_many = [complete_acl for i in range(0, 10)]  # 10 ACLs is probably enough
-        completers = [self._complete_path] + complete_many
+        completers = [self._complete_path, complete_acl, complete_boolean]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected

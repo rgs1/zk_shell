@@ -1,6 +1,19 @@
 ChangeLog
 =========
 
+0.99.05 (2014-12-XX)
+--------------------
+
+Bug Handling
+************
+
+- to allow a 3rd param in set_acls, acls must be quoted now
+
+Features
+********
+
+- the acls params in set_acls now need to be quoted
+- set_acls now supports recursive mode via a 3rd optional param
 
 0.99.04 (2014-11-25)
 --------------------
