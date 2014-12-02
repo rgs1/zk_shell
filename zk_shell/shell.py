@@ -409,7 +409,7 @@ class Shell(XCmd):
 
            /some/path (in the connected server)
            file://<path>
-           zk://[user:passwd@]host/<path>
+           zk://[scheme:user:passwd@]host/<path>
            json://!some!path!backup.json/some/path
 
         with a few restrictions. Given the semantic differences that znodes have with filesystem
@@ -419,7 +419,7 @@ class Shell(XCmd):
         Examples:
 
         > cp /some/znode /backup/copy-znode  # local
-        > cp file://<path> zk://[user:passwd@]host/<path> <recursive> <overwrite> <async> <verbose> <max_items>
+        > cp /some/znode zk://digest:bernie:pasta@10.0.0.1/backup true true
         > cp /some/path json://!home!user!backup.json/ true true
 
         """
