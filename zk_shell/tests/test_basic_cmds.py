@@ -68,6 +68,11 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("add_auth digest super:%s" % (self.super_password))
         self.assertEqual("", self.output.getvalue())
 
+    def test_bad_auth(self):
+        """ handle unknown scheme """
+        self.shell.onecmd("add_auth unknown berk:berk")
+        self.assertTrue(True)
+
     def test_du(self):
         """ test listing a path's size """
         self.shell.onecmd("create %s/one 'hello'" % (self.tests_path))

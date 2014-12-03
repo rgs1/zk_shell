@@ -19,6 +19,7 @@ import time
 import zlib
 
 from kazoo.exceptions import (
+    AuthFailedError,
     BadArgumentsError,
     BadVersionError,
     ConnectionLoss,
@@ -77,6 +78,8 @@ def connected(func):
         else:
             try:
                 return func(*args, **kwargs)
+            except AuthFailedError:
+                self.show_output("Authentication failed.")
             except NoAuthError:
                 self.show_output("Not authenticated.")
             except ConnectionLoss:
@@ -423,7 +426,10 @@ class Shell(XCmd):
         > cp /some/path json://!home!user!backup.json/ true true
 
         """
-        self.copy(params, params.recursive, params.overwrite, params.max_items, False)
+        try:
+            self.copy(params, params.recursive, params.overwrite, params.max_items, False)
+        except AuthFailedError:
+            self.show_output("Authentication failed.")
 
     def complete_cp(self, cmd_param_text, full_cmd, *rest):
         complete_max = partial(complete_values, [str(i) for i in range(0, 11)])

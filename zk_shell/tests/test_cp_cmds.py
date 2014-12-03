@@ -115,6 +115,10 @@ class CpCmdsTestCase(ShellTestCase):
 
         self.assertEqual(content, "HELLO")
 
+    def test_bad_auth(self):
+        self.shell.onecmd("cp / zk://foo:bar@localhost/y")
+        self.assertTrue(True)
+
     ###
     # Helpers.
     ##
