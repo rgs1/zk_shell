@@ -10,6 +10,7 @@ Bug Handling
 - to allow a 3rd param in set_acls, acls must be quoted now
 - don't crash in add_auth when the scheme is unknown (AuthFailedError)
 - don't crash in cp when the scheme is unknown (AuthFailedError)
+- handle IPv6 addresses within cp commands (reported by @fsparv)
 
 Features
 ********

@@ -409,7 +409,8 @@ class XClient(KazooClient):
         if not self.connected:
             raise self.CmdFailed("Not connected and no host given.")
 
-        return self._connection._socket.getpeername()
+        # If we are using IPv6, getpeername() returns a 4-tuple
+        return self._connection._socket.getpeername()[:2]
 
     def zk_url(self):
         """ returns `zk://host:port` for the connected host:port """
