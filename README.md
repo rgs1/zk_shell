@@ -1,7 +1,29 @@
-zk_shell
-========
+# zk-shell
 
 A powerful & scriptable shell for [Apache ZooKeeper](http://zookeeper.apache.org/ "ZooKeeper")
+
+### Installing ###
+
+From PyPI:
+
+```
+$ pip install zk-shell
+```
+
+Or running from the source:
+
+```
+# Kazoo is needed
+$ pip install kazoo
+
+$ git clone https://github.com/rgs1/zk_shell.git
+$ cd zk_shell
+$ export ZKSHELL_SRC=1; bin/zk-shell
+Welcome to zk-shell (0.99.04)
+(DISCONNECTED) />
+```
+
+### Usage ###
 
 ```
 $ zk-shell localhost:2181
