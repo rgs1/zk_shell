@@ -183,3 +183,7 @@ $ echo "get /foo" | zk-shell --run-once "get /foo" localhost
 bar
 ```
 
+### Dependencies ###
+
+* Python 2.7, 3.3 or 3.4
+* Kazoo >= 2.0.0
