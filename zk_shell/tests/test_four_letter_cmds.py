@@ -22,7 +22,7 @@ class FourLetterCmdsTestCase(ShellTestCase):
     def test_dump(self):
         """ test dump """
         self.shell.onecmd("dump")
-        self.assertIn("127.0.0.1", self.output.getvalue())
+        self.assertIn("Sessions with Ephemerals", self.output.getvalue())
 
     def test_disconnected(self):
         """ test disconnected """
