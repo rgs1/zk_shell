@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Based on finagle-zookeeper's integration tests
 #
