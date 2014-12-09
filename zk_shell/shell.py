@@ -411,7 +411,6 @@ class Shell(XCmd):
         where src and dst can be:
 
            /some/path (in the connected server)
-           file://<path>
            zk://[scheme:user:passwd@]host/<path>
            json://!some!path!backup.json/some/path
 
@@ -460,7 +459,6 @@ class Shell(XCmd):
         where src and dst can be:
 
            /some/path (in the connected server)
-           file://<path>
            zk://[user:passwd@]host/<path>
            json://!some!path!backup.json/some/path
 
@@ -474,7 +472,6 @@ class Shell(XCmd):
         Examples:
 
         > mirror /some/znode /backup/copy-znode  # local
-        > mirror file://<path> zk://[user:passwd@]host/<path> <async> <verbose> <max_items>
         > mirror /some/path json://!home!user!backup.json/ true true
 
         """

@@ -146,23 +146,3 @@ class MirrorCmdsTestCase(ShellTestCase):
         self.shell.onecmd("mirror %s %s false false true" % (
             bad_path, "%s/some/other/nonexistent/path" % (self.tests_path)))
         self.assertIn("doesn't exist", self.output.getvalue())
-
-    def test_mirror_file2zk(self):
-        myfile = "%s/myfile" % (self.temp_dir)
-        with open(myfile, "w") as fph:
-            fph.writelines(["hello\n", "bye\n"])
-
-        src_path = "file://%s" % (myfile)
-        dst_path = "%s/myfile" % (self.tests_path)
-        self.shell.onecmd("mirror %s %s false false true" % (src_path, dst_path))
-        self.shell.onecmd("get %s" % (dst_path))
-        expected_output =  u"hello\nbye\n\n"
-        self.assertEqual(expected_output, self.output.getvalue())
-
-    def test_mirror_zk2file(self):
-        src_path = "%s/src" % (self.tests_path)
-        myfile = "%s/myfile" % (self.temp_dir)
-        dst_path = "file://%s" % (myfile)
-        self.shell.onecmd("create %s 'HELLO'" % (src_path))
-        self.shell.onecmd("mirror %s %s false false true" % (src_path, dst_path))
-        self.assertEquals("Mirror from zk to fs isn't supported\n", self.output.getvalue())
