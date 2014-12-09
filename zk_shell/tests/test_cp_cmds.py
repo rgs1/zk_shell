@@ -79,9 +79,7 @@ class CpCmdsTestCase(ShellTestCase):
         bad_path = "%s/doesnt/exist/path" % (self.tests_path)
         self.shell.onecmd("cp %s %s true true" % (
             bad_path, "%s/some/other/nonexistent/path" % (self.tests_path)))
-        expected_output = "znode %s in 127.0.0.1:2181 doesn't exist\n" % (
-            bad_path)
-        self.assertIn(expected_output, self.output.getvalue())
+        self.assertIn("doesn't exist\n", self.output.getvalue())
 
     def test_cp_file2zk(self):
         # FIXME: everything should be treated as binary, expecting strings in ZK
