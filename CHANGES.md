@@ -18,6 +18,7 @@ Features
 - the acls params in set_acls now need to be quoted
 - set_acls now supports recursive mode via a 3rd optional param
 - TravisCI is now enabled so tests should always run
+- suggest possible commands when the command is unknown
 
 0.99.04 (2014-11-25)
 --------------------
