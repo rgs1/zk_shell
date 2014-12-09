@@ -37,3 +37,7 @@ nosetests.xml
 
 # Emacs temp files
 *~
+
+# Integration leftovers
+integration/data
+integration/releases
