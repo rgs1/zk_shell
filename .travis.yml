@@ -1,6 +1,9 @@
 language: python
 python:
   - "2.7"
+  - "3.2"
+  - "3.3"
+  - "3.4"
 install:
   - integration/start.sh 3.4.5 https://github.com/apache/zookeeper/archive/release-3.4.5.tar.gz 2181
   - pip install -r requirements.txt --use-mirrors
