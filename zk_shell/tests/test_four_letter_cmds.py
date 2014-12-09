@@ -17,7 +17,7 @@ class FourLetterCmdsTestCase(ShellTestCase):
     def test_cons(self):
         """ test cons """
         self.shell.onecmd("cons")
-        self.assertIn("127.0.0.1", self.output.getvalue())
+        self.assertIn("queued=", self.output.getvalue())
 
     def test_dump(self):
         """ test dump """

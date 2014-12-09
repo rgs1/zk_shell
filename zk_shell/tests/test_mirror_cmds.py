@@ -145,9 +145,7 @@ class MirrorCmdsTestCase(ShellTestCase):
         bad_path = "%s/doesnt/exist/path" % (self.tests_path)
         self.shell.onecmd("mirror %s %s false false true" % (
             bad_path, "%s/some/other/nonexistent/path" % (self.tests_path)))
-        expected_output = "znode %s in 127.0.0.1:2181 doesn't exist\n" % (
-            bad_path)
-        self.assertIn(expected_output, self.output.getvalue())
+        self.assertIn("doesn't exist", self.output.getvalue())
 
     def test_mirror_file2zk(self):
         myfile = "%s/myfile" % (self.temp_dir)
