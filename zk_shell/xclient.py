@@ -26,6 +26,20 @@ def connected_socket(address, timeout=3):
     sock.close()
 
 
+def get_ips(host, port):
+    """ lookup all IPs (v4 and v6) """
+    ips = set()
+
+    for af_type in (socket.AF_INET, socket.AF_INET6):
+        try:
+            records = socket.getaddrinfo(host, port, af_type, socket.SOCK_STREAM)
+            ips.update(rec[4][0] for rec in records)
+        except socket.gaierror as ex:
+            pass
+
+    return ips
+
+
 class ClientInfo(object):
     __slots__ = "id", "ip", "port", "client_hostname", "server_ip", "server_port", "server_hostname"
 
@@ -369,20 +383,19 @@ class XClient(KazooClient):
 
     def _cmd(self, endpoint, cmd):
         """ endpoint is (host, port) """
+        cmdbuf = "%s\n" % (cmd)
+        recvsize = 8192
         replies = []
-        records = []
         host, port = endpoint
 
-        try:
-            records = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-        except socket.gaierror as ex:
+        ips = get_ips(host, port)
+
+        if len(ips) == 0:
             raise self.CmdFailed("Failed to resolve: %s" % (ex))
 
-        recvsize = 8192
-        cmdbuf = "%s\n" % (cmd)
-        for rec in records:
+        for ip in ips:
             try:
-                with connected_socket(rec[4]) as sock:
+                with connected_socket((ip, port)) as sock:
                     sock.send(cmdbuf.encode())
                     while True:
                         buf = sock.recv(recvsize).decode("utf-8")
@@ -392,8 +405,8 @@ class XClient(KazooClient):
             except socket.error as ex:
                 # if there's only 1 record, give up.
                 # if there's more, keep trying.
-                if len(records) == 1:
-                    raise self.CmdFailed("Error(%s): %s" % (rec[4], ex))
+                if len(ips) == 1:
+                    raise self.CmdFailed("Error(%s): %s" % (ip, ex))
 
         return "".join(replies)
 
