@@ -1,4 +1,4 @@
-# zk-shell [![Build Status] (https://travis-ci.org/rgs1/zk_shell.svg?branch=master)](https://travis-ci.org/rgs1/zk_shell)
+# zk-shell [![Build Status] (https://travis-ci.org/rgs1/zk_shell.svg?branch=master)](https://travis-ci.org/rgs1/zk_shell) [![Coverage Status](https://coveralls.io/repos/rgs1/zk_shell/badge.png)](https://coveralls.io/r/rgs1/zk_shell)
 
 A powerful & scriptable shell for [Apache ZooKeeper](http://zookeeper.apache.org/ "ZooKeeper")
 
