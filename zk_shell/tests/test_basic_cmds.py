@@ -250,3 +250,9 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("session_endpoint 0 localhost")
         expected = u"No session info for 0.\n"
         self.assertEqual(expected, self.output.getvalue())
+
+    def test_ephemeral_endpoint(self):
+        path = "%s/ephemeral" % (self.tests_path)
+        self.shell.onecmd("create %s 'foo' true" % (path))
+        self.shell.onecmd("ephemeral_endpoint %s localhost" % (path))
+        self.assertTrue(self.output.getvalue().startswith("0x"))
