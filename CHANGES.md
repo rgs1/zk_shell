@@ -1,6 +1,18 @@
 ChangeLog
 =========
 
+0.99.06 (2014-12-XX)
+--------------------
+
+Bug Handling
+************
+- fix async cp
+- fix off-by-one for summary of /
+
+Features
+********
+- better coverage
+
 0.99.05 (2014-12-08)
 --------------------
 
