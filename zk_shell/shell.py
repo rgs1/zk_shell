@@ -735,6 +735,7 @@ class Shell(XCmd):
             start = len(results) + params.top if abs(params.top) < len(results) else 0
             end = len(results)
 
+        offs = 1 if params.path == "/" else len(params.path) + 1
         for i in range(start, end):
             path, stat = results[i]
 
@@ -743,7 +744,7 @@ class Shell(XCmd):
                 time.ctime(stat.created).ljust(32),
                 time.ctime(stat.last_modified).ljust(32),
                 ("0x%x" % stat.ephemeralOwner).ljust(23),
-                path[len(params.path) + 1:]
+                path[offs:]
             )
 
     def complete_summary(self, cmd_param_text, full_cmd, *rest):
