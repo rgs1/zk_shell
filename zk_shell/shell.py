@@ -1048,25 +1048,30 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"))
-    @check_paths_exists("path")
+    @ensure_params(Multi("paths"))
     def do_rm(self, params):
         """
         Remove the znode
 
-        rm <path>
+        rm <path> [path] [path] ... [path]
 
-        Example:
+        Examples:
 
         > rm /foo
+        > rm /foo /bar
 
         """
-        try:
-            self._zk.delete(params.path)
-        except NotEmptyError:
-            self.show_output("%s is not empty.", params.path)
+        for path in params.paths:
+            try:
+                self._zk.delete(path)
+            except NotEmptyError:
+                self.show_output("%s is not empty.", path)
+            except NoNodeError:
+                self.show_output("%s doesn't exist.", path)
 
-    complete_rm = _complete_path
+    def complete_rm(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path for i in range(0, 10)]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params()
