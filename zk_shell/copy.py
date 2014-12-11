@@ -26,7 +26,7 @@ from kazoo.exceptions import (
 )
 
 from .acl import ACLReader
-from .async_walker import AsyncWalker
+from .statmap import StatMap
 from .util import join, Netloc, to_bytes
 
 
@@ -360,9 +360,13 @@ class ZKProxy(Proxy):
 
     def children_of(self):
         if self.async:
-            return AsyncWalker(self.client).walk(self.path.rstrip("/"))
+            offs = 1 if self.path == "/" else len(self.path) + 1
+            for path, stat in StatMap(self.client, self.path, recursive=True).get():
+                if stat.ephemeralOwner == 0:
+                    yield path[offs:]
         else:
-            return self.zk_walk(self.path, None)
+            for path in self.zk_walk(self.path, None):
+                yield path
 
     def zk_walk(self, root_path, branch_path):
         """

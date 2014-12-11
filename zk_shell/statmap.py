@@ -37,19 +37,28 @@ class Request(object):
         return self.result.get()
 
 
-class StatMap(object):
-    __slots__ = ("zk", "path")
+class Exists(Request): pass
 
-    def __init__(self, zk, path):
-        self.zk, self.path = zk, path
+
+class GetChildren(Request): pass
+
+
+class StatMap(object):
+    __slots__ = ("zk", "path", "recursive")
+
+    def __init__(self, zk, path, recursive=False):
+        self.zk, self.path, self.recursive = zk, path, recursive
 
     def get(self):
         reqs = Queue()
         pending = 0
         path = self.path
         zk = self.zk
+        recursive = self.recursive
         exists_of = lambda path: zk.exists_async(path)
-        dispatch = lambda path: reqs.put(Request(path, exists_of(path)))
+        dispatch_exists = lambda path: reqs.put(Exists(path, exists_of(path)))
+        child_of = lambda path: zk.get_children_async(path)
+        dispatch_child = lambda path: reqs.put(GetChildren(path, child_of(path)))
 
         try:
             children = zk.get_children(path)
@@ -57,7 +66,7 @@ class StatMap(object):
             return
 
         for child in children:
-            dispatch(join(path, child))
+            dispatch_exists(join(path, child))
 
         pending = len(children)
 
@@ -65,7 +74,16 @@ class StatMap(object):
             req = reqs.get()
 
             try:
-                yield (req.path, req.value)
+                if type(req) == Exists:
+                    yield (req.path, req.value)
+
+                    if recursive and req.value.children_count > 0:
+                        pending += 1
+                        dispatch_child(req.path)
+                else:
+                    for child in req.value:
+                        pending += 1
+                        dispatch_exists(join(req.path, child))
             except (NoNodeError, NoAuthError): pass
 
             pending -= 1

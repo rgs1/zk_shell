@@ -14,25 +14,28 @@ class CpCmdsTestCase(ShellTestCase):
     """ cp tests """
 
     def test_cp_zk2zk(self):
-        """ copy from one zk cluster to another"""
-        host = self.zk_host
-        src = "%s/src" % (self.tests_path)
-        dst = "%s/dst" % (self.tests_path)
-        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src))
-        self.shell.onecmd("cp zk://%s%s zk://%s%s true true" % (host, src, host, dst))
-        self.shell.onecmd("tree %s" % (dst))
-        expected_output = u""".
-\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
-"""
-        self.assertEqual(expected_output, self.output.getvalue())
+        """ copy from one zk cluster to another """
+        self.zk2zk(async=False)
+
+    def test_cp_zk2zk_async(self):
+        """ copy from one zk cluster to another (async) """
+        self.zk2zk(async=True)
 
     def test_zk2json(self):
         """ copy from zk to a json file (uncompressed) """
-        self.zk2json(compressed=False)
+        self.zk2json(compressed=False, async=False)
+
+    def test_zk2json_async(self):
+        """ copy from zk to a json file (uncompressed & async) """
+        self.zk2json(compressed=False, async=True)
 
     def test_zk2json_compressed(self):
         """ copy from zk to a json file (compressed) """
-        self.zk2json(compressed=True)
+        self.zk2json(compressed=True, async=False)
+
+    def test_zk2json_compressed_async(self):
+        """ copy from zk to a json file (compressed & async) """
+        self.zk2json(compressed=True, async=True)
 
     def test_zk2json_bad(self):
         """ try to copy from non-existent path in zk to a json file """
@@ -44,11 +47,19 @@ class CpCmdsTestCase(ShellTestCase):
 
     def test_json2zk(self):
         """ copy from a json file to a ZK cluster (uncompressed) """
-        self.json2zk(compressed=False)
+        self.json2zk(compressed=False, async=False)
+
+    def test_json2zk_async(self):
+        """ copy from a json file to a ZK cluster (uncompressed) """
+        self.json2zk(compressed=False, async=True)
 
     def test_json2zk_compressed(self):
         """ copy from a json file to a ZK cluster (compressed) """
-        self.json2zk(compressed=True)
+        self.json2zk(compressed=True, async=False)
+
+    def test_json2zk_compressed_async(self):
+        """ copy from a json file to a ZK cluster (compressed) """
+        self.json2zk(compressed=True, async=True)
 
     def test_json2zk_bad(self):
         """ try to copy from non-existent path in json to zk """
@@ -84,7 +95,20 @@ class CpCmdsTestCase(ShellTestCase):
     ###
     # Helpers.
     ##
-    def zk2json(self, compressed):
+    def zk2zk(self, async):
+        host = self.zk_host
+        src = "%s/src" % (self.tests_path)
+        dst = "%s/dst" % (self.tests_path)
+        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src))
+        asyncp = "true" if async else "false"
+        self.shell.onecmd("cp zk://%s%s zk://%s%s true true %s" % (host, src, host, dst, asyncp))
+        self.shell.onecmd("tree %s" % (dst))
+        expected_output = u""".
+\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
+"""
+        self.assertEqual(expected_output, self.output.getvalue())
+
+    def zk2json(self, compressed, async):
         """ helper for copying from zk to json """
         src_path = "%s/src" % (self.tests_path)
         nested_path = "%s/nested/znode" % (src_path)
@@ -97,7 +121,8 @@ class CpCmdsTestCase(ShellTestCase):
 
         src = "zk://%s%s" % (self.zk_host, src_path)
         dst = "json://%s/backup" % (json_file.replace("/", "!"))
-        self.shell.onecmd("cp %s %s true true" % (src, dst))
+        asyncp = "true" if async else "false"
+        self.shell.onecmd("cp %s %s true true %s" % (src, dst, asyncp))
 
         with open(json_file, "r") as jfp:
             copied_znodes = json.load(jfp)
@@ -117,7 +142,7 @@ class CpCmdsTestCase(ShellTestCase):
 
         self.assertEqual("HELLO", json_value)
 
-    def json2zk(self, compressed):
+    def json2zk(self, compressed, async):
         """ helper for copying from json to zk """
         src_path = "%s/src" % (self.tests_path)
         nested_path = "%s/nested/znode" % (src_path)
@@ -128,12 +153,14 @@ class CpCmdsTestCase(ShellTestCase):
         else:
             self.shell.onecmd("create %s 'HELLO' false false true" % (nested_path))
 
+        asyncp = "true" if async else "false"
+
         json_url = "json://%s/backup" % (json_file.replace("/", "!"))
         src_zk = "zk://%s%s" % (self.zk_host, src_path)
-        self.shell.onecmd("cp %s %s true true" % (src_zk, json_url))
+        self.shell.onecmd("cp %s %s true true %s" % (src_zk, json_url, asyncp))
 
         dst_zk = "zk://%s/%s/from-json" % (self.zk_host, self.tests_path)
-        self.shell.onecmd("cp %s %s true true" % (json_url, dst_zk))
+        self.shell.onecmd("cp %s %s true true %s" % (json_url, dst_zk, asyncp))
         self.shell.onecmd("tree %s/from-json" % (self.tests_path))
         self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
 
