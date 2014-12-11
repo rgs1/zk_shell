@@ -8,10 +8,12 @@ Bug Handling
 ************
 - fix async cp
 - fix off-by-one for summary of /
+- allow creating sequential znodes when the base path exists
 
 Features
 ********
 - better coverage
+- rm & rmr now take multiple paths
 
 0.99.05 (2014-12-08)
 --------------------
