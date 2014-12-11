@@ -1,15 +1,25 @@
 """ test basic connect/disconnect cases """
 
 import os
+import signal
 
 try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
 
+import time
 import unittest
 
 from zk_shell.shell import Shell
+
+
+def wait_connected(shell):
+    for i in range(0, 20):
+        if shell.connected:
+            return True
+        time.sleep(0.1)
+    return False
 
 
 # pylint: disable=R0904,F0401
@@ -55,3 +65,21 @@ class ConnectTestCase(unittest.TestCase):
         self.assertTrue(self.shell.connected)
         self.shell.onecmd("disconnect")
         self.assertFalse(self.shell.connected)
+
+    def test_connect_async(self):
+        """ test async """
+
+        # SIGUSR2 is emitted when connecting asyncronously, so handle it
+        def handler(*args, **kwargs):
+            pass
+        signal.signal(signal.SIGUSR2, handler)
+
+        shell = Shell([], 1, self.output, setup_readline=False, async=True)
+        shell.onecmd("connect %s" % (self.zk_host))
+        self.assertTrue(wait_connected(shell))
+
+    def test_reconnect(self):
+        """ force reconnect """
+        self.shell.onecmd("connect %s" % (self.zk_host))
+        self.shell.onecmd("reconnect")
+        self.assertTrue(wait_connected(self.shell))
