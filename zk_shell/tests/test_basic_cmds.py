@@ -245,3 +245,8 @@ class BasicCmdsTestCase(ShellTestCase):
 
         expected_output = u"%s/foo\n" % (self.tests_path)
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_session_endpoint(self):
+        self.shell.onecmd("session_endpoint 0 localhost")
+        expected = u"No session info for 0.\n"
+        self.assertEqual(expected, self.output.getvalue())
