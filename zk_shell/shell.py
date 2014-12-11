@@ -1245,22 +1245,23 @@ child_watches=%s"""
             self.show_output(str(ex))
 
     @connected
-    @ensure_params(Required("path"))
-    @check_paths_exists("path")
+    @ensure_params(Multi("paths"))
     def do_rmr(self, params):
         """
         Delete a path and all its children
 
-        rmr <path>
+        rmr <path> [path] [path] ... [path]
 
-        Example:
+        Examples:
 
         > rmr /foo
+        > rmr /foo /bar
 
         """
-        self._zk.delete(params.path, recursive=True)
+        for path in params.paths:
+            self._zk.delete(path, recursive=True)
 
-    complete_rmr = _complete_path
+    complete_rmr = complete_rm
 
     @connected
     @ensure_params(Required("path"))
