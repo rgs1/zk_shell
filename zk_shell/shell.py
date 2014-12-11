@@ -125,8 +125,9 @@ def check_path_absent(func):
         self = args[0]
         params = args[1]
         path = params.path
+        sequence = getattr(params, 'sequence', False)
         params.path = self.resolve_path(path)
-        if not self.client.exists(params.path):
+        if sequence or not self.client.exists(params.path):
             return func(self, params)
         self.show_output("Path %s already exists", path)
     return wrapper
