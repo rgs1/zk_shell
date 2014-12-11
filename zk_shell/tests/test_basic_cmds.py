@@ -256,3 +256,29 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s 'foo' true" % (path))
         self.shell.onecmd("ephemeral_endpoint %s localhost" % (path))
         self.assertTrue(self.output.getvalue().startswith("0x"))
+
+    def test_transaction_simple(self):
+        """ simple """
+        path = "%s/foo" % (self.tests_path)
+        txn = "txn 'create %s x' 'set %s y' 'check %s 1'" % (path, path, path)
+        self.shell.onecmd(txn)
+        self.shell.onecmd("get %s" % (path))
+        self.assertEqual("y\n", self.output.getvalue())
+
+    def test_transaction_bad_version(self):
+        """ check version """
+        path = "%s/foo" % (self.tests_path)
+        txn = "txn 'create %s x' 'set %s y' 'check %s 100'" % (path, path, path)
+        self.shell.onecmd(txn)
+        self.assertEqual("Bad version.\n", self.output.getvalue())
+
+    def test_transaction_rm(self):
+        """ multiple rm commands """
+        self.shell.onecmd("create %s/a 'x' true" % (self.tests_path))
+        self.shell.onecmd("create %s/b 'x' true" % (self.tests_path))
+        self.shell.onecmd("create %s/c 'x' true" % (self.tests_path))
+        txn = "txn 'rm %s/a' 'rm %s/b' 'rm %s/c'" % (
+            self.tests_path, self.tests_path, self.tests_path)
+        self.shell.onecmd(txn)
+        self.shell.onecmd("exists %s" % (self.tests_path))
+        self.assertIn("numChildren=0", self.output.getvalue())

@@ -95,18 +95,19 @@ def connected(func):
 
 
 def check_path_exists_foreach(paths, func):
+    """ check that paths exist (unless we are in a transaction) """
     @wraps(func)
     def wrapper(*args):
         self = args[0]
         params = args[1]
 
-        for path_param_name in paths:
-            path = getattr(params, path_param_name)
-            path = self.resolve_path(path)
-            setattr(params, path_param_name, path)
-            if not self.client.exists(path):
-                self.show_output("Path %s=%s doesn't exist", path_param_name, path)
-                return False
+        if not self.in_transaction:
+            for param_name in paths:
+                path = self.resolve_path(getattr(params, param_name))
+                setattr(params, param_name, path)
+                if not self.client.exists(path):
+                    self.show_output("Path %s=%s doesn't exist", param_name, path)
+                    return False
 
         return func(self, params)
 
@@ -119,7 +120,7 @@ def check_paths_exists(*paths):
 
 
 def check_path_absent(func):
-    """ check path doesn't exist """
+    """ check path doesn't exist (unless we are in a txn or it's sequential) """
     @wraps(func)
     def wrapper(*args):
         self = args[0]
@@ -127,7 +128,7 @@ def check_path_absent(func):
         path = params.path
         sequence = getattr(params, 'sequence', False)
         params.path = self.resolve_path(path)
-        if sequence or not self.client.exists(params.path):
+        if self.in_transaction or sequence or not self.client.exists(params.path):
             return func(self, params)
         self.show_output("Path %s already exists", path)
     return wrapper
@@ -171,6 +172,7 @@ class Shell(XCmd):
         self._read_only = read_only
         self._async = async
         self._zk = None
+        self._txn = None        # holds the current transaction, if any
         self.connected = False
         self.state_transitions_enabled = True
 
@@ -1001,18 +1003,14 @@ class Shell(XCmd):
 
         """
         try:
-            self._zk.create(params.path,
-                            decoded(params.value),
-                            acl=None,
-                            ephemeral=params.ephemeral,
-                            sequence=params.sequence,
-                            makepath=params.recursive)
+            kwargs = {"acl": None, "ephemeral": params.ephemeral, "sequence": params.sequence}
+            if not self.in_transaction:
+                kwargs["makepath"] = params.recursive
+            self.client_context.create(params.path, decoded(params.value), **kwargs)
         except NodeExistsError:
             self.show_output("Path %s exists", params.path)
         except NoNodeError:
-            self.show_output(
-                "Part of the parent path for %s doesn't exist (try recursive)",
-                params.path)
+            self.show_output("Missing path (try recursive?)", params.path)
 
     def complete_create(self, cmd_param_text, full_cmd, *rest):
         complete_value = partial(complete_values, ["somevalue"])
@@ -1026,7 +1024,7 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Required("value"))
+    @ensure_params(Required("path"), Required("value"), IntegerOptional("version", -1))
     @check_paths_exists("path")
     def do_set(self, params):
         """
@@ -1039,7 +1037,10 @@ class Shell(XCmd):
         > set /foo 'bar'
 
         """
-        self._zk.set(params.path, decoded(params.value))
+        if self.in_transaction:
+            self.client_context.set_data(params.path, decoded(params.value), version=params.version)
+        else:
+            self.client_context.set(params.path, decoded(params.value), version=params.version)
 
     def complete_set(self, cmd_param_text, full_cmd, *rest):
         """ TODO: suggest the old value """
@@ -1063,13 +1064,104 @@ class Shell(XCmd):
         """
         for path in params.paths:
             try:
-                self._zk.delete(path)
+                self.client_context.delete(path)
             except NotEmptyError:
                 self.show_output("%s is not empty.", path)
             except NoNodeError:
                 self.show_output("%s doesn't exist.", path)
 
     def complete_rm(self, cmd_param_text, full_cmd, *rest):
+        completers = [self._complete_path for i in range(0, 10)]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(Required("path"), IntegerRequired("version"))
+    def do_check(self, params):
+        """
+        Checks that a path is at a given version (only works within a transaction)
+
+        check <path> <version>
+
+        Example:
+
+        > txn 'create /foo "start"' 'check /foo 0' 'set /foo "end"' 'rm /foo 1'
+
+        """
+        if not self.in_transaction:
+            return
+
+        self.client_context.check(params.path, params.version)
+
+    @connected
+    @ensure_params(Multi("cmds"))
+    def do_txn(self, params):
+        """
+        Create and execute a transaction
+
+        txn <cmd> [cmd] [cmd] ... [cmd]
+
+        Allowed cmds are check, create, rm and set. Check parameters are:
+
+        check <path> <version>
+
+        For create, rm and set see their help menu for their respective parameters.
+
+        Example:
+
+        > txn 'create /foo "start"' 'check /foo 0' 'set /foo "end"' 'rm /foo 1'
+
+        """
+        try:
+            with self.transaction():
+                for cmd in params.cmds:
+                    try:
+                        self.onecmd(cmd)
+                    except AttributeError:
+                        # silently swallow unrecognized commands
+                        pass
+        except BadVersionError:
+            self.show_output("Bad version.")
+        except NoNodeError:
+            self.show_output("Missing path.")
+        except NodeExistsError:
+            self.show_output("One of the paths exists.")
+
+    def transaction(self):
+        class TransactionInProgress(Exception): pass
+        class TransactionNotStarted(Exception): pass
+
+        class Transaction(object):
+            def __init__(self, shell):
+                self._shell = shell
+
+            def __enter__(self):
+                if self._shell._txn is not None:
+                    raise TransactionInProgress()
+
+                self._shell._txn = self._shell._zk.transaction()
+
+            def __exit__(self, type, value, traceback):
+                if self._shell._txn is None:
+                    raise TransactionNotStarted()
+
+                try:
+                    self._shell._txn.commit()
+                finally:
+                    self._shell._txn = None
+
+        return Transaction(self)
+
+    @property
+    def client_context(self):
+        """ checks if we are within a transaction or not """
+        return self._txn if self.in_transaction else self._zk
+
+    @property
+    def in_transaction(self):
+        """ are we inside a transaction? """
+        return self._txn is not None
+
+    def complete_txn(self, cmd_param_text, full_cmd, *rest):
         completers = [self._complete_path for i in range(0, 10)]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 

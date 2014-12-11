@@ -8,7 +8,7 @@ import socket
 import sre_constants
 import time
 
-from kazoo.client import KazooClient
+from kazoo.client import KazooClient, TransactionRequest
 from kazoo.exceptions import NoAuthError, NoNodeError
 from kazoo.protocol.states import KazooState
 
@@ -91,6 +91,18 @@ class ClientInfo(object):
             pass
 
 
+class XTransactionRequest(TransactionRequest):
+    """ wrapper to make PY3K (slightly) painless """
+    def create(self, path, value=b"", acl=None, ephemeral=False,
+               sequence=False):
+        """ wrapper that handles encoding (yay Py3k) """
+        super(XTransactionRequest, self).create(path, to_bytes(value), acl, ephemeral, sequence)
+
+    def set_data(self, path, value, version=-1):
+        """ wrapper that handles encoding (yay Py3k) """
+        super(XTransactionRequest, self).set_data(path, to_bytes(value), version)
+
+
 class XClient(KazooClient):
     """ adds some extra methods to KazooClient """
 
@@ -171,6 +183,10 @@ class XClient(KazooClient):
         """ wraps the default create() and handles encoding (Py3k) """
         value = to_bytes(value)
         super(XClient, self).create(path, value, acl, ephemeral, sequence, makepath)
+
+    def transaction(self):
+        """ use XTransactionRequest which is encoding aware (Py3k) """
+        return XTransactionRequest(self)
 
     def du(self, path):
         """ returns the bytes used under path """

@@ -14,6 +14,7 @@ Features
 ********
 - better coverage
 - rm & rmr now take multiple paths
+- transactions are now supported
 
 0.99.05 (2014-12-08)
 --------------------
