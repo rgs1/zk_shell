@@ -251,14 +251,15 @@ class XClient(KazooClient):
                 value, _ = self.get(full_path)
             except (NoNodeError, NoAuthError):
                 value = ""
-            matches = []
 
-            for line in value.split("\n"):
-                if match.search(line):
-                    matches.append(line)
+            if value is not None:
+                matches = []
+                for line in value.split("\n"):
+                    if match.search(line):
+                        matches.append(line)
 
-            if len(matches) > 0:
-                yield (full_path, matches)
+                if len(matches) > 0:
+                    yield (full_path, matches)
 
             for mpath, matches in self.do_grep(full_path, match):
                 yield (mpath, matches)

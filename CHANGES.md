@@ -9,6 +9,7 @@ Bug Handling
 - fix async cp
 - fix off-by-one for summary of /
 - allow creating sequential znodes when the base path exists
+- don't crash grep when znodes have no bytes (None)
 
 Features
 ********
