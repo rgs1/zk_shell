@@ -253,11 +253,7 @@ class XClient(KazooClient):
                 value = ""
 
             if value is not None:
-                matches = []
-                for line in value.split("\n"):
-                    if match.search(line):
-                        matches.append(line)
-
+                matches = [line for line in value.split("\n") if match.search(line)]
                 if len(matches) > 0:
                     yield (full_path, matches)
 
