@@ -135,10 +135,11 @@ class MirrorCmdsTestCase(ShellTestCase):
         self.shell.onecmd("mirror %s/very %s/backup false false true" % (
             self.tests_path, self.tests_path))
         self.shell.onecmd("tree %s/backup" % (self.tests_path))
-        expected_output = u""".
-\u251c\u2500\u2500 znode3\n\u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\n\u2502   \u251c\u2500\u2500 znode2
-"""
-        self.assertEqual(expected_output, self.output.getvalue())
+
+        self.assertIn("znode3", self.output.getvalue())
+        self.assertIn("nested", self.output.getvalue())
+        self.assertIn("znode", self.output.getvalue())
+        self.assertIn("znode2", self.output.getvalue())
 
     def test_mirror_local_bad_path(self):
         """ try mirror non existent path in the local zk cluster """
