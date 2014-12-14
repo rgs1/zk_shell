@@ -258,7 +258,7 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertTrue(self.output.getvalue().startswith("0x"))
 
     def test_transaction_simple(self):
-        """ simple """
+        """ simple transaction"""
         path = "%s/foo" % (self.tests_path)
         txn = "txn 'create %s x' 'set %s y' 'check %s 1'" % (path, path, path)
         self.shell.onecmd(txn)
