@@ -283,3 +283,11 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd(txn)
         self.shell.onecmd("exists %s" % (self.tests_path))
         self.assertIn("numChildren=0", self.output.getvalue())
+
+    def test_zero(self):
+        """ test setting a znode to None (no bytes) """
+        path = "%s/foo" % (self.tests_path)
+        self.shell.onecmd("create %s bar" % path)
+        self.shell.onecmd("zero %s" % path)
+        self.shell.onecmd("get %s" % path)
+        self.assertEqual("None\n", self.output.getvalue())

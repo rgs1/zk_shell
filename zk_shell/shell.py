@@ -82,6 +82,8 @@ def connected(func):
                 self.show_output("Authentication failed.")
             except NoAuthError:
                 self.show_output("Not authenticated.")
+            except BadVersionError:
+                self.show_output("Bad version.")
             except ConnectionLoss:
                 self.show_output("Connection loss.")
             except NotReadOnlyCallError:
@@ -1030,23 +1032,52 @@ class Shell(XCmd):
         """
         Updates the znode's value
 
-        set <path> <value>
+        set <path> <value> [version]
 
-        Example:
+        Examples:
 
         > set /foo 'bar'
+        > set /foo 'verybar' 3
 
         """
-        if self.in_transaction:
-            self.client_context.set_data(params.path, decoded(params.value), version=params.version)
-        else:
-            self.client_context.set(params.path, decoded(params.value), version=params.version)
+        self.set(params.path, decoded(params.value), version=params.version)
 
     def complete_set(self, cmd_param_text, full_cmd, *rest):
-        """ TODO: suggest the old value """
+        """ TODO: suggest the old value & the current version """
         complete_value = partial(complete_values, ["updated-value"])
-        completers = [self._complete_path, complete_value]
+        complete_version = partial(complete_values, [str(i) for i in range(1, 11)])
+        completers = [self._complete_path, complete_value, complete_version]
         return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(Required("path"), IntegerOptional("version", -1))
+    @check_paths_exists("path")
+    def do_zero(self, params):
+        """
+        Set the znode's to None (no bytes)
+
+        zero <path> [version]
+
+        Examples:
+
+        > zero /foo
+        > zero /foo 3
+
+        """
+        self.set(params.path, None, version=params.version)
+
+    def complete_zero(self, cmd_param_text, full_cmd, *rest):
+        """ TODO: suggest the current version """
+        complete_version = partial(complete_values, [str(i) for i in range(1, 11)])
+        completers = [self._complete_path, complete_version]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    def set(self, path, value, version):
+        """ sets a znode's data """
+        if self.in_transaction:
+            self.client_context.set_data(path, value, version=version)
+        else:
+            self.client_context.set(path, value, version=version)
 
     @connected
     @ensure_params(Multi("paths"))
