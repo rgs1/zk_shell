@@ -1,2 +1,2 @@
-kazoo
+kazoo>=2.0
 nose
