@@ -271,7 +271,7 @@ class BasicCmdsTestCase(ShellTestCase):
         txn = "txn 'create %s x' 'set %s y' 'check %s 100'" % (path, path, path)
         self.shell.onecmd(txn)
         self.shell.onecmd("exists %s" % (path))
-        self.assertEqual("Path %s doesn't exist\n" % (path), self.output.getvalue())
+        self.assertIn("Path %s doesn't exist\n" % (path), self.output.getvalue())
 
     def test_transaction_rm(self):
         """ multiple rm commands """
