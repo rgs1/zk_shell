@@ -428,6 +428,7 @@ class Shell(XCmd):
            /some/path (in the connected server)
            zk://[scheme:user:passwd@]host/<path>
            json://!some!path!backup.json/some/path
+           file:///some/file
 
         with a few restrictions. Given the semantic differences that znodes have with filesystem
         directories recursive copying from znodes to an fs could lose data, but to a JSON file it
@@ -437,7 +438,8 @@ class Shell(XCmd):
 
         > cp /some/znode /backup/copy-znode  # local
         > cp /some/znode zk://digest:bernie:pasta@10.0.0.1/backup true true
-        > cp /some/path json://!home!user!backup.json/ true true
+        > cp /some/znode json://!home!user!backup.json/ true true
+        > cp file:///tmp/file /some/zone  # fs to zk
 
         """
         try:

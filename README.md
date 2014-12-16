@@ -57,7 +57,7 @@ from the filesystem to ZooKeeper is supported as well, but not the other way aro
 can have content and children.
 
 ```
-(CONNECTED) /> cp /etc/passwd zk://localhost:2181/passwd
+(CONNECTED) /> cp file:///etc/passwd zk://localhost:2181/passwd
 (CONNECTED) /> get passwd
 (...)
 unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
