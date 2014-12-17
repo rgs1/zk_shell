@@ -1012,7 +1012,7 @@ class Shell(XCmd):
         except NodeExistsError:
             self.show_output("Path %s exists", params.path)
         except NoNodeError:
-            self.show_output("Missing path (try recursive?)", params.path)
+            self.show_output("Missing path in %s (try recursive?)", params.path)
 
     def complete_create(self, cmd_param_text, full_cmd, *rest):
         complete_value = partial(complete_values, ["somevalue"])
