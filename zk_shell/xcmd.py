@@ -211,7 +211,8 @@ class XCmd(cmd.Cmd):
     @property
     def special_commands(self):
         """ special, builtin, commands """
-        return self._special_commands.keys()
+        cmds = self._special_commands.keys()
+        return list(cmds) if PYTHON3 else cmds
 
     @property
     def all_commands(self):
