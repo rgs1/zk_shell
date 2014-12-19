@@ -122,17 +122,27 @@ def check_paths_exists(*paths):
 
 
 def check_path_absent(func):
-    """ check path doesn't exist (unless we are in a txn or it's sequential) """
+    """
+    check path doesn't exist (unless we are in a txn or it's sequential)
+
+    note: when creating sequential znodes, a trailing slash means no prefix, i.e.:
+
+        create(/some/path/, sequence=True) -> /some/path/0000001
+
+    for all other cases, it's dropped.
+    """
     @wraps(func)
     def wrapper(*args):
         self = args[0]
         params = args[1]
-        path = params.path
+        orig_path = params.path
         sequence = getattr(params, 'sequence', False)
-        params.path = self.resolve_path(path)
+        params.path = self.resolve_path(params.path)
         if self.in_transaction or sequence or not self.client.exists(params.path):
+            if sequence and orig_path.endswith("/") and params.path != "/":
+                params.path += "/"
             return func(self, params)
-        self.show_output("Path %s already exists", path)
+        self.show_output("Path %s already exists", params.path)
     return wrapper
 
 

@@ -291,3 +291,8 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("zero %s" % path)
         self.shell.onecmd("get %s" % path)
         self.assertEqual("None\n", self.output.getvalue())
+
+    def test_create_sequential_without_prefix(self):
+        self.shell.onecmd("create %s/ '' false true" % self.tests_path)
+        self.shell.onecmd("ls %s" % self.tests_path)
+        self.assertEqual("0000000000\n", self.output.getvalue())
