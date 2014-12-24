@@ -1228,6 +1228,7 @@ class Shell(XCmd):
         """
         fmt_str = """state=%s
 sessionid=%s
+auth_info=%s
 protocol_version=%d
 xid=%d
 last_zxid=%d
@@ -1237,16 +1238,17 @@ server=%s
 data_watches=%s
 child_watches=%s"""
         self.show_output(fmt_str,
-                       self._zk.client_state,
-                       self._zk.sessionid,
-                       self._zk.protocol_version,
-                       self._zk.xid,
-                       self._zk.last_zxid,
-                       self._zk.session_timeout,
-                       self._zk.client,
-                       self._zk.server,
-                       ",".join(self._zk.data_watches),
-                       ",".join(self._zk.child_watches))
+                         self._zk.client_state,
+                         self._zk.sessionid,
+                         list(self._zk.auth_data),
+                         self._zk.protocol_version,
+                         self._zk.xid,
+                         self._zk.last_zxid,
+                         self._zk.session_timeout,
+                         self._zk.client,
+                         self._zk.server,
+                         ",".join(self._zk.data_watches),
+                         ",".join(self._zk.child_watches))
 
     @ensure_params(Optional("match"))
     def do_history(self, params):
