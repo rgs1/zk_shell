@@ -179,7 +179,7 @@ bar
 Or piping commands through stdin:
 
 ```
-$ echo "get /foo" | zk-shell --run-once "get /foo" localhost
+$ echo "get /foo" | zk-shell --run-from-stdin localhost
 bar
 ```
 
