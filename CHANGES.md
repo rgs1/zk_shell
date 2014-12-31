@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.01 (2014-12-XX)
+--------------------
+
+Bug Handling
+************
+- fix rm & rmr from relative paths (issue #11, reported by @ohshazbot)
+
+Features
+********
+-
+
 1.0.0 (2014-12-24)
 --------------------
 

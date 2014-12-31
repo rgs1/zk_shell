@@ -96,7 +96,7 @@ def connected(func):
     return wrapper
 
 
-def check_path_exists_foreach(paths, func):
+def check_path_exists_foreach(path_params, func):
     """ check that paths exist (unless we are in a transaction) """
     @wraps(func)
     def wrapper(*args):
@@ -104,12 +104,21 @@ def check_path_exists_foreach(paths, func):
         params = args[1]
 
         if not self.in_transaction:
-            for param_name in paths:
-                path = self.resolve_path(getattr(params, param_name))
-                setattr(params, param_name, path)
-                if not self.client.exists(path):
-                    self.show_output("Path %s=%s doesn't exist", param_name, path)
-                    return False
+            for name in path_params:
+                value = getattr(params, name)
+                paths = value if type(value) == list else [value]
+                resolved = []
+                for path in paths:
+                    path = self.resolve_path(path)
+                    if not self.client.exists(path):
+                        self.show_output("Path %s doesn't exist", path)
+                        return False
+                    resolved.append(path)
+
+                if type(value) == list:
+                    setattr(params, name, resolved)
+                else:
+                    setattr(params, name, resolved[0])
 
         return func(self, params)
 
@@ -1093,6 +1102,7 @@ class Shell(XCmd):
 
     @connected
     @ensure_params(Multi("paths"))
+    @check_paths_exists("paths")
     def do_rm(self, params):
         """
         Remove the znode
@@ -1383,6 +1393,7 @@ child_watches=%s"""
 
     @connected
     @ensure_params(Multi("paths"))
+    @check_paths_exists("paths")
     def do_rmr(self, params):
         """
         Delete a path and all its children
