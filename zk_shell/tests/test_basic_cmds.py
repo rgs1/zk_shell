@@ -296,3 +296,17 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/ '' false true" % self.tests_path)
         self.shell.onecmd("ls %s" % self.tests_path)
         self.assertEqual("0000000000\n", self.output.getvalue())
+
+    def test_rm_relative(self):
+        self.shell.onecmd("create %s/a/b '2015' false false true" % self.tests_path)
+        self.shell.onecmd("cd %s/a" % self.tests_path)
+        self.shell.onecmd("rm b")
+        self.shell.onecmd("exists %s/a" % self.tests_path)
+        self.assertIn("numChildren=0", self.output.getvalue())
+
+    def test_rmr_relative(self):
+        self.shell.onecmd("create %s/a/b/c '2015' false false true" % self.tests_path)
+        self.shell.onecmd("cd %s/a" % self.tests_path)
+        self.shell.onecmd("rmr b")
+        self.shell.onecmd("exists %s/a" % self.tests_path)
+        self.assertIn("numChildren=0", self.output.getvalue())
