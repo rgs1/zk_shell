@@ -32,7 +32,7 @@ Welcome to zk-shell (0.99.04)
 (DISCONNECTED) />
 ```
 
-You can also build a self-containaed PEX file:
+You can also build a self-contained PEX file:
 
 ```
 $ pip install pex
