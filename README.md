@@ -1,5 +1,14 @@
 # zk-shell [![Build Status] (https://travis-ci.org/rgs1/zk_shell.svg?branch=master)](https://travis-ci.org/rgs1/zk_shell) [![Coverage Status](https://coveralls.io/repos/rgs1/zk_shell/badge.png?branch=master)](https://coveralls.io/r/rgs1/zk_shell?branch=master)
 
+**Table of Contents**
+
+- [tl;dr](#tldr)
+- [Installing](#installing)
+- [Usage](#usage)
+- [Dependencies](#dependencies)
+
+### tl;dr ###
+
 A powerful & scriptable shell for [Apache ZooKeeper](http://zookeeper.apache.org/ "ZooKeeper")
 
 ### Installing ###
@@ -22,6 +31,17 @@ $ export ZKSHELL_SRC=1; bin/zk-shell
 Welcome to zk-shell (0.99.04)
 (DISCONNECTED) />
 ```
+
+You can also build a self-containaed PEX file:
+
+```
+$ pip install pex
+
+$ pex -s . -v -e zk_shell.cli -o zk-shell.pex
+
+```
+
+More info about PEX [here](https://pex.readthedocs.org "PEX").
 
 ### Usage ###
 

@@ -1,17 +1,15 @@
 """ entry point for CLI wrapper """
 
-from __future__ import print_function
-
-import argparse
 from collections import namedtuple
 from functools import partial
+import argparse
 import logging
 import signal
 import sys
 
-
 from . import __version__
 from .shell import Shell
+
 
 try:
     raw_input
@@ -163,3 +161,7 @@ class CLI(object):
                     pass
 
             first = False
+
+
+if __name__ == "__main__":
+    CLI()()

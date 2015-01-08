@@ -42,3 +42,6 @@ coverage.xml
 # Integration leftovers
 integration/data
 integration/releases
+
+# PEX-files
+*.pex
