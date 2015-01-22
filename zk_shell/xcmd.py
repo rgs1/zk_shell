@@ -220,7 +220,13 @@ class XCmd(cmd.Cmd):
         return self.commands + self.special_commands
 
     def default(self, line):
-        args = shlex.split(line)
+        try:
+            args = shlex.split(line)
+        except ValueError:
+            if not line.startswith("#"):
+                print("No closing quotation")
+            return
+
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
             cmd = self._special_commands.get(args[0])
             if cmd:

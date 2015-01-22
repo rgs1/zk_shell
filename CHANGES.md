@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.02 (2015-01-xx)
+--------------------
+
+Bug Handling
+************
+- handle bad (non-closed) quotations in commented commands
+
+Features
+********
+-
+
 1.0.01 (2014-12-31)
 --------------------
 
