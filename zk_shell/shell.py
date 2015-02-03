@@ -381,7 +381,23 @@ class Shell(XCmd):
         """
         Recursively watch for all changes under a path.
 
-        watch <start|stop|stats> <path> [debug|repeat] [sleep|childrenLevel]
+        watch <start|stop|stats> <path> [options]
+
+        watch start <path> [debug] [depth]
+
+        with debug=true, print watches as they fire. depth is
+        the level for recursively setting watches:
+
+          *  -1:  recurse all the way
+          *   0:  don't recurse, only watch the given path
+          * > 0:  recurse up to <level> children
+
+        watch stats <path> [repeat] [sleep]
+
+        with repeat=0 this command will loop until interrupted. sleep sets
+        the pause duration in between each iteration.
+
+        watch stop <path>
 
         Examples:
 
