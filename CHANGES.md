@@ -1,16 +1,17 @@
 ChangeLog
 =========
 
-1.0.02 (2015-01-xx)
+1.0.02 (2015-02-xx)
 --------------------
 
 Bug Handling
 ************
 - handle bad (non-closed) quotations in commented commands
+- improve `watch`'s documentation
 
 Features
 ********
--
+- show help when a command is wrong or missing params
 
 1.0.01 (2014-12-31)
 --------------------
