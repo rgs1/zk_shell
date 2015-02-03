@@ -141,7 +141,9 @@ def ensure_params_with_parser(parser, func):
             params = parser.parse_args(shlex.split(args[1]))
             return func(args[0], params)
         except (ShellParser.ParserException, ValueError) as ex:
-            print(ex)
+            doc = getattr(func, "__doc__", None)
+            cmd = func.__name__.replace("do_", "")
+            print("\n%s\n\n%s: %s" % (ex, cmd, doc) if doc else ex)
     return wrapper
 
 
