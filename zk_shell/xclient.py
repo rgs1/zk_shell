@@ -15,7 +15,7 @@ from kazoo.protocol.states import KazooState
 from .statmap import StatMap
 from .tree import Tree
 from .usage import Usage
-from .util import join, to_bytes
+from .util import get_ips, hosts_to_endpoints, join, to_bytes
 
 
 @contextmanager
@@ -24,20 +24,6 @@ def connected_socket(address, timeout=3):
     sock = socket.create_connection(address, timeout)
     yield sock
     sock.close()
-
-
-def get_ips(host, port):
-    """ lookup all IPs (v4 and v6) """
-    ips = set()
-
-    for af_type in (socket.AF_INET, socket.AF_INET6):
-        try:
-            records = socket.getaddrinfo(host, port, af_type, socket.SOCK_STREAM)
-            ips.update(rec[4][0] for rec in records)
-        except socket.gaierror as ex:
-            pass
-
-    return ips
 
 
 class ClientInfo(object):
@@ -366,7 +352,7 @@ class XClient(KazooClient):
         return stat
 
     def _to_endpoints(self, hosts):
-        return [self.current_endpoint] if hosts is None else self.hosts_to_endpoints(hosts)
+        return [self.current_endpoint] if hosts is None else hosts_to_endpoints(hosts)
 
     def mntr(self, hosts=None):
         """ send an mntr cmd to either host or the connected server """
@@ -422,13 +408,6 @@ class XClient(KazooClient):
                     raise self.CmdFailed("Error(%s): %s" % (ip, ex))
 
         return "".join(replies)
-
-    def hosts_to_endpoints(self, hosts):
-        """ return a (host, port) tuple from a host[:port] str """
-        endpoints = []
-        for host in hosts.split(","):
-            endpoints.append(tuple(host.rsplit(":", 1)) if ":" in host else (host, 2181))
-        return endpoints
 
     @property
     def current_endpoint(self):

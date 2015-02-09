@@ -1,7 +1,9 @@
 """ helpers """
 
 from collections import namedtuple
+
 import re
+import socket
 import sys
 
 from distutils.util import strtobool
@@ -194,3 +196,29 @@ def split(path):
         parent = '/'
 
     return (parent, child)
+
+
+def get_ips(host, port):
+    """
+    lookup all IPs (v4 and v6)
+    """
+    ips = set()
+
+    for af_type in (socket.AF_INET, socket.AF_INET6):
+        try:
+            records = socket.getaddrinfo(host, port, af_type, socket.SOCK_STREAM)
+            ips.update(rec[4][0] for rec in records)
+        except socket.gaierror as ex:
+            pass
+
+    return ips
+
+
+def hosts_to_endpoints(hosts, port=2181):
+    """
+    return a list of (host, port) tuples from a given host[:port],... str
+    """
+    endpoints = []
+    for host in hosts.split(","):
+        endpoints.append(tuple(host.rsplit(":", 1)) if ":" in host else (host, port))
+    return endpoints
