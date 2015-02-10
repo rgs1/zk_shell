@@ -12,6 +12,7 @@ Bug Handling
 Features
 ********
 - show help when a command is wrong or missing params
+- add chkzk to check if a cluster is in a consistent state
 
 1.0.01 (2014-12-31)
 --------------------

@@ -1,2 +1,4 @@
+ansicolors
 kazoo>=2.0
 nose
+tabulate

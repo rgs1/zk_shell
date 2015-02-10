@@ -222,3 +222,42 @@ def hosts_to_endpoints(hosts, port=2181):
     for host in hosts.split(","):
         endpoints.append(tuple(host.rsplit(":", 1)) if ":" in host else (host, port))
     return endpoints
+
+
+def find_outliers(group, delta):
+    """
+    given a list of values, find those that are apart from the rest by
+    `delta`. the indexes for the outliers is returned, if any.
+
+    examples:
+
+    values = [100, 6, 7, 8, 9, 10, 150]
+    find_outliers(values, 5) -> [0, 6]
+
+    values = [5, 6, 5, 4, 5]
+    find_outliers(values, 3) -> []
+
+    """
+    with_pos = sorted([pair for pair in enumerate(group)], key=lambda p: p[1])
+    outliers_start = outliers_end = -1
+
+    for i in range(0, len(with_pos) - 1):
+        cur = with_pos[i][1]
+        nex = with_pos[i + 1][1]
+
+        if nex - cur > delta:
+            # depending on where we are, outliers are the remaining
+            # items or the ones that we've already seen.
+            if i < (len(with_pos) - i):
+                # outliers are close to the start
+                outliers_start, outliers_end = 0, i + 1
+            else:
+                # outliers are close to the end
+                outliers_start, outliers_end = i + 1, len(with_pos)
+
+            break
+
+    if outliers_start != -1:
+        return [with_pos[i][0] for i in range(outliers_start, outliers_end)]
+    else:
+        return []

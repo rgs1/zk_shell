@@ -45,10 +45,10 @@ setup(name='zk_shell',
       packages=find_packages(),
       test_suite="zk_shell.tests",
       scripts=['bin/zk-shell'],
-      install_requires=['kazoo>=2.0'],
-      tests_require=['kazoo>=2.0', 'nose'],
+      install_requires=['ansicolors', 'kazoo>=2.0', 'tabulate'],
+      tests_require=['ansicolors', 'kazoo>=2.0', 'nose', 'tabulate'],
       extras_require={
-          'test': ['kazoo>=2.0', 'nose'],
+          'test': ['ansicolors', 'kazoo>=2.0', 'nose', 'tabulate'],
       },
       include_package_data=True,
       zip_safe=False)
