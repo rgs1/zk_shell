@@ -9,6 +9,8 @@ from __future__ import print_function
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial, wraps
+from threading import Thread
+
 import json
 import os
 import re
@@ -18,6 +20,7 @@ import sys
 import time
 import zlib
 
+from colors import green, red
 from kazoo.exceptions import (
     AuthFailedError,
     BadArgumentsError,
@@ -34,6 +37,7 @@ from kazoo.exceptions import (
 )
 from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
+from tabulate import tabulate
 
 from .acl import ACLReader
 from .xclient import XClient
@@ -56,6 +60,9 @@ from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
 from .util import (
     decoded,
+    find_outliers,
+    get_ips,
+    hosts_to_endpoints,
     join,
     invalid_hosts,
     Netloc,
@@ -1406,6 +1413,133 @@ child_watches=%s"""
             self.show_output(self._zk.dump(hosts))
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
+
+    @ensure_params(Required("hosts"), BooleanOptional("verbose", default=False))
+    def do_chkzk(self, params):
+        """
+        Consistency check for a cluster
+
+        chkzk <server1,server2,...> [verbose]
+
+        Examples:
+
+        > chkzk cluster.example.net
+        passed
+
+        > chkzk cluster.example.net true
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+        |             |     server1 |     server2 |     server3 |     server4 |     server5 |
+        +=============+=============+=============+=============+=============+=============+
+        | znode count |       70061 |       70062 |       70161 |       70261 |       70061 |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+        | ephemerals  |       60061 |       60062 |       60161 |       60261 |       60061 |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+        | data size   |     1360061 |     1360062 |     1360161 |     1360261 |     1360061 |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+        | sessions    |       40061 |       40062 |       40161 |       40261 |       40061 |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+        | zxid        | 0xce1526bb7 | 0xce1526bb7 | 0xce1526bb7 | 0xce1526bb7 | 0xce1526bb7 |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
+
+        """
+        endpoints = set()
+        for host, port in hosts_to_endpoints(params.hosts):
+            for ip in get_ips(host, port):
+                endpoints.add("%s:%s" % (ip, port))
+        endpoints = list(endpoints)
+
+        state = []
+
+        znodes = ["znode count"]
+        state.append(znodes)
+
+        ephemerals = ["ephemerals"]
+        state.append(ephemerals)
+
+        datasize = ["data size"]
+        state.append(datasize)
+
+        sessions = ["sessions"]
+        state.append(sessions)
+
+        zxids = ["zxid"]
+        state.append(zxids)
+
+        if self._zk is None:
+            self._zk = XClient()
+
+        def mntr_values(endpoint):
+            values = {}
+            try:
+                mntr = self._zk.mntr(endpoint)
+                for line in mntr.split("\n"):
+                    k, v = line.split(None, 1)
+                    values[k] = v
+            except Exception as ex:
+                pass
+
+            return values
+
+        def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids):
+            mntr = mntr_values(endpoint)
+            znode_count = mntr.get("zk_znode_count", -1)
+            eph_count = mntr.get("zk_ephemerals_count", -1)
+            dsize = mntr.get("zk_approximate_data_size", -1)
+            session_count = mntr.get("zk_global_sessions", -1)
+
+            znodes.append(int(znode_count))
+            ephemerals.append(int(eph_count))
+            datasize.append(int(dsize))
+            sessions.append(int(session_count))
+
+            try:
+                stat = self._zk.cmd(hosts_to_endpoints(endpoint), "stat")
+                for line in stat.split("\n"):
+                    if "Zxid:" in line:
+                        zxid = line.split(None)[1]
+                        zxids.append(int(zxid, 0))
+            except:
+                zxids.append(-1)
+
+        workers = []
+        for endpoint in endpoints:
+            worker = Thread(
+                target=fetch,
+                args=(endpoint, znodes, ephemerals, datasize, sessions, zxids)
+            )
+            worker.start()
+            workers.append(worker)
+
+        for worker in workers:
+            worker.join()
+
+        def color_outliers(group, delta, marker=lambda x: red(str(x))):
+            colored = False
+            outliers = find_outliers(group[1:], 20)
+            for outlier in outliers:
+                group[outlier + 1] = marker(group[outlier + 1])
+                colored = True
+            return colored
+
+        passed = True
+        passed = passed and not color_outliers(znodes, 50)
+        passed = passed and not color_outliers(ephemerals, 50)
+        passed = passed and not color_outliers(datasize, 1000)
+        passed = passed and not color_outliers(sessions, 150)
+        passed = passed and not color_outliers(zxids, 200, lambda x: red(str(hex(x))))
+
+        # convert zxids (that aren't outliers) back to hex strs
+        for i, zxid in enumerate(zxids):
+            zxids[i] = zxid if type(zxid) == str else hex(zxid)
+
+        if params.verbose:
+            headers = [""] + endpoints
+            table = tabulate(state, headers=headers, tablefmt="grid", stralign="right")
+            self.show_output("%s", table)
+        else:
+            self.show_output("%s", green("passed") if passed else red("failed"))
+
+        return passed
 
     @connected
     @ensure_params(Multi("paths"))

@@ -32,3 +32,11 @@ class FourLetterCmdsTestCase(ShellTestCase):
         self.shell.onecmd("dump")
         expected_output = u'Not connected and no host given.\n' * 3
         self.assertEquals(expected_output, self.output.getvalue())
+
+    def test_chkzk(self):
+        self.shell.onecmd("chkzk 0 true")
+        self.assertIn("znode count", self.output.getvalue())
+        self.assertIn("ephemerals", self.output.getvalue())
+        self.assertIn("data size", self.output.getvalue())
+        self.assertIn("sessions", self.output.getvalue())
+        self.assertIn("zxid", self.output.getvalue())
