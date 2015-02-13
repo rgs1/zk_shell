@@ -310,3 +310,13 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("rmr b")
         self.shell.onecmd("exists %s/a" % self.tests_path)
         self.assertIn("numChildren=0", self.output.getvalue())
+
+    def test_conf_get_all(self):
+        self.shell.onecmd("conf get")
+        self.assertIn("stat_retries", self.output.getvalue())
+        self.assertIn("znode_delta", self.output.getvalue())
+
+    def test_conf_set(self):
+        self.shell.onecmd("conf set stat_retries -100")
+        self.shell.onecmd("conf get stat_retries")
+        self.assertIn("-100", self.output.getvalue())
