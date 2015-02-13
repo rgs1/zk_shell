@@ -1951,7 +1951,6 @@ child_watches=%s"""
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
-    @connected
     @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
         """
