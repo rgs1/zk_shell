@@ -1564,7 +1564,7 @@ child_watches=%s"""
 
         def color_outliers(group, delta, marker=lambda x: red(str(x))):
             colored = False
-            outliers = find_outliers(group[1:], 20)
+            outliers = find_outliers(group[1:], delta)
             for outlier in outliers:
                 group[outlier + 1] = marker(group[outlier + 1])
                 colored = True
