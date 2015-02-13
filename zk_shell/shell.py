@@ -2183,6 +2183,12 @@ child_watches=%s"""
             raise ValueError
         cmd()
 
+    def complete_conf(self, cmd_param_text, full_cmd, *rest):
+        complete_cmd = partial(complete_values, ["get", "describe", "save", "set"])
+        complete_var = partial(complete_values, self._conf.keys())
+        completers = [complete_cmd, complete_var]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
