@@ -1492,14 +1492,25 @@ child_watches=%s"""
             datasize.append(int(dsize))
             sessions.append(int(session_count))
 
-            try:
-                stat = self._zk.cmd(hosts_to_endpoints(endpoint), "stat")
-                for line in stat.split("\n"):
-                    if "Zxid:" in line:
-                        zxid = line.split(None)[1]
-                        zxids.append(int(zxid, 0))
-            except:
-                zxids.append(-1)
+            def fetch_zxid(endpoint):
+                zxid = -1
+                try:
+                    stat = self._zk.cmd(hosts_to_endpoints(endpoint), "stat")
+                    for line in stat.split("\n"):
+                        if "Zxid:" in line:
+                            zxid = int(line.split(None)[1], 0)
+                except:
+                    pass
+                return zxid
+
+            # the stat cmd is a bit flaky, so try a few times
+            zxid = -1
+            for i in range(0, 10):
+                zxid = fetch_zxid(endpoint)
+                if zxid != -1:
+                    break
+
+            zxids.append(zxid)
 
         workers = []
         for endpoint in endpoints:

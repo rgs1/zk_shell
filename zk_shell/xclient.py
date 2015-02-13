@@ -383,7 +383,9 @@ class XClient(KazooClient):
     def _cmd(self, endpoint, cmd):
         """ endpoint is (host, port) """
         cmdbuf = "%s\n" % (cmd)
-        recvsize = 8192
+        # some cmds have large outputs and ZK closes the connection as soon as it
+        # finishes writing. so read in huge chunks.
+        recvsize = 1 << 20
         replies = []
         host, port = endpoint
 
