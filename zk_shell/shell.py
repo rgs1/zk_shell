@@ -208,14 +208,34 @@ class Shell(XCmd):
 
         self._conf = Conf(
             ConfVar(
-                "stat_retries",
+                "chkzk_stat_retries",
                 "Retries when running stat command on a server",
                 10
             ),
             ConfVar(
-                "znode_delta",
+                "chkzk_znode_delta",
                 "Difference in znodes to claim inconsistency between servers",
                 100
+            ),
+            ConfVar(
+                "chkzk_ephemeral_delta",
+                "Difference in ephemerals to claim inconsistency between servers",
+                50
+            ),
+            ConfVar(
+                "chkzk_datasize_delta",
+                "Difference in datasize to claim inconsistency between servers",
+                1000
+            ),
+            ConfVar(
+                "chkzk_session_delta",
+                "Difference in sessions to claim inconsistency between servers",
+                150
+            ),
+            ConfVar(
+                "chkzk_zxid_delta",
+                "Difference in zxids to claim inconsistency between servers",
+                200
             )
         )
 
@@ -1457,6 +1477,9 @@ child_watches=%s"""
         +-------------+-------------+-------------+-------------+-------------+-------------+
 
         """
+        conf = self._conf
+        stat_retries = conf.get_int("chkzk_stat_retries", 10)
+
         endpoints = set()
         for host, port in hosts_to_endpoints(params.hosts):
             for ip in get_ips(host, port):
@@ -1520,7 +1543,7 @@ child_watches=%s"""
 
             # the stat cmd is a bit flaky, so try a few times
             zxid = -1
-            for i in range(0, 10):
+            for i in range(0, stat_retries):
                 zxid = fetch_zxid(endpoint)
                 if zxid != -1:
                     break
@@ -1548,11 +1571,11 @@ child_watches=%s"""
             return colored
 
         passed = True
-        passed = passed and not color_outliers(znodes, 50)
-        passed = passed and not color_outliers(ephemerals, 50)
-        passed = passed and not color_outliers(datasize, 1000)
-        passed = passed and not color_outliers(sessions, 150)
-        passed = passed and not color_outliers(zxids, 200, lambda x: red(str(hex(x))))
+        passed = passed and not color_outliers(znodes, conf.get_int("chkzk_znode_delta", 100))
+        passed = passed and not color_outliers(ephemerals, conf.get_int("chkzk_ephemeral_delta", 50))
+        passed = passed and not color_outliers(datasize, conf.get_int("chkzk_datasize_delta", 1000))
+        passed = passed and not color_outliers(sessions, conf.get_int("chkzk_session_delta", 150))
+        passed = passed and not color_outliers(zxids, conf.get_int("chkzk_zxid_delta", 200), lambda x: red(str(hex(x))))
 
         # convert zxids (that aren't outliers) back to hex strs
         for i, zxid in enumerate(zxids):
