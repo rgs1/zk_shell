@@ -40,7 +40,7 @@ from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
 
 from .acl import ACLReader
-from .conf import Conf
+from .conf import Conf, ConfVar
 from .xclient import XClient
 from .xcmd import (
     XCmd,
@@ -206,7 +206,18 @@ class Shell(XCmd):
         self.connected = False
         self.state_transitions_enabled = True
 
-        self._conf = Conf()
+        self._conf = Conf(
+            ConfVar(
+                "stat_retries",
+                "Retries when running stat command on a server",
+                10
+            ),
+            ConfVar(
+                "znode_delta",
+                "Difference in znodes to claim inconsistency between servers",
+                100
+            )
+        )
 
         if len(self._hosts) > 0:
             self._connect(self._hosts)
