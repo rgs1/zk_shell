@@ -56,6 +56,10 @@ class Multi(BasicParam):
     """ a multi param """
     pass
 
+class MultiOptional(BasicParam):
+    """ a (optionally present) multi param """
+    pass
+
 
 class BooleanOptional(BasicParam):
     """ an optional boolean param """
@@ -102,6 +106,8 @@ class ShellParser(argparse.ArgumentParser):
                 parser.add_argument(param.label, nargs="?", default=param.default, type=int)
             elif isinstance(param, Multi):
                 parser.add_argument(param.label, nargs="+")
+            elif isinstance(param, MultiOptional):
+                parser.add_argument(param.label, nargs="*")
             else:
                 raise ValueError("Unknown parameter type: %s" % (param))
         parser.set_valid_params(" ".join(param.pretty_label for param in params))
