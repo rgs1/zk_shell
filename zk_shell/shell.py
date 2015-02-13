@@ -40,6 +40,7 @@ from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
 
 from .acl import ACLReader
+from .conf import Conf
 from .xclient import XClient
 from .xcmd import (
     XCmd,
@@ -49,6 +50,7 @@ from .xcmd import (
     interruptible,
     ensure_params,
     Multi,
+    MultiOptional,
     Optional,
     Required,
 )
@@ -203,6 +205,8 @@ class Shell(XCmd):
         self._txn = None        # holds the current transaction, if any
         self.connected = False
         self.state_transitions_enabled = True
+
+        self._conf = Conf()
 
         if len(self._hosts) > 0:
             self._connect(self._hosts)
@@ -2082,6 +2086,91 @@ child_watches=%s"""
         complete_repeat = partial(complete_values, [str(i) for i in range(0, 11)])
         completers = [self._complete_path, complete_value, complete_repeat]
         return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @ensure_params(Required("cmd"), MultiOptional("args"))
+    def do_conf(self, params):
+        """
+        Runtime configuration management
+
+        conf <describe|get|save|set> [args]
+
+        conf describe [name]
+
+          describes the configuration variable [name], or all if no name is given.
+
+        conf get [name]
+
+          with a name given, it gets the value for the configuration variable. Otherwise, it'll
+          get all available configuration variables.
+
+        conf set <name> <value>
+
+          sets the variable <name> to <value>.
+
+        conf save
+
+          persists the running configuration.
+
+        Examples:
+
+        > conf get
+        foo: bar
+        two: dos
+
+        > conf describe foo
+        foo is used to set the operating parameter for bar
+
+        > conf get foo
+        bar
+
+        > conf set foo 2
+
+        > conf get foo
+        2
+
+        > conf save
+        Configuration saved.
+
+        """
+        conf = self._conf
+        error = "Unknown variable."
+
+        def get():
+            if len(params.args) == 0:
+                out = str(conf)
+            else:
+                out = conf.get_str(params.args[0], error)
+            self.show_output(out)
+
+        def setv():
+            if len(params.args) != 2:
+                raise ValueError
+            cvar = conf.get(params.args[0])
+            if cvar:
+                cvar.value = params.args[1]
+            else:
+                self.show_output(error)
+
+        def describe():
+            if len(params.args) == 0:
+                self.show_output(conf.describe_all())
+            else:
+                self.show_output(conf.describe(params.args[0], error))
+
+        def save():
+            pass
+
+        cmds = {
+            "get": get,
+            "describe": describe,
+            "save": save,
+            "set": setv,
+        }
+
+        cmd = cmds.get(params.cmd)
+        if not cmd:
+            raise ValueError
+        cmd()
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

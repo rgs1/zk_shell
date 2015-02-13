@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.03 (2015-02-XX)
+--------------------
+
+Bug Handling
+************
+-
+
+Features
+********
+- add conf command to configure runtime variables
+
 1.0.02 (2015-02-12)
 --------------------
 
