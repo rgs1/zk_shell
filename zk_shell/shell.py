@@ -1590,6 +1590,11 @@ child_watches=%s"""
 
         return passed
 
+    def complete_chkzk(self, cmd_param_text, full_cmd, *rest):
+        # TODO: store a list of used clusters
+        complete_cluster = partial(complete_values, ["localhost", "0"])
+        return complete([complete_cluster, complete_boolean], cmd_param_text, full_cmd, *rest)
+
     @connected
     @ensure_params(Multi("paths"))
     @check_paths_exists("paths")
