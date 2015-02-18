@@ -3,6 +3,8 @@
 # Based on finagle-zookeeper's integration tests
 #
 
+set -eux
+
 if [[ $# -ne 3 ]]; then
     echo "Usage: start.sh <version> <url> <port>"
     exit 1
@@ -56,7 +58,15 @@ if [[ ! -d zookeeper-$VERSION ]]; then
     mv zookeeper-release-$VERSION zookeeper-$VERSION
     cd zookeeper-$VERSION/
     ant package
-    cp build/zookeeper-$VERSION.jar zookeeper-$VERSION.jar
+    if [ -e build/zookeeper-$VERSION.jar ]; then
+      BUILT_ZOOKEEPER_JAR=build/zookeeper-$VERSION.jar
+    elif [ -e build/zookeeper-$VERSION-alpha.jar ]; then
+      BUILT_ZOOKEEPER_JAR=build/zookeeper-$VERSION-alpha.jar
+    else
+      echo 'Could not find a ZooKeeper jar.'
+      exit 1
+    fi
+    cp $BUILT_ZOOKEEPER_JAR zookeeper-$VERSION.jar
     cp -R build/lib/ lib
 fi
 
@@ -76,12 +86,7 @@ EOF
 cd $BIN/zookeeper/bin/
 ./zkServer.sh start
 
-while :; do
-    is_up ${PORT}
+sleep 10
 
-    if [[ $? -eq 0 ]]; then
-        break;
-    fi
-
-    sleep 0.5
-done
+is_up ${PORT}
+echo "ZooKeeper is up!"
