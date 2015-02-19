@@ -1484,7 +1484,7 @@ child_watches=%s"""
         for host, port in hosts_to_endpoints(params.hosts):
             for ip in get_ips(host, port):
                 endpoints.add("%s:%s" % (ip, port))
-        endpoints = list(endpoints)
+        endpoints = sorted(endpoints)
 
         state = []
 
