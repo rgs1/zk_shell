@@ -1,15 +1,15 @@
-h1. Development
+# Development
 
-h2. Setup
+## Setup
 
-h3. Python
+### Python
 Install local requirements
 
 ```
 $ pip install -r requirements.txt --use-mirrors
 ```
 
-h3. Bootstrapping a local ZooKeeper
+### Bootstrapping a local ZooKeeper
 
 You must have [Apache Ant](http://ant.apache.org)
 [autoreconf](https://www.gnu.org/savannah-checkouts/gnu/autoconf/) and
@@ -34,7 +34,7 @@ To stop:
 $ integration/stop.sh 3.5.0
 ```
 
-h2. Testing
+## Testing
 
 To run tests, you must bootstrap a local ZooKeeper server, see the above section for details.
 
@@ -55,7 +55,7 @@ $ pip3.4 install nose
 $ python3.4 ./setup.py nosetests -v
 ```
 
-h2. Style
+## Style
 
 Also ensure the code adheres to style conventions:
 
