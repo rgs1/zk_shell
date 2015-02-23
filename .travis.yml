@@ -4,6 +4,7 @@ python:
   - "3.3"
   - "3.4"
 install:
+  - sudo apt-get install libcppunit-dev
   - integration/start.sh 3.5.0 https://github.com/apache/zookeeper/archive/release-3.5.0.tar.gz 2181
   - pip install -r requirements.txt --use-mirrors
   - pip install coverage

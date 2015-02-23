@@ -34,5 +34,5 @@ while :; do
 done
 
 >&2 echo "Removing temp directories"
-rm -rf $BIN
+rm -rf $BIN/zookeeper
 rm -rf $DATADIR

@@ -207,3 +207,7 @@ bar
 
 * Python 2.7, 3.3 or 3.4
 * Kazoo >= 2.0.0
+
+### Testing and Development ###
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md).
