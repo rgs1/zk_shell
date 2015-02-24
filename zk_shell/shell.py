@@ -1465,6 +1465,8 @@ child_watches=%s"""
         +-------------+-------------+-------------+-------------+-------------+-------------+
         |             |     server1 |     server2 |     server3 |     server4 |     server5 |
         +=============+=============+=============+=============+=============+=============+
+        | state       |    follower |    follower |    follower |    follower |      leader |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
         | znode count |       70061 |       70062 |       70161 |       70261 |       70061 |
         +-------------+-------------+-------------+-------------+-------------+-------------+
         | ephemerals  |       60061 |       60062 |       60161 |       60261 |       60061 |
@@ -1487,6 +1489,9 @@ child_watches=%s"""
         endpoints = sorted(endpoints)
 
         values = []
+
+        states = ["state"] + ["-"] * len(endpoints)
+        values.append(states)
 
         znodes = ["znode count"] + [-1] * len(endpoints)
         values.append(znodes)
@@ -1518,13 +1523,15 @@ child_watches=%s"""
 
             return vals
 
-        def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx):
+        def fetch(endpoint, states, znodes, ephemerals, datasize, sessions, zxids, idx):
             mntr = mntr_values(endpoint)
+            state = mntr.get("zk_server_state", "-")
             znode_count = mntr.get("zk_znode_count", -1)
             eph_count = mntr.get("zk_ephemerals_count", -1)
             dsize = mntr.get("zk_approximate_data_size", -1)
             session_count = mntr.get("zk_global_sessions", -1)
 
+            states[idx] = state
             znodes[idx] = int(znode_count)
             ephemerals[idx] = int(eph_count)
             datasize[idx] = int(dsize)
@@ -1554,7 +1561,7 @@ child_watches=%s"""
         for idx, endpoint in enumerate(endpoints, 1):
             worker = Thread(
                 target=fetch,
-                args=(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx)
+                args=(endpoint, states, znodes, ephemerals, datasize, sessions, zxids, idx)
             )
             worker.start()
             workers.append(worker)
