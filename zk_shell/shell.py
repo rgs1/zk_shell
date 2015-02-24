@@ -1486,37 +1486,37 @@ child_watches=%s"""
                 endpoints.add("%s:%s" % (ip, port))
         endpoints = sorted(endpoints)
 
-        state = []
+        values = []
 
         znodes = ["znode count"] + [-1] * len(endpoints)
-        state.append(znodes)
+        values.append(znodes)
 
         ephemerals = ["ephemerals"] + [-1] * len(endpoints)
-        state.append(ephemerals)
+        values.append(ephemerals)
 
         datasize = ["data size"] + [-1] * len(endpoints)
-        state.append(datasize)
+        values.append(datasize)
 
         sessions = ["sessions"] + [-1] * len(endpoints)
-        state.append(sessions)
+        values.append(sessions)
 
         zxids = ["zxid"] + [-1] * len(endpoints)
-        state.append(zxids)
+        values.append(zxids)
 
         if self._zk is None:
             self._zk = XClient()
 
         def mntr_values(endpoint):
-            values = {}
+            vals = {}
             try:
                 mntr = self._zk.mntr(endpoint)
                 for line in mntr.split("\n"):
                     k, v = line.split(None, 1)
-                    values[k] = v
+                    vals[k] = v
             except Exception as ex:
                 pass
 
-            return values
+            return vals
 
         def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx):
             mntr = mntr_values(endpoint)
@@ -1583,7 +1583,7 @@ child_watches=%s"""
 
         if params.verbose:
             headers = [""] + endpoints
-            table = tabulate(state, headers=headers, tablefmt="grid", stralign="right")
+            table = tabulate(values, headers=headers, tablefmt="grid", stralign="right")
             self.show_output("%s", table)
         else:
             self.show_output("%s", green("passed") if passed else red("failed"))
