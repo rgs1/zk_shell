@@ -1488,19 +1488,19 @@ child_watches=%s"""
 
         state = []
 
-        znodes = ["znode count"]
+        znodes = ["znode count"] + [-1] * len(endpoints)
         state.append(znodes)
 
-        ephemerals = ["ephemerals"]
+        ephemerals = ["ephemerals"] + [-1] * len(endpoints)
         state.append(ephemerals)
 
-        datasize = ["data size"]
+        datasize = ["data size"] + [-1] * len(endpoints)
         state.append(datasize)
 
-        sessions = ["sessions"]
+        sessions = ["sessions"] + [-1] * len(endpoints)
         state.append(sessions)
 
-        zxids = ["zxid"]
+        zxids = ["zxid"] + [-1] * len(endpoints)
         state.append(zxids)
 
         if self._zk is None:
@@ -1518,17 +1518,17 @@ child_watches=%s"""
 
             return values
 
-        def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids):
+        def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx):
             mntr = mntr_values(endpoint)
             znode_count = mntr.get("zk_znode_count", -1)
             eph_count = mntr.get("zk_ephemerals_count", -1)
             dsize = mntr.get("zk_approximate_data_size", -1)
             session_count = mntr.get("zk_global_sessions", -1)
 
-            znodes.append(int(znode_count))
-            ephemerals.append(int(eph_count))
-            datasize.append(int(dsize))
-            sessions.append(int(session_count))
+            znodes[idx] = int(znode_count)
+            ephemerals[idx] = int(eph_count)
+            datasize[idx] = int(dsize)
+            sessions[idx] = int(session_count)
 
             def fetch_zxid(endpoint):
                 zxid = -1
@@ -1548,13 +1548,13 @@ child_watches=%s"""
                 if zxid != -1:
                     break
 
-            zxids.append(zxid)
+            zxids[idx]= zxid
 
         workers = []
-        for endpoint in endpoints:
+        for idx, endpoint in enumerate(endpoints, 1):
             worker = Thread(
                 target=fetch,
-                args=(endpoint, znodes, ephemerals, datasize, sessions, zxids)
+                args=(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx)
             )
             worker.start()
             workers.append(worker)
@@ -1578,7 +1578,7 @@ child_watches=%s"""
         passed = passed and not color_outliers(zxids, conf.get_int("chkzk_zxid_delta", 200), lambda x: red(str(hex(x))))
 
         # convert zxids (that aren't outliers) back to hex strs
-        for i, zxid in enumerate(zxids):
+        for i, zxid in enumerate(zxids[0:]):
             zxids[i] = zxid if type(zxid) == str else hex(zxid)
 
         if params.verbose:
