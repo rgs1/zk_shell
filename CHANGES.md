@@ -6,7 +6,7 @@ ChangeLog
 
 Bug Handling
 ************
--
+- fix race condition in chkzk
 
 Features
 ********
