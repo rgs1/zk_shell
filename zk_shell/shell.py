@@ -16,6 +16,7 @@ import os
 import re
 import shlex
 import signal
+import socket
 import sys
 import time
 import zlib
@@ -1449,19 +1450,23 @@ child_watches=%s"""
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
-    @ensure_params(Required("hosts"), BooleanOptional("verbose", default=False))
+    @ensure_params(
+        Required("hosts"),
+        BooleanOptional("verbose", default=False),
+        BooleanOptional("reverse_lookup")
+    )
     def do_chkzk(self, params):
         """
         Consistency check for a cluster
 
-        chkzk <server1,server2,...> [verbose]
+        chkzk <server1,server2,...> [verbose] [reverse_lookup]
 
         Examples:
 
         > chkzk cluster.example.net
         passed
 
-        > chkzk cluster.example.net true
+        > chkzk cluster.example.net true true
         +-------------+-------------+-------------+-------------+-------------+-------------+
         |             |     server1 |     server2 |     server3 |     server4 |     server5 |
         +=============+=============+=============+=============+=============+=============+
@@ -1589,6 +1594,16 @@ child_watches=%s"""
             zxids[i] = zxid if type(zxid) == str else hex(zxid)
 
         if params.verbose:
+            if params.reverse_lookup:
+                def reverse_endpoint(endpoint):
+                    ip = endpoint.rsplit(":", 1)[0]
+                    try:
+                        return socket.gethostbyaddr(ip)[0]
+                    except socket.herror:
+                        pass
+                    return ip
+                endpoints = [reverse_endpoint(endp) for endp in endpoints]
+
             headers = [""] + endpoints
             table = tabulate(values, headers=headers, tablefmt="grid", stralign="right")
             self.show_output("%s", table)
@@ -1600,7 +1615,8 @@ child_watches=%s"""
     def complete_chkzk(self, cmd_param_text, full_cmd, *rest):
         # TODO: store a list of used clusters
         complete_cluster = partial(complete_values, ["localhost", "0"])
-        return complete([complete_cluster, complete_boolean], cmd_param_text, full_cmd, *rest)
+        completers = [complete_cluster, complete_boolean, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Multi("paths"))
