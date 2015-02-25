@@ -16,6 +16,7 @@ import os
 import re
 import shlex
 import signal
+import socket
 import sys
 import time
 import zlib
@@ -1449,22 +1450,28 @@ child_watches=%s"""
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
-    @ensure_params(Required("hosts"), BooleanOptional("verbose", default=False))
+    @ensure_params(
+        Required("hosts"),
+        BooleanOptional("verbose", default=False),
+        BooleanOptional("reverse_lookup")
+    )
     def do_chkzk(self, params):
         """
         Consistency check for a cluster
 
-        chkzk <server1,server2,...> [verbose]
+        chkzk <server1,server2,...> [verbose] [reverse_lookup]
 
         Examples:
 
         > chkzk cluster.example.net
         passed
 
-        > chkzk cluster.example.net true
+        > chkzk cluster.example.net true true
         +-------------+-------------+-------------+-------------+-------------+-------------+
         |             |     server1 |     server2 |     server3 |     server4 |     server5 |
         +=============+=============+=============+=============+=============+=============+
+        | state       |    follower |    follower |    follower |    follower |      leader |
+        +-------------+-------------+-------------+-------------+-------------+-------------+
         | znode count |       70061 |       70062 |       70161 |       70261 |       70061 |
         +-------------+-------------+-------------+-------------+-------------+-------------+
         | ephemerals  |       60061 |       60062 |       60161 |       60261 |       60061 |
@@ -1486,45 +1493,50 @@ child_watches=%s"""
                 endpoints.add("%s:%s" % (ip, port))
         endpoints = sorted(endpoints)
 
-        state = []
+        values = []
+
+        states = ["state"] + ["-"] * len(endpoints)
+        values.append(states)
 
         znodes = ["znode count"] + [-1] * len(endpoints)
-        state.append(znodes)
+        values.append(znodes)
 
         ephemerals = ["ephemerals"] + [-1] * len(endpoints)
-        state.append(ephemerals)
+        values.append(ephemerals)
 
         datasize = ["data size"] + [-1] * len(endpoints)
-        state.append(datasize)
+        values.append(datasize)
 
         sessions = ["sessions"] + [-1] * len(endpoints)
-        state.append(sessions)
+        values.append(sessions)
 
         zxids = ["zxid"] + [-1] * len(endpoints)
-        state.append(zxids)
+        values.append(zxids)
 
         if self._zk is None:
             self._zk = XClient()
 
         def mntr_values(endpoint):
-            values = {}
+            vals = {}
             try:
                 mntr = self._zk.mntr(endpoint)
                 for line in mntr.split("\n"):
                     k, v = line.split(None, 1)
-                    values[k] = v
+                    vals[k] = v
             except Exception as ex:
                 pass
 
-            return values
+            return vals
 
-        def fetch(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx):
+        def fetch(endpoint, states, znodes, ephemerals, datasize, sessions, zxids, idx):
             mntr = mntr_values(endpoint)
+            state = mntr.get("zk_server_state", "-")
             znode_count = mntr.get("zk_znode_count", -1)
             eph_count = mntr.get("zk_ephemerals_count", -1)
             dsize = mntr.get("zk_approximate_data_size", -1)
             session_count = mntr.get("zk_global_sessions", -1)
 
+            states[idx] = state
             znodes[idx] = int(znode_count)
             ephemerals[idx] = int(eph_count)
             datasize[idx] = int(dsize)
@@ -1554,7 +1566,7 @@ child_watches=%s"""
         for idx, endpoint in enumerate(endpoints, 1):
             worker = Thread(
                 target=fetch,
-                args=(endpoint, znodes, ephemerals, datasize, sessions, zxids, idx)
+                args=(endpoint, states, znodes, ephemerals, datasize, sessions, zxids, idx)
             )
             worker.start()
             workers.append(worker)
@@ -1582,8 +1594,18 @@ child_watches=%s"""
             zxids[i] = zxid if type(zxid) == str else hex(zxid)
 
         if params.verbose:
+            if params.reverse_lookup:
+                def reverse_endpoint(endpoint):
+                    ip = endpoint.rsplit(":", 1)[0]
+                    try:
+                        return socket.gethostbyaddr(ip)[0]
+                    except socket.herror:
+                        pass
+                    return ip
+                endpoints = [reverse_endpoint(endp) for endp in endpoints]
+
             headers = [""] + endpoints
-            table = tabulate(state, headers=headers, tablefmt="grid", stralign="right")
+            table = tabulate(values, headers=headers, tablefmt="grid", stralign="right")
             self.show_output("%s", table)
         else:
             self.show_output("%s", green("passed") if passed else red("failed"))
@@ -1593,7 +1615,8 @@ child_watches=%s"""
     def complete_chkzk(self, cmd_param_text, full_cmd, *rest):
         # TODO: store a list of used clusters
         complete_cluster = partial(complete_values, ["localhost", "0"])
-        return complete([complete_cluster, complete_boolean], cmd_param_text, full_cmd, *rest)
+        completers = [complete_cluster, complete_boolean, complete_boolean]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Multi("paths"))

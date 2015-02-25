@@ -11,6 +11,7 @@ Bug Handling
 Features
 ********
 - add conf command to configure runtime variables
+- chkzk: show states
 
 1.0.02 (2015-02-12)
 --------------------
