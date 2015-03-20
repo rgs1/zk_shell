@@ -22,7 +22,7 @@ class Keys(object):
     def validate_one(cls, keystr):
         """ validates one key string """
         if re.match(r"\w+(?:\.\w+)*$", keystr) is None:
-            raise cls.Bad("Bad key syntax for: %s. Should be: key1.key2..." % (key))
+            raise cls.Bad("Bad key syntax for: %s. Should be: key1.key2..." % (keystr))
 
     @classmethod
     def from_template(cls, template):
