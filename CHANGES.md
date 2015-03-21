@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.04 (2015-03-XX)
+--------------------
+
+Bug Handling
+************
+- fix bad variable reference when handling bad JSON keys
+
+Features
+********
+-
+
 1.0.03 (2015-02-24)
 --------------------
 
