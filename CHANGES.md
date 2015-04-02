@@ -7,10 +7,12 @@ ChangeLog
 Bug Handling
 ************
 - fix bad variable reference when handling bad JSON keys
+- ls: always sort znodes
 
 Features
 ********
 - json_dupes_for_keys: finds duplicated znodes for the given keys
+- pipe: pipe commands (though more like xargs -n1)
 
 1.0.03 (2015-02-24)
 --------------------

@@ -320,3 +320,9 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("conf set chkzk_stat_retries -100")
         self.shell.onecmd("conf get chkzk_stat_retries")
         self.assertIn("-100", self.output.getvalue())
+
+    def test_pipe(self):
+        self.shell.onecmd("create %s/foo 'bar'" % self.tests_path)
+        self.shell.onecmd("cd %s" % self.tests_path)
+        self.shell.onecmd("pipe ls get")
+        self.assertEqual(u"bar\n", self.output.getvalue())
