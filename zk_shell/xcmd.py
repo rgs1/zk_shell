@@ -15,6 +15,11 @@ try:
 except ImportError:
     HAVE_READLINE = False
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from .util import join
 
 PYTHON3 = sys.version_info > (3, )
@@ -198,6 +203,80 @@ class XCmd(cmd.Cmd):
     def output(self):
         """ the io output object """
         return self._output
+
+    def output_context(self):
+        """ context manager to redirect output to a string io """
+        class OutputContext(object):
+            def __init__(self, xcmd):
+                self._xcmd = xcmd
+                self._orig_output = None
+                self._buf = StringIO()
+
+            @property
+            def value(self):
+                return self._buf.getvalue()
+
+            def reset(self):
+                self._buf.seek(0)
+                self._buf.truncate()
+
+            def __enter__(self):
+                # TODO: take xcmd.output_lock
+                self._orig_output = self._xcmd._output
+                self._xcmd._output = self._buf
+                return self
+
+            def __exit__(self, type, value, traceback):
+                # TODO: release xcmd.output_lock
+                self._xcmd._output = self._orig_output
+
+        return OutputContext(self)
+
+    @ensure_params(Multi("cmds"))
+    def do_pipe(self, params):
+        """
+        Pipe a series of commands
+
+        pipe <cmd1> <cmd2> ... <cmdN>
+
+        Calls <cmdN> for each output line of <cmdN-1>.
+
+        Example:
+
+        > ls /foo
+        a
+        b
+        > get /foo/a
+        a content
+        > get /foo/b
+        b content
+
+        > cd /foo
+        > pipe ls get
+        a content
+        b content
+
+        """
+        if len(params.cmds) < 2:
+            raise ValueError("At least two commands are needed.")
+
+        rv = True
+        output = ""
+        with self.output_context() as octxt:
+            for cmd in params.cmds:
+                inlines = output.rstrip("\n").split("\n")
+                output = ""
+                for line in inlines:
+                    rv = self.onecmd("%s %s" % (cmd, line))
+                    if rv is False:
+                        # just output the error
+                        output = octxt.value
+                        break
+                    output += octxt.value
+                    octxt.reset()
+
+        self.show_output(output.rstrip("\n"))
+        return rv
 
     def show_output(self, fmt_str, *params):
         """ MAX_OUTPUT chars of the last output is available via $? """
