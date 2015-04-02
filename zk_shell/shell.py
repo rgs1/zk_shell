@@ -398,23 +398,25 @@ class Shell(XCmd):
         Examples:
 
         > ls /
-        zookeeper configs
+        configs
+        zookeeper
 
         Setting a watch:
 
         > ls / true
-        zookeeper configs
+        configs
+        zookeeper
 
         > create /foo 'bar'
         WatchedEvent(type='CHILD', state='CONNECTED', path=u'/')
 
         > ls / false ,
-        zookeeper,configs
+        configs,zookeeper
 
         """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
-        self.show_output(params.sep.join(znodes))
+        self.show_output(params.sep.join(sorted(znodes)))
 
     def complete_ls(self, cmd_param_text, full_cmd, *rest):
         completers = [self._complete_path, complete_boolean]

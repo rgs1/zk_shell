@@ -7,6 +7,7 @@ ChangeLog
 Bug Handling
 ************
 - fix bad variable reference when handling bad JSON keys
+- ls: always sort znodes
 
 Features
 ********
