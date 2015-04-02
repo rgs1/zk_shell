@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from functools import partial, wraps
 from threading import Thread
 
+import bisect
 import json
 import os
 import re
@@ -1970,6 +1971,101 @@ child_watches=%s"""
             complete_freq,
             complete_boolean,
             complete_boolean,
+            complete_boolean,
+        ]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
+        Optional("prefix", ""),
+        BooleanOptional("report_errors", default=False),
+    )
+    @check_paths_exists("path")
+    def do_json_dupes_for_keys(self, params):
+        """
+        Gets the duplicate znodes for the given keys
+
+        json_dupes_for_keys <path> <keys>
+
+        Znodes with duplicated keys are sorted and all but the first (original) one
+        are printed.
+
+        Example:
+        > json_cat /configs/primary_service true
+        member_0000000186
+        {
+          "status": "ALIVE",
+          "serviceEndpoint": {
+            "http": {
+              "host": "10.0.0.2",
+              "port": 31994
+            }
+          },
+          "shard": 0
+        }
+        member_0000000187
+        {
+          "status": "ALIVE",
+          "serviceEndpoint": {
+            "http": {
+              "host": "10.0.0.2",
+              "port": 31994
+            }
+          },
+          "shard": 0
+        }
+        > json_dupes_for_keys /configs/primary_service shard
+        member_0000000187
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        path_map = PathMap(self._zk, params.path)
+
+        dupes_by_path = defaultdict(lambda: defaultdict(list))
+        for path, data in path_map.get():
+            parent, child = split(path)
+
+            if not child.startswith(params.prefix):
+                continue
+
+            try:
+                value = Keys.value(json_deserialize(data), params.keys)
+                dupes_by_path[parent][value].append(path)
+            except BadJSON as ex:
+                if params.report_errors:
+                    self.show_output("Path %s has bad JSON.", path)
+            except Keys.Missing as ex:
+                if params.report_errors:
+                    self.show_output("Path %s is missing key %s.", path, ex)
+
+        dupes = []
+        for _, paths_by_value in dupes_by_path.items():
+            for _, paths in paths_by_value.items():
+                if len(paths) > 1:
+                    paths.sort()
+                    for path in paths[1:]:
+                        idx = bisect.bisect(dupes, path)
+                        dupes.insert(idx, path)
+
+        for dup in dupes:
+            self.show_output(dup)
+
+        # if no dupes were found we call it a failure (i.e.: exit(1) from --run-once)
+        if len(dupes) == 0:
+            return False
+
+    def complete_json_dupes_for_keys(self, cmd_param_text, full_cmd, *rest):
+        complete_keys = partial(complete_values, ["key1", "key2", "#{key1.key2}"])
+        completers = [
+            self._complete_path,
+            complete_keys,
             complete_boolean,
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
