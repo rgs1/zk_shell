@@ -232,23 +232,25 @@ class XCmd(cmd.Cmd):
             args = shlex.split(line)
         except ValueError:
             if not line.startswith("#"):
-                print("No closing quotation")
-            return
+                self.show_output("No closing quotation")
+            return False
 
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
             cmd = self._special_commands.get(args[0])
             if cmd:
-                cmd(args[1:])
+                return cmd(args[1:])
             else:
                 similar = list(matches(self.all_commands, args[0], 0.85))
                 if len(similar) == 1:
-                    print("Unknown command, maybe you meant: %s" % similar[0])
+                    self.show_output("Unknown command, maybe you meant: %s", similar[0])
                 elif len(similar) > 1:
                     options = ", ".join(similar[:-1])
                     options += " or %s" % (similar[-1])
-                    print("Unknown command, maybe you meant: %s" % options)
+                    self.show_output("Unknown command, maybe you meant: %s", options)
                 else:
-                    print("Unknown command: %s" % (args[0]))
+                    self.show_output("Unknown command: %s", args[0])
+
+        return False
 
     def run_last_command(self, *args):
         self.onecmd(self.last_command)
@@ -265,7 +267,7 @@ class XCmd(cmd.Cmd):
 
     def _exit(self, newline=True):
         if newline:
-            print("")
+            self.show_output("")
         sys.exit(0)
 
     def resolve_path(self, path):
