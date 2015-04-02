@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-1.0.04 (2015-03-XX)
+1.0.04 (2015-04-XX)
 --------------------
 
 Bug Handling
@@ -10,7 +10,7 @@ Bug Handling
 
 Features
 ********
--
+- json_dupes_for_keys: finds duplicated znodes for the given keys
 
 1.0.03 (2015-02-24)
 --------------------

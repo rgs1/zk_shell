@@ -118,3 +118,13 @@ class JsonCmdsTestCase(ShellTestCase):
 
         expected_output = u"10.0.0.2 = 2\n10.0.0.1 = 1\n"
         self.assertEqual(expected_output, self.output.getvalue())
+
+    def test_json_dupes_for_keys(self):
+        """ find dupes for the given keys """
+        self.shell.onecmd("create %s/a '%s'" % (self.tests_path, '{"host": "10.0.0.1"}'))
+        self.shell.onecmd("create %s/b '%s'" % (self.tests_path, '{"host": "10.0.0.1"}'))
+        self.shell.onecmd("create %s/c '%s'" % (self.tests_path, '{"host": "10.0.0.1"}'))
+        self.shell.onecmd("json_dupes_for_keys %s 'host'" % (self.tests_path))
+
+        expected_output = u"%s/b\n%s/c\n" % (self.tests_path, self.tests_path)
+        self.assertEqual(expected_output, self.output.getvalue())
