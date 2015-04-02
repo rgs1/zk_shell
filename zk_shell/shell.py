@@ -387,13 +387,13 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Optional("path"), Optional("watch"))
+    @ensure_params(Optional("path"), Optional("watch"), Optional("sep", "\n"))
     @check_paths_exists("path")
     def do_ls(self, params):
         """
         Lists the znodes for the given <path>
 
-        ls <path> [watch]
+        ls <path> [watch] [sep]
 
         Examples:
 
@@ -408,10 +408,13 @@ class Shell(XCmd):
         > create /foo 'bar'
         WatchedEvent(type='CHILD', state='CONNECTED', path=u'/')
 
+        > ls / false ,
+        zookeeper,configs
+
         """
         kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
         znodes = self._zk.get_children(params.path, **kwargs)
-        self.show_output(" ".join(znodes))
+        self.show_output(params.sep.join(znodes))
 
     def complete_ls(self, cmd_param_text, full_cmd, *rest):
         completers = [self._complete_path, complete_boolean]
