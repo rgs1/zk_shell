@@ -15,6 +15,11 @@ try:
 except ImportError:
     HAVE_READLINE = False
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from .util import join
 
 PYTHON3 = sys.version_info > (3, )
@@ -199,6 +204,80 @@ class XCmd(cmd.Cmd):
         """ the io output object """
         return self._output
 
+    def output_context(self):
+        """ context manager to redirect output to a string io """
+        class OutputContext(object):
+            def __init__(self, xcmd):
+                self._xcmd = xcmd
+                self._orig_output = None
+                self._buf = StringIO()
+
+            @property
+            def value(self):
+                return self._buf.getvalue()
+
+            def reset(self):
+                self._buf.seek(0)
+                self._buf.truncate()
+
+            def __enter__(self):
+                # TODO: take xcmd.output_lock
+                self._orig_output = self._xcmd._output
+                self._xcmd._output = self._buf
+                return self
+
+            def __exit__(self, type, value, traceback):
+                # TODO: release xcmd.output_lock
+                self._xcmd._output = self._orig_output
+
+        return OutputContext(self)
+
+    @ensure_params(Multi("cmds"))
+    def do_pipe(self, params):
+        """
+        Pipe a series of commands
+
+        pipe <cmd1> <cmd2> ... <cmdN>
+
+        Calls <cmdN> for each output line of <cmdN-1>.
+
+        Example:
+
+        > ls /foo
+        a
+        b
+        > get /foo/a
+        a content
+        > get /foo/b
+        b content
+
+        > cd /foo
+        > pipe ls get
+        a content
+        b content
+
+        """
+        if len(params.cmds) < 2:
+            raise ValueError("At least two commands are needed.")
+
+        rv = True
+        output = ""
+        with self.output_context() as octxt:
+            for cmd in params.cmds:
+                inlines = output.rstrip("\n").split("\n")
+                output = ""
+                for line in inlines:
+                    rv = self.onecmd("%s %s" % (cmd, line))
+                    if rv is False:
+                        # just output the error
+                        output = octxt.value
+                        break
+                    output += octxt.value
+                    octxt.reset()
+
+        self.show_output(output.rstrip("\n"))
+        return rv
+
     def show_output(self, fmt_str, *params):
         """ MAX_OUTPUT chars of the last output is available via $? """
         if PYTHON3:
@@ -232,23 +311,25 @@ class XCmd(cmd.Cmd):
             args = shlex.split(line)
         except ValueError:
             if not line.startswith("#"):
-                print("No closing quotation")
-            return
+                self.show_output("No closing quotation")
+            return False
 
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
             cmd = self._special_commands.get(args[0])
             if cmd:
-                cmd(args[1:])
+                return cmd(args[1:])
             else:
                 similar = list(matches(self.all_commands, args[0], 0.85))
                 if len(similar) == 1:
-                    print("Unknown command, maybe you meant: %s" % similar[0])
+                    self.show_output("Unknown command, maybe you meant: %s", similar[0])
                 elif len(similar) > 1:
                     options = ", ".join(similar[:-1])
                     options += " or %s" % (similar[-1])
-                    print("Unknown command, maybe you meant: %s" % options)
+                    self.show_output("Unknown command, maybe you meant: %s", options)
                 else:
-                    print("Unknown command: %s" % (args[0]))
+                    self.show_output("Unknown command: %s", args[0])
+
+        return False
 
     def run_last_command(self, *args):
         self.onecmd(self.last_command)
@@ -265,7 +346,7 @@ class XCmd(cmd.Cmd):
 
     def _exit(self, newline=True):
         if newline:
-            print("")
+            self.show_output("")
         sys.exit(0)
 
     def resolve_path(self, path):
