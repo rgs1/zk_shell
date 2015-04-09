@@ -19,6 +19,7 @@ import shlex
 import signal
 import socket
 import sys
+import tempfile
 import time
 import zlib
 
@@ -2074,6 +2075,59 @@ child_watches=%s"""
             complete_boolean,
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(Required("path"))
+    @check_paths_exists("path")
+    def do_edit(self, params):
+        """
+        Opens up an editor to modify and update a znode.
+
+        edit <path>
+
+        If the content has not changed, the znode won't be updated.
+        $EDITOR must be set for zk-shell to find your editor.
+
+        Example:
+        # make sure $EDITOR is set in your shell
+        > edit /configs/webservers/primary
+        # change something and save
+        > get /configs/webservers/primary
+        # updated content
+
+        """
+        editor = os.getenv("EDITOR")
+        if editor is None:
+            self.show_output("No editor found, please set $EDITOR")
+            return
+
+        # copy content to tempfile
+        value, stat = self._zk.get(params.path)
+        _, tmppath = tempfile.mkstemp()
+        with open(tmppath, "w") as fh:
+            fh.write(value)
+
+        # launch editor
+        rv = os.system("%s %s" % (editor, tmppath))
+        if rv != 0:
+            self.show_output("%s did not exit successfully" % editor)
+            try:
+                os.unlink(tmppath)
+            except OSError: pass
+            return
+
+        # did it change? if so, save it
+        with open(tmppath, "r") as fh:
+            newvalue = fh.read()
+        if newvalue != value:
+            self.set(params.path, decoded(newvalue), stat.version)
+
+        try:
+            os.unlink(tmppath)
+        except OSError: pass
+
+    def complete_edit(self, cmd_param_text, full_cmd, *rest):
+        return complete([self._complete_path], cmd_param_text, full_cmd, *rest)
 
     @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
