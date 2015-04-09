@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.05 (2015-04-XX)
+--------------------
+
+Bug Handling
+************
+-
+
+Features
+********
+- edit: allows inline editing of a znode
+
 1.0.04 (2015-04-02)
 --------------------
 
