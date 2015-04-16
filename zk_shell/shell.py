@@ -2096,6 +2096,10 @@ child_watches=%s"""
         # updated content
 
         """
+        if os.getuid() == 0:
+            self.show_output("edit cannot be run as root.")
+            return
+
         editor = os.getenv("EDITOR")
         if editor is None:
             self.show_output("No editor found, please set $EDITOR")
