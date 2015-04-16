@@ -18,6 +18,7 @@ import re
 import shlex
 import signal
 import socket
+import stat as statlib
 import sys
 import tempfile
 import time
@@ -2107,6 +2108,11 @@ child_watches=%s"""
 
         if not (os.path.isfile(editor) and os.access(editor, os.X_OK)):
             self.show_output("Cannot find executable editor, please set $EDITOR")
+            return
+
+        st = os.stat(editor)
+        if (st.st_mode & statlib.S_ISUID) or (st.st_mode & statlib.S_ISUID):
+            self.show_output("edit cannot use setuid/setgid binaries.")
             return
 
         # copy content to tempfile

@@ -9,6 +9,7 @@ Bug Handling
 - don't allow running edit as root
 - default to /usr/bin/vi for edit
 - check that the provided editor is executable
+- don't trust editor commands that are setuid/setgid
 
 Features
 ********
