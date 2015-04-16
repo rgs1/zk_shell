@@ -2100,9 +2100,13 @@ child_watches=%s"""
             self.show_output("edit cannot be run as root.")
             return
 
-        editor = os.getenv("EDITOR")
+        editor = os.getenv("EDITOR", os.getenv("VISUAL", "/usr/bin/vi"))
         if editor is None:
             self.show_output("No editor found, please set $EDITOR")
+            return
+
+        if not (os.path.isfile(editor) and os.access(editor, os.X_OK)):
+            self.show_output("Cannot find executable editor, please set $EDITOR")
             return
 
         # copy content to tempfile
