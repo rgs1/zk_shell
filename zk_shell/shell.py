@@ -78,6 +78,7 @@ from .util import (
     to_bool,
     to_float,
     to_int,
+    which
 )
 
 
@@ -2106,7 +2107,8 @@ child_watches=%s"""
             self.show_output("No editor found, please set $EDITOR")
             return
 
-        if not (os.path.isfile(editor) and os.access(editor, os.X_OK)):
+        editor = which(editor)
+        if not editor:
             self.show_output("Cannot find executable editor, please set $EDITOR")
             return
 

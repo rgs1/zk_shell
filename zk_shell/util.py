@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 
+import os
 import re
 import socket
 import sys
@@ -261,3 +262,20 @@ def find_outliers(group, delta):
         return [with_pos[i][0] for i in range(outliers_start, outliers_end)]
     else:
         return []
+
+
+def which(program):
+    """ analagous to /usr/bin/which """
+    is_exe = lambda fpath: os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, _ = os.path.split(program)
+    if fpath and is_exe(program):
+        return program
+
+    for path in os.environ["PATH"].split(os.pathsep):
+        path = path.strip('"')
+        exe_file = os.path.join(path, program)
+        if is_exe(exe_file):
+            return exe_file
+
+    return None
