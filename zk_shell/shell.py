@@ -2121,7 +2121,7 @@ child_watches=%s"""
         value, stat = self._zk.get(params.path)
         _, tmppath = tempfile.mkstemp()
         with open(tmppath, "w") as fh:
-            fh.write(value)
+            fh.write(value if value else "")
 
         # launch editor
         rv = os.system("%s %s" % (editor, tmppath))
