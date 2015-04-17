@@ -10,6 +10,7 @@ Bug Handling
 - default to /usr/bin/vi for edit
 - check that the provided editor is executable
 - don't trust editor commands that are setuid/setgid
+- treat None as "" when using the `edit` command
 
 Features
 ********
