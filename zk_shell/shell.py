@@ -2715,3 +2715,9 @@ child_watches=%s"""
     @property
     def state(self):
         return "(%s) " % (self._zk.client_state if self._zk else "DISCONNECTED")
+
+    def do_man(self, *args, **kwargs):
+        """
+        An alias for help.
+        """
+        self.do_help(*args, **kwargs)

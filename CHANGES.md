@@ -14,7 +14,8 @@ Bug Handling
 
 Features
 ********
--
+- add `man` alias for `help` command
+- improve docstrings & use man pages style
 
 1.0.05 (2015-04-09)
 --------------------
