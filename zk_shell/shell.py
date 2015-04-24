@@ -285,12 +285,13 @@ class Shell(XCmd):
     @ensure_params(Required("scheme"), Required("credential"))
     def do_add_auth(self, params):
         """
-        Authenticates the session
+\x1b[1mNAME\x1b[0m
+        add_auth - Authenticates the session
 
+\x1b[1mSYNOPSIS\x1b[0m
         add_auth <scheme> <credential>
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > add_auth digest super:s3cr3t
 
         """
@@ -305,12 +306,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_set_acls(self, params):
         """
-        Sets ACLs for a given path
+\x1b[1mNAME\x1b[0m
+        set_acls - Sets ACLs for a given path
 
+\x1b[1mSYNOPSIS\x1b[0m
         set_acls <path> <acls> [recursive]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recursively set the acls on the children
 
+\x1b[1mEXAMPLES\x1b[0m
         > set_acls /some/path 'world:anyone:r digest:user:aRxISyaKnTP2+OZ9OmQLkq04bvo=:cdrwa'
         > set_acls /some/path 'world:anyone:r username_password:user:p@ass0rd:cdrwa'
         > set_acls /path 'world:anyone:r' true
@@ -355,14 +360,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_get_acls(self, params):
         """
-        Gets ACLs for a given path
+\x1b[1mNAME\x1b[0m
+        get_acls - Gets ACLs for a given path
 
+\x1b[1mSYNOPSIS\x1b[0m
         get_acls <path> [depth] [ephemerals]
 
-        By default, this won't recurse. 0 means infinite recursion.
+\x1b[1mOPTIONS\x1b[0m
+        * depth: -1 is no recursion, 0 is infinite recursion, N > 0 is up to N levels (default: 0)
+        * ephemerals: include ephemerals (default: false)
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > get_acls /zookeeper
         [ACL(perms=31, acl_list=['ALL'], id=Id(scheme=u'world', id=u'anyone'))]
 
@@ -394,12 +402,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_ls(self, params):
         """
-        Lists the znodes for the given <path>
+\x1b[1mNAME\x1b[0m
+        ls - Lists the znodes for the given <path>
 
+\x1b[1mSYNOPSIS\x1b[0m
         ls <path> [watch] [sep]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * watch: set a (child) watch on the path (default: false)
+        * sep: separator to be used (default: '\\n')
 
+\x1b[1mEXAMPLES\x1b[0m
         > ls /
         configs
         zookeeper
@@ -431,10 +444,13 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_watch(self, params):
         """
-        Recursively watch for all changes under a path.
+\x1b[1mNAME\x1b[0m
+        watch - Recursively watch for all changes under a path.
 
+\x1b[1mSYNOPSIS\x1b[0m
         watch <start|stop|stats> <path> [options]
 
+\x1b[1mDESCRIPTION\x1b[0m
         watch start <path> [debug] [depth]
 
         with debug=true, print watches as they fire. depth is
@@ -451,8 +467,7 @@ class Shell(XCmd):
 
         watch stop <path>
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > watch start /foo/bar
         > watch stop /foo/bar
         > watch stats /foo/bar
@@ -496,11 +511,14 @@ class Shell(XCmd):
     )
     def do_cp(self, params):
         """
-        Copy from/to local/remote or remote/remote paths
+\x1b[1mNAME\x1b[0m
+        cp - Copy from/to local/remote or remote/remote paths
 
+\x1b[1mSYNOPSIS\x1b[0m
         cp <src> <dst> [recursive] [overwrite] [async] [verbose] [max_items]
 
-        where src and dst can be:
+\x1b[1mDESCRIPTION\x1b[0m
+        src and dst can be:
 
            /some/path (in the connected server)
            zk://[scheme:user:passwd@]host/<path>
@@ -511,8 +529,14 @@ class Shell(XCmd):
         directories recursive copying from znodes to an fs could lose data, but to a JSON file it
         would work just fine.
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recursively copy src (default: false)
+        * overwrite: overwrite the dst path (default: false)
+        * async: do asyncronous copies (default: false)
+        * verbose: verbose output of every path (default: false)
+        * max_items: max number of paths to copy (0 is infinite) (default: 0)
 
+\x1b[1mEXAMPLES\x1b[0m
         > cp /some/znode /backup/copy-znode  # local
         > cp /some/znode zk://digest:bernie:pasta@10.0.0.1/backup true true
         > cp /some/znode json://!home!user!backup.json/ true true
@@ -546,11 +570,14 @@ class Shell(XCmd):
     )
     def do_mirror(self, params):
         """
-        Mirrors from/to local/remote or remote/remote paths
+\x1b[1mNAME\x1b[0m
+        mirror - Mirrors from/to local/remote or remote/remote paths
 
+\x1b[1mSYNOPSIS\x1b[0m
         mirror <src> <dst> [async] [verbose] [skip_prompt]
 
-        where src and dst can be:
+\x1b[1mDESCRIPTION\x1b[0m
+        src and dst can be:
 
            /some/path (in the connected server)
            zk://[user:passwd@]host/<path>
@@ -563,8 +590,12 @@ class Shell(XCmd):
         The dst subtree will be modified to look the same as the src subtree with the exception
         of ephemeral nodes.
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * async: do asyncronous copies (default: false)
+        * verbose: verbose output of every path (default: false)
+        * skip_prompt: don't ask for confirmation (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > mirror /some/znode /backup/copy-znode  # local
         > mirror /some/path json://!home!user!backup.json/ true true
 
@@ -640,12 +671,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_tree(self, params):
         """
-        Print the tree under a given path
+\x1b[1mNAME\x1b[0m
+        tree - Print the tree under a given path
 
+\x1b[1mSYNOPSIS\x1b[0m
         tree [path] [max_depth]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * max_depth: max recursion limit (0 is no limit) (default: 0)
 
+\x1b[1mEXAMPLES\x1b[0m
         > tree
         .
         ├── zookeeper
@@ -674,12 +710,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_child_count(self, params):
         """
-        Prints the child count for paths
+\x1b[1mNAME\x1b[0m
+        child_count - Prints the child count for paths
 
+\x1b[1mSYNOPSIS\x1b[0m
         child_count [path] [depth]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * max_depth: max recursion limit (0 is no limit) (default: 1)
 
+\x1b[1mEXAMPLES\x1b[0m
         > child-count /
         /zookeeper: 2
         /foo: 0
@@ -699,17 +740,18 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_du(self, params):
         """
-        Total number of bytes under a path
+\x1b[1mNAME\x1b[0m
+        du - Total number of bytes under a path
 
-        find [path] [match]
+\x1b[1mSYNOPSIS\x1b[0m
+        du [path]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
 
-        > find / foo
-        /foo2
-        /fooish/wayland
-        /fooish/xorg
-        /copy/foo
+\x1b[1mEXAMPLES\x1b[0m
+        > du /
+        90
 
         """
         self.show_output(pretty_bytes(self._zk.du(params.path)))
@@ -721,12 +763,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_find(self, params):
         """
-        Find znodes whose path matches a given text
+\x1b[1mNAME\x1b[0m
+        find - Find znodes whose path matches a given text
 
+\x1b[1mSYNOPSIS\x1b[0m
         find [path] [match]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * match: the string to match in the paths (default: '')
 
+\x1b[1mEXAMPLES\x1b[0m
         > find / foo
         /foo2
         /fooish/wayland
@@ -748,15 +795,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_child_matches(self, params):
         """
-        Prints paths that have at least 1 child that matches <pattern>
+\x1b[1mNAME\x1b[0m
+        child_matches - Prints paths that have at least 1 child that matches <pattern>
 
+\x1b[1mSYNOPSIS\x1b[0m
         child_matches <path> <pattern> [inverse]
 
-        Output can be inverted (inverse = true) to display all paths that don't have children matching
-        the given pattern.
+\x1b[1mOPTIONS\x1b[0m
+        * inverse: display paths which don't match (default: false)
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > child_matches /services/registrations member_
         /services/registrations/foo
         /services/registrations/bar
@@ -795,15 +843,20 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_summary(self, params):
         """
-        Prints summarized details of a path's children
+\x1b[1mNAME\x1b[0m
+        summary - Prints summarized details of a path's children
 
+\x1b[1mSYNOPSIS\x1b[0m
         summary [path] [top]
 
-        The results are sorted by name. The top parameter decides the number of results to be
-        displayed.
+\x1b[1mDESCRIPTION\x1b[0m
+        The results are sorted by name.
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * top: number of results to be displayed (0 is all) (default: 0)
 
+\x1b[1mEXAMPLES\x1b[0m
         > summary /services/registrations
         Created                    Last modified               Owner                Name
         Thu Oct 11 09:14:39 2014   Thu Oct 11 09:14:39 2014     -                   bar
@@ -851,12 +904,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_ifind(self, params):
         """
-        Find znodes whose path (insensitively) matches a given text
+\x1b[1mNAME\x1b[0m
+        ifind - Find znodes whose path (insensitively) matches a given text
 
-        ifind [path] <match>
+\x1b[1mSYNOPSIS\x1b[0m
+        ifind [path] [match]
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * match: the string to match in the paths (default: '')
 
+\x1b[1mEXAMPLES\x1b[0m
         > ifind / fOO
         /foo2
         /FOOish/wayland
@@ -877,12 +935,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_grep(self, params):
         """
-        Prints znodes with a value matching the given text
+\x1b[1mNAME\x1b[0m
+        grep - Prints znodes with a value matching the given text
 
+\x1b[1mSYNOPSIS\x1b[0m
         grep [path] <content> [show_matches]
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * show_matches: show the content that matched (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > grep / unbound true
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
@@ -900,12 +963,17 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_igrep(self, params):
         """
-        Prints znodes with a value matching the given text (ignoring case)
+\x1b[1mNAME\x1b[0m
+        igrep - Prints znodes with a value matching the given text (ignoring case)
 
+\x1b[1mSYNOPSIS\x1b[0m
         igrep [path] <content> [show_matches]
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (default: cwd)
+        * show_matches: show the content that matched (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > igrep / UNBound true
         /passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
         /copy/passwd: unbound:x:992:991:Unbound DNS resolver:/etc/unbound:/sbin/nologin
@@ -929,14 +997,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_cd(self, params):
         """
-        Change the working path
+\x1b[1mNAME\x1b[0m
+        cd - Change the working path
 
+\x1b[1mSYNOPSIS\x1b[0m
         cd [path]
 
-        If no path is given, the path is /. If path is '-', move to the previous path.
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path, if path is '-', move to the previous path (default: /)
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > cd /foo/bar
         > pwd
         /foo/bar
@@ -960,12 +1030,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_get(self, params):
         """
-        Gets the znode's value
+\x1b[1mNAME\x1b[0m
+        get - Gets the znode's value
 
+\x1b[1mSYNOPSIS\x1b[0m
         get <path> [watch]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * watch: set a (data) watch on the path (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > get /foo
         bar
 
@@ -998,12 +1072,16 @@ class Shell(XCmd):
     @ensure_params(Required("path"), Optional("watch"))
     def do_exists(self, params):
         """
-        Gets the znode's stat information
+\x1b[1mNAME\x1b[0m
+        exists - Gets the znode's stat information
 
+\x1b[1mSYNOPSIS\x1b[0m
         exists <path> [watch]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * watch: set a (data) watch on the path (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         exists /foo
         Stat(
           czxid=101,
@@ -1064,12 +1142,18 @@ class Shell(XCmd):
     @check_path_absent
     def do_create(self, params):
         """
-        Creates a znode
+\x1b[1mNAME\x1b[0m
+        create - Creates a znode
 
+\x1b[1mSYNOPSIS\x1b[0m
         create <path> <value> [ephemeral] [sequence] [recursive]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * ephemeral: make the znode ephemeral (default: false)
+        * sequence: make the znode sequential (default: false)
+        * recursive: recursively create the path (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > create /foo 'bar'
 
         # create an ephemeral znode
@@ -1119,12 +1203,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_set(self, params):
         """
-        Updates the znode's value
+\x1b[1mNAME\x1b[0m
+        set - Updates the znode's value
 
+\x1b[1mSYNOPSIS\x1b[0m
         set <path> <value> [version]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * version: only update if version matches (default: -1)
 
+\x1b[1mEXAMPLES\x1b[0m
         > set /foo 'bar'
         > set /foo 'verybar' 3
 
@@ -1143,12 +1231,16 @@ class Shell(XCmd):
     @check_paths_exists("path")
     def do_zero(self, params):
         """
-        Set the znode's to None (no bytes)
+\x1b[1mNAME\x1b[0m
+        zero - Set the znode's to None (no bytes)
 
+\x1b[1mSYNOPSIS\x1b[0m
         zero <path> [version]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * version: only update if version matches (default: -1)
 
+\x1b[1mEXAMPLES\x1b[0m
         > zero /foo
         > zero /foo 3
 
@@ -1173,12 +1265,13 @@ class Shell(XCmd):
     @check_paths_exists("paths")
     def do_rm(self, params):
         """
-        Remove the znode
+\x1b[1mNAME\x1b[0m
+        rm - Remove the znode
 
+\x1b[1mSYNOPSIS\x1b[0m
         rm <path> [path] [path] ... [path]
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > rm /foo
         > rm /foo /bar
 
@@ -1199,12 +1292,13 @@ class Shell(XCmd):
     @ensure_params(Required("path"), IntegerRequired("version"))
     def do_check(self, params):
         """
-        Checks that a path is at a given version (only works within a transaction)
+\x1b[1mNAME\x1b[0m
+        check - Checks that a path is at a given version (only works within a transaction)
 
+\x1b[1mSYNOPSIS\x1b[0m
         check <path> <version>
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > txn 'create /foo "start"' 'check /foo 0' 'set /foo "end"' 'rm /foo 1'
 
         """
@@ -1217,18 +1311,20 @@ class Shell(XCmd):
     @ensure_params(Multi("cmds"))
     def do_txn(self, params):
         """
-        Create and execute a transaction
+\x1b[1mNAME\x1b[0m
+        txn - Create and execute a transaction
 
+\x1b[1mSYNOPSIS\x1b[0m
         txn <cmd> [cmd] [cmd] ... [cmd]
 
+\x1b[1mDESCRIPTION\x1b[0m
         Allowed cmds are check, create, rm and set. Check parameters are:
 
         check <path> <version>
 
         For create, rm and set see their help menu for their respective parameters.
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > txn 'create /foo "start"' 'check /foo 0' 'set /foo "end"' 'rm /foo 1'
 
         """
@@ -1290,11 +1386,13 @@ class Shell(XCmd):
     @ensure_params()
     def do_session_info(self, params):
         """
-        Shows information about the current session
+\x1b[1mNAME\x1b[0m
+        session_info - Shows information about the current session
 
+\x1b[1mSYNOPSIS\x1b[0m
         session_info
 
-        Example:
+\x1b[1mEXAMPLES\x1b[0m
         > session_info
         state=CONNECTED
         xid=4
@@ -1331,12 +1429,16 @@ child_watches=%s"""
     @ensure_params(Optional("match"))
     def do_history(self, params):
         """
-        Prints all previous commands
+\x1b[1mNAME\x1b[0m
+        history - Prints all previous commands
 
+\x1b[1mSYNOPSIS\x1b[0m
         history [match]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * match: only include commands if match is substr (default: '')
 
+\x1b[1mEXAMPLES\x1b[0m
         > history
         ls
         create
@@ -1364,14 +1466,16 @@ child_watches=%s"""
     @ensure_params(Optional("hosts"))
     def do_mntr(self, params):
         """
-        Executes the mntr four-letter command
+\x1b[1mNAME\x1b[0m
+        mntr - Executes the mntr four-letter command
 
+\x1b[1mSYNOPSIS\x1b[0m
         mntr [hosts]
 
-        If no hosts are given, use the current connected host.
+\x1b[1mOPTIONS\x1b[0m
+        * hosts: the hosts to connect to (default: the current connected host)
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > mntr
         zk_version      3.5.0--1, built on 11/14/2014 10:45 GMT
         zk_min_latency  0
@@ -1396,14 +1500,16 @@ child_watches=%s"""
     @ensure_params(Optional("hosts"))
     def do_cons(self, params):
         """
-        Executes the cons four-letter command
+\x1b[1mNAME\x1b[0m
+        cons - Executes the cons four-letter command
 
+\x1b[1mSYNOPSIS\x1b[0m
         cons [hosts]
 
-        If no hosts are given, use the current connected host.
+\x1b[1mOPTIONS\x1b[0m
+        * hosts: the hosts to connect to (default: the current connected host)
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > cons
         /127.0.0.1:40535[0](queued=0,recved=1,sent=0)
         ...
@@ -1426,14 +1532,16 @@ child_watches=%s"""
     @ensure_params(Optional("hosts"))
     def do_dump(self, params):
         """
-        Executes the dump four-letter command
+\x1b[1mNAME\x1b[0m
+        dump - Executes the dump four-letter command
 
+\x1b[1mSYNOPSIS\x1b[0m
         dump [hosts]
 
-        If no hosts are given, use the current connected host.
+\x1b[1mOPTIONS\x1b[0m
+        * hosts: the hosts to connect to (default: the current connected host)
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > dump
         SessionTracker dump:
         Session Sets (3)/(1):
@@ -1466,12 +1574,17 @@ child_watches=%s"""
     )
     def do_chkzk(self, params):
         """
-        Consistency check for a cluster
+\x1b[1mNAME\x1b[0m
+        chkzk - Consistency check for a cluster
 
+\x1b[1mSYNOPSIS\x1b[0m
         chkzk <server1,server2,...> [verbose] [reverse_lookup]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * verbose: expose the values for each accounted stat (default: false)
+        * reverse_lookup: convert IPs back to hostnames (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > chkzk cluster.example.net
         passed
 
@@ -1632,12 +1745,13 @@ child_watches=%s"""
     @check_paths_exists("paths")
     def do_rmr(self, params):
         """
-        Delete a path and all its children
+\x1b[1mNAME\x1b[0m
+        rmr - Delete a path and all its children
 
+\x1b[1mSYNOPSIS\x1b[0m
         rmr <path> [path] [path] ... [path]
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > rmr /foo
         > rmr /foo /bar
 
@@ -1652,14 +1766,16 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_sync(self, params):
         """
-        Forces the current server to sync with the rest of the cluster
+\x1b[1mNAME\x1b[0m
+        sync - Forces the current server to sync with the rest of the cluster
 
+\x1b[1mSYNOPSIS\x1b[0m
         sync <path>
 
-        Note that ZooKeeper currently ignore the path command.
+\x1b[1mOPTIONS\x1b[0m
+        * path: the path (ZooKeeper currently ignore this) (default: '')
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > sync /foo
 
         """
@@ -1672,12 +1788,16 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_child_watch(self, params):
         """
-        Watch a path for child changes
+\x1b[1mNAME\x1b[0m
+        child_watch - Watch a path for child changes
 
+\x1b[1mSYNOPSIS\x1b[0m
         child_watch <path> [verbose]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * verbose: prints list of znodes (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         # only prints the current number of children
         > child_watch /
 
@@ -1696,21 +1816,23 @@ child_watches=%s"""
     @check_paths_exists("path_a", "path_b")
     def do_diff(self, params):
         """
-        Display the differences between two paths
+\x1b[1mNAME\x1b[0m
+        diff - Display the differences between two paths
 
+\x1b[1mSYNOPSIS\x1b[0m
         diff <src> <dst>
 
-        Example:
-
-        > diff /configs /new-configs
-        -- service-x/hosts
-        ++ service-x/hosts.json
-        +- service-x/params
-
+\x1b[1mDESCRIPTION\x1b[0m
         The output is interpreted as:
           -- means the znode is missing in /new-configs
           ++ means the znode is new in /new-configs
           +- means the znode's content differ between /configs and /new-configs
+
+\x1b[1mEXAMPLES\x1b[0m
+        > diff /configs /new-configs
+        -- service-x/hosts
+        ++ service-x/hosts.json
+        +- service-x/params
 
         """
         count = 0
@@ -1734,12 +1856,16 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_valid(self, params):
         """
-        Checks znodes for valid JSON
+\x1b[1mNAME\x1b[0m
+        json_valid - Checks znodes for valid JSON
 
+\x1b[1mSYNOPSIS\x1b[0m
         json_valid <path> [recursive]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recurse to all children (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > json_valid /some/valid/json_znode
         yes.
 
@@ -1782,12 +1908,16 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_cat(self, params):
         """
-        Pretty prints a znode's JSON
+\x1b[1mNAME\x1b[0m
+        json_cat - Pretty prints a znode's JSON
 
+\x1b[1mSYNOPSIS\x1b[0m
         json_cat <path> [recursive]
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recurse to all children (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > json_cat /configs/clusters
         {
           "dc0": {
@@ -1840,12 +1970,16 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_get(self, params):
         """
-        Get key (or keys, if nested) from a JSON object serialized in the given path
+\x1b[1mNAME\x1b[0m
+        json_get - Get key (or keys, if nested) from a JSON object serialized in the given path
 
+\x1b[1mSYNOPSIS\x1b[0m
         json_get <path> <keys> [recursive]
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recurse to all children (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > json_get /configs/primary_service endpoint.clientPort
         32768
 
@@ -1905,17 +2039,20 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_count_values(self, params):
         """
-        Gets the frequency of the values associated with the given keys
+\x1b[1mNAME\x1b[0m
+        json_count_values - Gets the frequency of the values associated with the given keys
 
+\x1b[1mSYNOPSIS\x1b[0m
         json_count_values <path> <keys> [top] [minfreq] [reverse] [report_errors] [print_path]
 
-        By default, all values are shown (top = 0) regardless of their frequency (minfreq = 1).
-        They are sorted by frequency in descendant order (reverse = true). Errors like bad JSON
-        or missing keys are not reported by default (report_errors = false). To print the path when
-        there are more than 0 results use print_path = true.
+\x1b[1mOPTIONS\x1b[0m
+        * top: number of results to show (0 is all) (default: 0)
+        * minfreq: minimum frequency to be displayed (default: 1)
+        * reverse: sort in descending order (default: true)
+        * report_errors: report bad znodes (default: false)
+        * print_path: print the path if there are results (default: false)
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > json_count_values /configs/primary_service endpoint.host
         10.20.0.2  3
         10.20.0.4  3
@@ -1993,14 +2130,21 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_json_dupes_for_keys(self, params):
         """
-        Gets the duplicate znodes for the given keys
+\x1b[1mNAME\x1b[0m
+        json_duples_for_keys - Gets the duplicate znodes for the given keys
 
-        json_dupes_for_keys <path> <keys>
+\x1b[1mSYNOPSIS\x1b[0m
+        json_dupes_for_keys <path> <keys> [prefix] [report_errors]
 
+\x1b[1mDESCRIPTION\x1b[0m
         Znodes with duplicated keys are sorted and all but the first (original) one
         are printed.
 
-        Example:
+\x1b[1mOPTIONS\x1b[0m
+        * prefix: only include matching znodes
+        * report_errors: turn on error reporting (i.e.: bad JSON in a znode)
+
+\x1b[1mEXAMPLES\x1b[0m
         > json_cat /configs/primary_service true
         member_0000000186
         {
@@ -2083,14 +2227,17 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_edit(self, params):
         """
-        Opens up an editor to modify and update a znode.
+\x1b[1mNAME\x1b[0m
+        edit - Opens up an editor to modify and update a znode.
 
+\x1b[1mSYNOPSIS\x1b[0m
         edit <path>
 
+\x1b[1mDESCRIPTION\x1b[0m
         If the content has not changed, the znode won't be updated.
         $EDITOR must be set for zk-shell to find your editor.
 
-        Example:
+\x1b[1mEXAMPLES\x1b[0m
         # make sure $EDITOR is set in your shell
         > edit /configs/webservers/primary
         # change something and save
@@ -2148,15 +2295,17 @@ child_watches=%s"""
     @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
     def do_loop(self, params):
         """
-        Runs commands in a loop
+\x1b[1mNAME\x1b[0m
+        loop - Runs commands in a loop
 
+\x1b[1mSYNOPSIS\x1b[0m
         loop <repeat> <pause> <cmd1> <cmd2> ... <cmdN>
 
+\x1b[1mDESCRIPTION\x1b[0m
         Runs <cmds> <repeat> times (0 means forever), with a pause of <pause> secs inbetween
         each <cmd> (0 means no pause).
 
-        Example:
-
+\x1b[1mEXAMPLES\x1b[0m
         > loop 3 0 "get /foo"
         ...
 
@@ -2207,14 +2356,20 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_ephemeral_endpoint(self, params):
         """
-        Gets the ephemeral znode owner's session and ip:port
+\x1b[1mNAME\x1b[0m
+        ephemeral_endpoint - Gets the ephemeral znode owner's session and ip:port
 
+\x1b[1mSYNOPSIS\x1b[0m
         ephemeral_endpoint <path> <hosts> [recursive] [reverse_lookup]
 
-        where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form.
+\x1b[1mDESCRIPTION\x1b[0m
+        hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form.
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * recursive: recurse through the children (default: false)
+        * reverse_lookup: convert IPs back to hostnames (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > ephemeral_endpoint /servers/member_0000044941 10.0.0.1,10.0.0.2,10.0.0.3
         0xa4788b919450e6 10.3.2.12:54250 10.0.0.2:2181
 
@@ -2263,14 +2418,19 @@ child_watches=%s"""
     @ensure_params(Required("session"), Required("hosts"), BooleanOptional("reverse"))
     def do_session_endpoint(self, params):
         """
-        Gets the session's IP endpoints
+\x1b[1mNAME\x1b[0m
+        session_endpoint - Gets the session's IP endpoints
 
-        session_endpoint <session> <hosts> [reverse]
+\x1b[1mSYNOPSIS\x1b[0m
+        session_endpoint <session> <hosts> [reverse_lookup]
 
+\x1b[1mDESCRIPTION\x1b[0m
         where hosts is a list of hosts in the host1[:port1][,host2[:port2]],... form
 
-        Examples:
+\x1b[1mOPTIONS\x1b[0m
+        * reverse_lookup: convert IPs back to hostnames (default: false)
 
+\x1b[1mEXAMPLES\x1b[0m
         > session_endpoint 0xa4788b919450e6 10.0.0.1,10.0.0.2,10.0.0.3
         10.3.2.12:54250 10.0.0.2:2181
 
@@ -2302,12 +2462,13 @@ child_watches=%s"""
     @check_paths_exists("path")
     def do_fill(self, params):
         """
-        Fills a znode with the given value
+\x1b[1mNAME\x1b[0m
+        fill - Fills a znode with the given value
 
+\x1b[1mSYNOPSIS\x1b[0m
         fill <path> <char> <count>
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > fill /some/znode X 1048576
 
         """
@@ -2322,9 +2483,13 @@ child_watches=%s"""
     @ensure_params(Required("cmd"), MultiOptional("args"))
     def do_conf(self, params):
         """
-        Runtime configuration management
+\x1b[1mNAME\x1b[0m
+        conf - Runtime configuration management
 
+\x1b[1mSYNOPSIS\x1b[0m
         conf <describe|get|save|set> [args]
+
+\x1b[1mDESCRIPTION\x1b[0m
 
         conf describe [name]
 
@@ -2343,8 +2508,7 @@ child_watches=%s"""
 
           persists the running configuration.
 
-        Examples:
-
+\x1b[1mEXAMPLES\x1b[0m
         > conf get
         foo: bar
         two: dos
@@ -2413,10 +2577,13 @@ child_watches=%s"""
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
-        Connects to a host from a list of hosts given
+\x1b[1mNAME\x1b[0m
+        connect - Connects to a host from a list of hosts given
 
-        Example:
+\x1b[1mSYNOPSIS\x1b[0m
+        connect <hosts>
 
+\x1b[1mEXAMPLES\x1b[0m
         > connect host1:2181,host2:2181
 
         """
@@ -2427,7 +2594,8 @@ child_watches=%s"""
     @connected
     def do_disconnect(self, args):
         """
-        Disconnects and closes the current session
+\x1b[1mNAME\x1b[0m
+        disconnect - Disconnects and closes the current session
 
         """
         self._disconnect()
@@ -2436,7 +2604,8 @@ child_watches=%s"""
     @connected
     def do_reconnect(self, args):
         """
-        Forces a reconnect by shutting down the connected socket
+\x1b[1mNAME\x1b[0m
+        reconnect - Forces a reconnect by shutting down the connected socket
 
         """
         self._zk.reconnect()
@@ -2445,26 +2614,30 @@ child_watches=%s"""
     @connected
     def do_pwd(self, args):
         """
-        Prints the current path
+\x1b[1mNAME\x1b[0m
+        pwd - Prints the current path
 
         """
         self.show_output("%s", self.curdir)
 
     def do_EOF(self, *args):
         """
-        Exits via Ctrl-D
+\x1b[1mNAME\x1b[0m
+        <ctrl-d> - Exits via Ctrl-D
         """
         self._exit(True)
 
     def do_quit(self, *args):
         """
-        Give up on everything and just quit
+\x1b[1mNAME\x1b[0m
+        quit - Give up on everything and just quit
         """
         self._exit(False)
 
     def do_exit(self, *args):
         """
-        Au revoir
+\x1b[1mNAME\x1b[0m
+        exit - Au revoir
         """
         self._exit(False)
 
