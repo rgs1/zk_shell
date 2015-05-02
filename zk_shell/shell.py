@@ -2721,3 +2721,6 @@ child_watches=%s"""
         An alias for help.
         """
         self.do_help(*args, **kwargs)
+
+    def complete_man(self, *args, **kwargs):
+        return self.complete_help(*args, **kwargs)
