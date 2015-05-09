@@ -6,11 +6,11 @@ ChangeLog
 
 Bug Handling
 ************
-- sleep: allows sleeping (useful with loop)
+-
 
 Features
 ********
-- add
+- sleep: allows sleeping (useful with loop)
 
 1.0.06 (2015-05-06)
 --------------------
