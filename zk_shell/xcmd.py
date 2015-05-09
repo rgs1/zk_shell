@@ -46,6 +46,11 @@ class IntegerRequired(BasicParam):
     pass
 
 
+class FloatRequired(BasicParam):
+    """ a required int param """
+    pass
+
+
 class Optional(BasicParam):
     """ an optional param """
     def __init__(self, label, default=""):
@@ -103,6 +108,8 @@ class ShellParser(argparse.ArgumentParser):
                 parser.add_argument(param.label)
             elif isinstance(param, IntegerRequired):
                 parser.add_argument(param.label, type=int)
+            elif isinstance(param, FloatRequired):
+                parser.add_argument(param.label, type=float)
             elif isinstance(param, Optional):
                 parser.add_argument(param.label, nargs="?", default=param.default, type=str)
             elif isinstance(param, BooleanOptional):

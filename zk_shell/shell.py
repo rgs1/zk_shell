@@ -49,6 +49,7 @@ from .xclient import XClient
 from .xcmd import (
     XCmd,
     BooleanOptional,
+    FloatRequired,
     IntegerOptional,
     IntegerRequired,
     interruptible,
@@ -2573,6 +2574,25 @@ child_watches=%s"""
         complete_var = partial(complete_values, self._conf.keys())
         completers = [complete_cmd, complete_var]
         return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @ensure_params(FloatRequired("seconds"))
+    def do_sleep(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        sleep - Sleeps for the given seconds (may be fractional)
+
+\x1b[1mSYNOPSIS\x1b[0m
+        fill <seconds>
+
+\x1b[1mEXAMPLES\x1b[0m
+        > sleep 0.5
+
+        """
+        time.sleep(params.seconds)
+
+    def complete_sleep(self, cmd_param_text, full_cmd, *rest):
+        complete_vals = partial(complete_values, ["0.5", "1.0", "2.0", "5.0", "10.0"])
+        return complete([complete_vals], cmd_param_text, full_cmd, *rest)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.07 (2015-05-XX)
+--------------------
+
+Bug Handling
+************
+- sleep: allows sleeping (useful with loop)
+
+Features
+********
+- add
+
 1.0.06 (2015-05-06)
 --------------------
 
