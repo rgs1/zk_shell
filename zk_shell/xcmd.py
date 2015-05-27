@@ -1,19 +1,23 @@
 """ decorate cmd with some convenience stuff """
 from __future__ import print_function
 
+from functools import partial, wraps
+
 import argparse
 import cmd
 import difflib
-from functools import partial, wraps
 import os
 import shlex
 import sys
 
-try:
-    import readline
-    HAVE_READLINE = True
-except ImportError:
+if not sys.stdout.isatty():
     HAVE_READLINE = False
+else:
+    try:
+        import readline
+        HAVE_READLINE = True
+    except ImportError:
+        HAVE_READLINE = False
 
 try:
     from StringIO import StringIO
@@ -294,6 +298,9 @@ class XCmd(cmd.Cmd):
 
         if out is not None:
             self._last_output = out if len(out) < MAX_OUTPUT else out[:MAX_OUTPUT]
+
+        if not PYTHON3 and not sys.stdout.isatty() and out:
+            out = out.encode('utf-8')
 
         print(out, file=self._output)
 

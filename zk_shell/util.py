@@ -65,6 +65,11 @@ def decoded(s):
     else:
         return s.decode('string_escape')
 
+
+def decoded_utf8(s):
+    return s if PYTHON3 else s.decode('utf-8')
+
+
 def prompt_yes_no(question):
     print('%s [y/n]: ' % question)
     while True:

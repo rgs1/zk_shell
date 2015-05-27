@@ -18,9 +18,15 @@ except ImportError:
 from kazoo.client import KazooClient
 
 from zk_shell.shell import Shell
+from zk_shell.util import decoded_utf8
 
 
 PYTHON3 = sys.version_info > (3, )
+
+
+class XStringIO(StringIO):
+    def getutf8(self):
+        return decoded_utf8(self.getvalue())
 
 
 class ShellTestCase(unittest.TestCase):
@@ -45,7 +51,7 @@ class ShellTestCase(unittest.TestCase):
             self.client.delete(self.tests_path, recursive=True)
         self.client.create(self.tests_path, str.encode(""))
 
-        self.output = StringIO()
+        self.output = XStringIO()
         self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False, async=False)
 
         # Create an empty test dir (needed for some tests)

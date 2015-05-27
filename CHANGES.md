@@ -6,7 +6,7 @@ ChangeLog
 
 Bug Handling
 ************
--
+- issue with tree command output (issue #28)
 
 Features
 ********

@@ -26,7 +26,7 @@ class MirrorCmdsTestCase(ShellTestCase):
         expected_output = u""".
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO
 """
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
 
     def test_mirror_zk2json(self):
         """ mirror from zk to a json file (uncompressed) """
@@ -111,7 +111,7 @@ class MirrorCmdsTestCase(ShellTestCase):
             expected_output = u""".
 \u251c\u2500\u2500 nested1\n\u2502   \u251c\u2500\u2500 znode\nHELLO
 """
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
 
     def test_mirror_local(self):
         """ mirror one path to another in the connected ZK cluster """

@@ -61,7 +61,7 @@ class BasicCmdsTestCase(ShellTestCase):
 ├── two
 ├── one
 """
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
 
     def test_add_auth(self):
         """ test authentication """

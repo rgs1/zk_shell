@@ -43,7 +43,7 @@ class CpCmdsTestCase(ShellTestCase):
         jsonf = ("%s/backup.json" % (self.temp_dir)).replace("/", "!")
         self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (self.zk_host, src, jsonf))
         expected_output = "znode /tests/src in %s doesn't exist\n" % (self.zk_host)
-        self.assertIn(expected_output, self.output.getvalue())
+        self.assertIn(expected_output, self.output.getutf8())
 
     def test_json2zk(self):
         """ copy from a json file to a ZK cluster (uncompressed) """
@@ -68,7 +68,7 @@ class CpCmdsTestCase(ShellTestCase):
         dst = "zk://%s/%s/from-json" % (self.zk_host, self.tests_path)
         self.shell.onecmd("cp %s %s  true true" % (src, dst))
         expected_output = "Path /backup doesn't exist\n"
-        self.assertIn(expected_output, self.output.getvalue())
+        self.assertIn(expected_output, self.output.getutf8())
 
     def test_cp_local(self):
         """ copy one path to another in the connected ZK cluster """
@@ -79,14 +79,14 @@ class CpCmdsTestCase(ShellTestCase):
         expected_output = u""".
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
 """
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
 
     def test_cp_local_bad_path(self):
         """ try copy non existent path in the local zk cluster """
         src = "%s/doesnt/exist/path" % (self.tests_path)
         dst = "%s/some/other/nonexistent/path" % (self.tests_path)
         self.shell.onecmd("cp %s %s true true" % (src, dst))
-        self.assertIn("doesn't exist\n", self.output.getvalue())
+        self.assertIn("doesn't exist\n", self.output.getutf8())
 
     def test_bad_auth(self):
         self.shell.onecmd("cp / zk://foo:bar@localhost/y")
@@ -106,7 +106,7 @@ class CpCmdsTestCase(ShellTestCase):
         expected_output = u""".
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
 """
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
 
     def zk2json(self, compressed, async):
         """ helper for copying from zk to json """
@@ -174,4 +174,4 @@ class CpCmdsTestCase(ShellTestCase):
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode\nHELLO
 """
 
-        self.assertEqual(expected_output, self.output.getvalue())
+        self.assertEqual(expected_output, self.output.getutf8())
