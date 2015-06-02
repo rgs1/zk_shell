@@ -33,12 +33,15 @@ from kazoo.exceptions import (
     BadVersionError,
     ConnectionLoss,
     InvalidACLError,
+    NewConfigNoQuorumError,
     NoAuthError,
     NodeExistsError,
     NoNodeError,
     NotEmptyError,
     NotReadOnlyCallError,
+    ReconfigInProcessError,
     SessionExpiredError,
+    UnimplementedError,
     ZookeeperError,
 )
 from kazoo.protocol.states import KazooState
@@ -112,6 +115,10 @@ def connected(func):
                 self.show_output("Bad arguments.")
             except SessionExpiredError:
                 self.show_output("Session expired.")
+            except UnimplementedError as ex:
+                self.show_output("Not implemented by the server: %s." % str(ex))
+            except ZookeeperError as ex:
+                self.show_output("Unknown ZooKeeper error: %s" % str(ex))
 
     return wrapper
 
@@ -2609,6 +2616,68 @@ child_watches=%s"""
     def complete_sleep(self, cmd_param_text, full_cmd, *rest):
         complete_vals = partial(complete_values, ["0.5", "1.0", "2.0", "5.0", "10.0"])
         return complete([complete_vals], cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(Required("cmd"), Required("args"), IntegerOptional("from_config", -1))
+    def do_reconfig(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        reconfig - Reconfigures a ZooKeeper cluster (adds/removes members)
+
+\x1b[1mSYNOPSIS\x1b[0m
+        reconfig <add|remove> <arg> [from_config]
+
+\x1b[1mDESCRIPTION\x1b[0m
+
+        reconfig add <members> [from_config]
+
+          adds the given members (i.e.: 'server.100=10.0.0.10:2889:3888:observer;0.0.0.0:2181').
+
+        reconfig remove <members_ids> [from_config]
+
+          removes the members with the given ids (i.e.: '2,3,5').
+
+\x1b[1mEXAMPLES\x1b[0m
+        > reconfig add server.100=0.0.0.0:56954:37866:observer;0.0.0.0:42969
+        server.1=localhost:20002:20001:participant
+        server.2=localhost:20012:20011:participant
+        server.3=localhost:20022:20021:participant
+        server.100=0.0.0.0:56954:37866:observer;0.0.0.0:42969
+        version=100000003
+
+        > reconfig remove 100
+        server.1=localhost:20002:20001:participant
+        server.2=localhost:20012:20011:participant
+        server.3=localhost:20022:20021:participant
+        version=100000004
+
+        """
+        if params.cmd not in ["add", "remove"]:
+            raise ValueError("Bad command: %s" % params.cmd)
+
+        joining, leaving, from_config = None, None, params.from_config
+
+        if params.cmd == "add":
+            joining = params.args
+        elif params.cmd == "remove":
+            leaving = params.args
+
+        try:
+            value, _ = self._zk.reconfig(
+                joining=joining, leaving=leaving, new_members=None, from_config=from_config)
+            self.show_output(value)
+        except NewConfigNoQuorumError:
+            self.show_output("No quorum available to perform reconfig.")
+        except ReconfigInProcessError:
+            self.show_output("There's a reconfig in process.")
+
+    def complete_reconfig(self, cmd_param_text, full_cmd, *rest):
+        complete_cmd = partial(complete_values, ["add", "remove"])
+        complete_config = partial(complete_values, ["-1"])
+        complete_arg = partial(
+            complete_values, ["server.100=0.0.0.0:2889:3888:observer;0.0.0.0:2181", "1,2,3"])
+        completers = [complete_cmd, complete_arg, complete_config]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @ensure_params(Required("hosts"))
     def do_connect(self, params):

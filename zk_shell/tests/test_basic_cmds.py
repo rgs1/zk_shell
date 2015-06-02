@@ -2,9 +2,12 @@
 
 """test basic cmds"""
 
+import socket
+
 from .shell_test_case import PYTHON3, ShellTestCase
 
 from kazoo.testing.harness import get_global_cluster
+from nose import SkipTest
 
 
 # pylint: disable=R0904
@@ -329,3 +332,37 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("cd %s" % self.tests_path)
         self.shell.onecmd("pipe ls get")
         self.assertEqual(u"bar\n", self.output.getvalue())
+
+    def test_reconfig(self):
+        # broken until a new release with https://github.com/python-zk/kazoo/pull/340
+        if PYTHON3:
+            raise SkipTest("not working for py3k")
+
+        # handle bad input
+        self.shell.onecmd("reconfig add foo")
+        self.assertIn("Bad arguments", self.output.getvalue())
+        self.output.reset()
+
+        # now add a fake observer
+        def free_sock_port():
+            s = socket.socket()
+            s.bind(('', 0))
+            return s, s.getsockname()[1]
+
+        # get ports for election, zab and client endpoints. we need to use
+        # ports for which we'd immediately get a RST upon connect(); otherwise
+        # the cluster could crash if it gets a SocketTimeoutException:
+        # https://issues.apache.org/jira/browse/ZOOKEEPER-2202
+        s1, port1 = free_sock_port()
+        s2, port2 = free_sock_port()
+        s3, port3 = free_sock_port()
+
+        joining = 'server.100=0.0.0.0:%d:%d:observer;0.0.0.0:%d' % (
+            port1, port2, port3)
+        self.shell.onecmd("reconfig add %s" % joining)
+        self.assertIn(joining, self.output.getvalue())
+        self.output.reset()
+
+        # now remove it
+        self.shell.onecmd("reconfig remove 100")
+        self.assertNotIn(joining, self.output.getvalue())
