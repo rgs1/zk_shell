@@ -1,12 +1,13 @@
 ChangeLog
 =========
 
-1.0.07 (2015-05-XX)
+1.0.07 (2015-06-XX)
 --------------------
 
 Bug Handling
 ************
 - issue with tree command output (issue #28)
+- intermittent issue with child_count (issue #30)
 
 Features
 ********

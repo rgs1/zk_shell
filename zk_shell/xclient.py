@@ -247,7 +247,14 @@ class XClient(KazooClient):
                 yield (mpath, matches)
 
     def child_count(self, path):
+        """
+        returns the child count under path (deals with znodes going away as it's
+        traversing the tree).
+        """
         stat = self.stat(path)
+        if not stat:
+            return 0
+
         count = stat.numChildren
         for _, _, stat in self.tree(path, 0, include_stat=True):
             if stat:
