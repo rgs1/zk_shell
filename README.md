@@ -1,4 +1,4 @@
-# zk-shell [![Build Status] (https://travis-ci.org/rgs1/zk_shell.svg?branch=master)](https://travis-ci.org/rgs1/zk_shell) [![Coverage Status](https://coveralls.io/repos/rgs1/zk_shell/badge.png?branch=master)](https://coveralls.io/r/rgs1/zk_shell?branch=master)
+# zk-shell [![Build Status] (https://travis-ci.org/rgs1/zk_shell.svg?branch=master)](https://travis-ci.org/rgs1/zk_shell) [![Coverage Status](https://coveralls.io/repos/rgs1/zk_shell/badge.png?branch=master)](https://coveralls.io/r/rgs1/zk_shell?branch=master) [![PyPI version](https://badge.fury.io/py/zk_shell.svg)](http://badge.fury.io/py/zk_shell)
 
 **Table of Contents**
 
