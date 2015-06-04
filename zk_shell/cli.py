@@ -19,7 +19,7 @@ except NameError:
 
 class CLIParams(
         namedtuple("CLIParams",
-                   "connect_timeout run_once run_from_stdin sync_connect hosts readonly")):
+                   "connect_timeout run_once run_from_stdin sync_connect hosts readonly tunnel")):
     """
     This defines the running params for a CLI() object. If you'd like to do parameters processing
     from some other point you'll need to fill up an instance of this class and pass it to
@@ -59,6 +59,10 @@ def get_params():
                         action="store_true",
                         default=False,
                         help="Enable readonly.")
+    parser.add_argument("--tunnel",
+                        type=str,
+                        help="Create a ssh tunnel via this host",
+                        default=None)
     parser.add_argument("hosts",
                         nargs="*",
                         help="ZK hosts to connect")
@@ -69,7 +73,8 @@ def get_params():
         params.run_from_stdin,
         params.sync_connect,
         params.hosts,
-        params.readonly)
+        params.readonly,
+        params.tunnel)
 
 
 class StateTransition(Exception):
@@ -120,7 +125,8 @@ class CLI(object):
                       setup_readline=interactive,
                       output=sys.stdout,
                       async=async,
-                      read_only=params.readonly)
+                      read_only=params.readonly,
+                      tunnel=params.tunnel)
 
         if not interactive:
             rc = 0
