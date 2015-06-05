@@ -203,6 +203,12 @@ $ echo "get /foo" | zk-shell --run-from-stdin localhost
 bar
 ```
 
+It's also possible to connect using an SSH tunnel, by specifying a host to use:
+
+```
+$ zk-shell --tunnel ssh-host zk-host
+```
+
 ### Dependencies ###
 
 * Python 2.7, 3.3 or 3.4

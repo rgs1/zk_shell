@@ -18,6 +18,7 @@ import re
 import shlex
 import signal
 import socket
+
 import stat as statlib
 import sys
 import tempfile
@@ -42,6 +43,7 @@ from kazoo.exceptions import (
 from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
+from twitter.common.net.tunnel import TunnelHelper
 
 from .acl import ACLReader
 from .conf import Conf, ConfVar
@@ -201,7 +203,8 @@ class Shell(XCmd):
                  output=sys.stdout,
                  setup_readline=True,
                  async=True,
-                 read_only=False):
+                 read_only=False,
+                 tunnel=None):
         XCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
@@ -211,6 +214,7 @@ class Shell(XCmd):
         self._txn = None        # holds the current transaction, if any
         self.connected = False
         self.state_transitions_enabled = True
+        self._tunnel = tunnel
 
         self._conf = Conf(
             ConfVar(
@@ -2697,9 +2701,16 @@ child_watches=%s"""
         self._disconnect()
         auth_data = []
         hosts = []
+
         for auth_host in hosts_list:
             nl = Netloc.from_string(auth_host)
-            hosts.append(nl.host)
+            rhost, rport = hosts_to_endpoints(nl.host)[0]
+            if self._tunnel is not None:
+                lhost, lport = TunnelHelper.create_tunnel(rhost, rport, self._tunnel)
+                hosts.append('{0}:{1}'.format(lhost, lport))
+            else:
+                hosts.append(nl.host)
+
             if nl.scheme != "":
                 auth_data.append((nl.scheme, nl.credential))
 
