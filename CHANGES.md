@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.08 (2015-06-05)
+--------------------
+
+Bug Handling
+************
+-
+
+Features
+********
+- allow connecting via an ssh tunnel (--tunnel)
+
 1.0.07 (2015-06-03)
 --------------------
 
