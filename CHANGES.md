@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.0.09 (2015-06-XX)
+--------------------
+
+Bug Handling
+************
+- handle APIError (i.e.: ZooKeeper internal error)
+
+Features
+********
+-
+
 1.0.08 (2015-06-05)
 --------------------
 

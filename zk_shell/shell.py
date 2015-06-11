@@ -27,6 +27,7 @@ import zlib
 
 from colors import green, red
 from kazoo.exceptions import (
+    APIError,
     AuthFailedError,
     BadArgumentsError,
     BadVersionError,
@@ -95,6 +96,8 @@ def connected(func):
         else:
             try:
                 return func(*args, **kwargs)
+            except APIError:
+                self.show_output("ZooKeeper internal error.")
             except AuthFailedError:
                 self.show_output("Authentication failed.")
             except NoAuthError:
