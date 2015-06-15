@@ -37,7 +37,7 @@ You can also build a self-contained PEX file:
 ```
 $ pip install pex
 
-$ pex -s . -v -e zk_shell.cli -o zk-shell.pex
+$ pex -v -e zk_shell.cli -o zk-shell.pex .
 
 ```
 
