@@ -20,7 +20,7 @@ class MirrorCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (
             src_path))
         self.shell.onecmd("mirror zk://%s%s zk://%s%s false false true" % (
-            self.zk_host, src_path, self.zk_host, dst_path))
+            self.zk_hosts, src_path, self.zk_hosts, dst_path))
         self.shell.onecmd("tree %s" % (dst_path))
         self.shell.onecmd("get %s/nested/znode" % dst_path)
         expected_output = u""".
@@ -47,7 +47,7 @@ class MirrorCmdsTestCase(ShellTestCase):
             src_path))
 
         self.shell.onecmd("cp zk://%s/%s json://%s true true" % (
-            self.zk_host, src_path, json_file.replace("/", "!")))
+            self.zk_hosts, src_path, json_file.replace("/", "!")))
 
         with open(json_file, "r") as jfp:
             copied_znodes = json.load(jfp)
@@ -65,7 +65,7 @@ class MirrorCmdsTestCase(ShellTestCase):
         self.shell.onecmd("rmr %s/nested1/nested12" % src_path)
 
         self.shell.onecmd("mirror zk://%s%s json://%s false false true" % (
-            self.zk_host, src_path, json_file.replace("/", "!")))
+            self.zk_hosts, src_path, json_file.replace("/", "!")))
 
         with open(json_file, "r") as jfp:
             copied_znodes = json.load(jfp)
@@ -90,7 +90,7 @@ class MirrorCmdsTestCase(ShellTestCase):
 
         json_url = "json://%s/backup" % (json_file.replace("/", "!"))
 
-        zk_url = "zk://%s%s" % (self.zk_host, src_path)
+        zk_url = "zk://%s%s" % (self.zk_hosts, src_path)
 
         self.shell.onecmd("cp %s %s true true" % (zk_url, json_url))
 

@@ -45,3 +45,5 @@ integration/releases
 
 # PEX-files
 *.pex
+
+zookeeper/

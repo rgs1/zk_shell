@@ -4,6 +4,8 @@
 
 from .shell_test_case import PYTHON3, ShellTestCase
 
+from kazoo.testing.harness import get_global_cluster
+
 
 # pylint: disable=R0904
 class BasicCmdsTestCase(ShellTestCase):
@@ -252,9 +254,10 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertEqual(expected, self.output.getvalue())
 
     def test_ephemeral_endpoint(self):
+        server = next(iter(get_global_cluster()))
         path = "%s/ephemeral" % (self.tests_path)
         self.shell.onecmd("create %s 'foo' true" % (path))
-        self.shell.onecmd("ephemeral_endpoint %s localhost" % (path))
+        self.shell.onecmd("ephemeral_endpoint %s %s" % (path, server.address))
         self.assertTrue(self.output.getvalue().startswith("0x"))
 
     def test_transaction_simple(self):
