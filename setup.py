@@ -45,10 +45,10 @@ setup(name='zk_shell',
       packages=find_packages(),
       test_suite="zk_shell.tests",
       scripts=['bin/zk-shell'],
-      install_requires=['ansicolors', 'kazoo>=2.0', 'tabulate', 'twitter.common.net'],
-      tests_require=['ansicolors', 'kazoo>=2.0', 'nose', 'tabulate', 'twitter.common.net'],
+      install_requires=['ansicolors', 'kazoo>=2.2', 'tabulate', 'twitter.common.net'],
+      tests_require=['ansicolors', 'kazoo>=2.2', 'nose', 'tabulate', 'twitter.common.net'],
       extras_require={
-          'test': ['ansicolors', 'kazoo>=2.0', 'nose', 'tabulate', 'twitter.common.net'],
+          'test': ['ansicolors', 'kazoo>=2.2', 'nose', 'tabulate', 'twitter.common.net'],
       },
       include_package_data=True,
       zip_safe=False)
