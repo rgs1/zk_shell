@@ -10,7 +10,7 @@ Bug Handling
 
 Features
 ********
--
+- add --version
 
 1.0.08 (2015-06-05)
 --------------------
