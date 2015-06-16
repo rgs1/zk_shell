@@ -37,14 +37,14 @@ class ShellTestCase(unittest.TestCase):
         make sure that the prefix dir is empty
         """
         self.tests_path = os.getenv("ZKSHELL_PREFIX_DIR", "/tests")
-        self.zk_host = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
+        self.zk_hosts = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
         self.username = os.getenv("ZKSHELL_USER", "user")
         self.password = os.getenv("ZKSHELL_PASSWD", "user")
         self.digested_password = os.getenv("ZKSHELL_DIGESTED_PASSWD", "F46PeTVYeItL6aAyygIVQ9OaaeY=")
         self.super_password = os.getenv("ZKSHELL_SUPER_PASSWD", "secret")
         self.scheme = os.getenv("ZKSHELL_AUTH_SCHEME", "digest")
 
-        self.client = KazooClient(self.zk_host, 5)
+        self.client = KazooClient(self.zk_hosts, 5)
         self.client.start()
         self.client.add_auth(self.scheme, self.auth_id)
         if self.client.exists(self.tests_path):
@@ -52,7 +52,7 @@ class ShellTestCase(unittest.TestCase):
         self.client.create(self.tests_path, str.encode(""))
 
         self.output = XStringIO()
-        self.shell = Shell([self.zk_host], 5, self.output, setup_readline=False, async=False)
+        self.shell = Shell([self.zk_hosts], 5, self.output, setup_readline=False, async=False)
 
         # Create an empty test dir (needed for some tests)
         self.temp_dir = tempfile.mkdtemp()

@@ -41,8 +41,8 @@ class CpCmdsTestCase(ShellTestCase):
         """ try to copy from non-existent path in zk to a json file """
         src = "%s/src" % (self.tests_path)
         jsonf = ("%s/backup.json" % (self.temp_dir)).replace("/", "!")
-        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (self.zk_host, src, jsonf))
-        expected_output = "znode /tests/src in %s doesn't exist\n" % (self.zk_host)
+        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (self.zk_hosts, src, jsonf))
+        expected_output = "znode /tests/src in %s doesn't exist\n" % (self.zk_hosts)
         self.assertIn(expected_output, self.output.getutf8())
 
     def test_json2zk(self):
@@ -65,7 +65,7 @@ class CpCmdsTestCase(ShellTestCase):
         """ try to copy from non-existent path in json to zk """
         jsonf = ("%s/backup.json" % (self.temp_dir)).replace("/", "!")
         src = "json://%s/backup" % (jsonf)
-        dst = "zk://%s/%s/from-json" % (self.zk_host, self.tests_path)
+        dst = "zk://%s/%s/from-json" % (self.zk_hosts, self.tests_path)
         self.shell.onecmd("cp %s %s  true true" % (src, dst))
         expected_output = "Path /backup doesn't exist\n"
         self.assertIn(expected_output, self.output.getutf8())
@@ -96,7 +96,7 @@ class CpCmdsTestCase(ShellTestCase):
     # Helpers.
     ##
     def zk2zk(self, async):
-        host = self.zk_host
+        host = self.zk_hosts
         src = "%s/src" % (self.tests_path)
         dst = "%s/dst" % (self.tests_path)
         self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src))
@@ -119,7 +119,7 @@ class CpCmdsTestCase(ShellTestCase):
         else:
             self.shell.onecmd("create %s 'HELLO' false false true" % (nested_path))
 
-        src = "zk://%s%s" % (self.zk_host, src_path)
+        src = "zk://%s%s" % (self.zk_hosts, src_path)
         dst = "json://%s/backup" % (json_file.replace("/", "!"))
         asyncp = "true" if async else "false"
         self.shell.onecmd("cp %s %s true true %s" % (src, dst, asyncp))
@@ -156,10 +156,10 @@ class CpCmdsTestCase(ShellTestCase):
         asyncp = "true" if async else "false"
 
         json_url = "json://%s/backup" % (json_file.replace("/", "!"))
-        src_zk = "zk://%s%s" % (self.zk_host, src_path)
+        src_zk = "zk://%s%s" % (self.zk_hosts, src_path)
         self.shell.onecmd("cp %s %s true true %s" % (src_zk, json_url, asyncp))
 
-        dst_zk = "zk://%s/%s/from-json" % (self.zk_host, self.tests_path)
+        dst_zk = "zk://%s/%s/from-json" % (self.zk_hosts, self.tests_path)
         self.shell.onecmd("cp %s %s true true %s" % (json_url, dst_zk, asyncp))
         self.shell.onecmd("tree %s/from-json" % (self.tests_path))
         self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))

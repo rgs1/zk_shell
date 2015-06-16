@@ -29,7 +29,7 @@ class ConnectTestCase(unittest.TestCase):
         """
         make sure that the prefix dir is empty
         """
-        self.zk_host = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
+        self.zk_hosts = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
         self.output = StringIO()
         self.shell = Shell([], 1, self.output, setup_readline=False, async=False)
 
@@ -44,7 +44,7 @@ class ConnectTestCase(unittest.TestCase):
 
     def test_start_connected(self):
         """ test connect command """
-        self.shell.onecmd("connect %s" % (self.zk_host))
+        self.shell.onecmd("connect %s" % (self.zk_hosts))
         self.shell.onecmd("session_info")
         self.assertIn("state=CONNECTED", self.output.getvalue())
 
@@ -61,7 +61,7 @@ class ConnectTestCase(unittest.TestCase):
 
     def test_connect_disconnect(self):
         """ test disconnecting """
-        self.shell.onecmd("connect %s" % (self.zk_host))
+        self.shell.onecmd("connect %s" % (self.zk_hosts))
         self.assertTrue(self.shell.connected)
         self.shell.onecmd("disconnect")
         self.assertFalse(self.shell.connected)
@@ -75,11 +75,11 @@ class ConnectTestCase(unittest.TestCase):
         signal.signal(signal.SIGUSR2, handler)
 
         shell = Shell([], 1, self.output, setup_readline=False, async=True)
-        shell.onecmd("connect %s" % (self.zk_host))
+        shell.onecmd("connect %s" % (self.zk_hosts))
         self.assertTrue(wait_connected(shell))
 
     def test_reconnect(self):
         """ force reconnect """
-        self.shell.onecmd("connect %s" % (self.zk_host))
+        self.shell.onecmd("connect %s" % (self.zk_hosts))
         self.shell.onecmd("reconnect")
         self.assertTrue(wait_connected(self.shell))
