@@ -11,6 +11,8 @@ except ImportError:
 import time
 import unittest
 
+from kazoo.testing.harness import get_global_cluster
+
 from zk_shell.shell import Shell
 
 
@@ -25,11 +27,15 @@ def wait_connected(shell):
 # pylint: disable=R0904,F0401
 class ConnectTestCase(unittest.TestCase):
     """ connect/disconnect tests """
+    @classmethod
+    def setUpClass(cls):
+        get_global_cluster().start()
+
     def setUp(self):
         """
         make sure that the prefix dir is empty
         """
-        self.zk_hosts = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
+        self.zk_hosts = ",".join(server.address for server in get_global_cluster())
         self.output = StringIO()
         self.shell = Shell([], 1, self.output, setup_readline=False, async=False)
 

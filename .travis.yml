@@ -5,11 +5,10 @@ python:
   - "3.4"
 install:
   - sudo apt-get install libcppunit-dev
-  - integration/start.sh 3.5.0 https://github.com/apache/zookeeper/archive/release-3.5.0.tar.gz 2181
   - pip install -r requirements.txt --use-mirrors
   - pip install coverage
   - pip install coveralls
-script: python setup.py nosetests --with-coverage --cover-package=zk_shell
+script: ./ensure-zookeeper-env.sh python setup.py nosetests --with-coverage --cover-package=zk_shell
 after_script:
   - integration/stop.sh 3.5.0
 after_success:

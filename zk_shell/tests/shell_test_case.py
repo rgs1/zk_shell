@@ -16,6 +16,7 @@ except ImportError:
     from io import StringIO
 
 from kazoo.client import KazooClient
+from kazoo.testing.harness import get_global_cluster
 
 from zk_shell.shell import Shell
 from zk_shell.util import decoded_utf8
@@ -32,12 +33,16 @@ class XStringIO(StringIO):
 class ShellTestCase(unittest.TestCase):
     """ base class for all tests """
 
+    @classmethod
+    def setUpClass(cls):
+        get_global_cluster().start()
+
     def setUp(self):
         """
         make sure that the prefix dir is empty
         """
         self.tests_path = os.getenv("ZKSHELL_PREFIX_DIR", "/tests")
-        self.zk_hosts = os.getenv("ZKSHELL_ZK_HOST", "localhost:2181")
+        self.zk_hosts = ",".join(server.address for server in get_global_cluster())
         self.username = os.getenv("ZKSHELL_USER", "user")
         self.password = os.getenv("ZKSHELL_PASSWD", "user")
         self.digested_password = os.getenv("ZKSHELL_DIGESTED_PASSWD", "F46PeTVYeItL6aAyygIVQ9OaaeY=")

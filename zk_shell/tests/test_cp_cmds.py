@@ -8,6 +8,8 @@ import zlib
 
 from .shell_test_case import PYTHON3, ShellTestCase
 
+from kazoo.testing.harness import get_global_cluster
+
 
 # pylint: disable=R0904
 class CpCmdsTestCase(ShellTestCase):
@@ -89,7 +91,8 @@ class CpCmdsTestCase(ShellTestCase):
         self.assertIn("doesn't exist\n", self.output.getutf8())
 
     def test_bad_auth(self):
-        self.shell.onecmd("cp / zk://foo:bar@localhost/y")
+        server = next(iter(get_global_cluster()))
+        self.shell.onecmd("cp / zk://foo:bar@%s/y" % server.address)
         self.assertTrue(True)
 
     ###
