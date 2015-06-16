@@ -11,6 +11,7 @@ Bug Handling
 Features
 ********
 - add --version
+- add `stat` alias for `exists` command
 
 1.0.08 (2015-06-05)
 --------------------

@@ -1139,6 +1139,15 @@ class Shell(XCmd):
         completers = [self._complete_path, complete_boolean]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
+    def do_stat(self, *args, **kwargs):
+        """
+        An alias for exists.
+        """
+        self.do_exists(*args, **kwargs)
+
+    def complete_stat(self, *args, **kwargs):
+        return self.complete_exists(*args, **kwargs)
+
     @connected
     @ensure_params(
         Required("path"),
