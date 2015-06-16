@@ -1,5 +1,5 @@
 ansicolors
-kazoo>=2.0
+kazoo>=2.2
 nose
 tabulate
 twitter.common.net

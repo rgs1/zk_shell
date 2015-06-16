@@ -212,7 +212,7 @@ $ zk-shell --tunnel ssh-host zk-host
 ### Dependencies ###
 
 * Python 2.7, 3.3 or 3.4
-* Kazoo >= 2.0.0
+* Kazoo >= 2.2
 
 ### Testing and Development ###
 
