@@ -334,10 +334,6 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertEqual(u"bar\n", self.output.getvalue())
 
     def test_reconfig(self):
-        # broken until a new release with https://github.com/python-zk/kazoo/pull/340
-        if PYTHON3:
-            raise SkipTest("not working for py3k")
-
         # handle bad input
         self.shell.onecmd("reconfig add foo")
         self.assertIn("Bad arguments", self.output.getvalue())
