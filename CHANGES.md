@@ -12,6 +12,7 @@ Features
 ********
 - add --version
 - add `stat` alias for `exists` command
+- add reconfig command (as offered by ZOOKEEPER-107)
 
 1.0.08 (2015-06-05)
 --------------------

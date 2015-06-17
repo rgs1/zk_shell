@@ -29,6 +29,11 @@ class XStringIO(StringIO):
     def getutf8(self):
         return decoded_utf8(self.getvalue())
 
+    def reset(self):
+        self.seek(0)
+        self.truncate()
+        self.flush()
+
 
 class ShellTestCase(unittest.TestCase):
     """ base class for all tests """
