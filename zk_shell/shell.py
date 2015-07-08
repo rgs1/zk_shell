@@ -1083,14 +1083,14 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("watch"))
+    @ensure_params(Required("path"), BooleanOptional("watch"), BooleanOptional("pretty_date"))
     def do_exists(self, params):
         """
 \x1b[1mNAME\x1b[0m
         exists - Gets the znode's stat information
 
 \x1b[1mSYNOPSIS\x1b[0m
-        exists <path> [watch]
+        exists <path> [watch] [pretty_date]
 
 \x1b[1mOPTIONS\x1b[0m
         * watch: set a (data) watch on the path (default: false)
@@ -1121,6 +1121,7 @@ class Shell(XCmd):
 
         """
         kwargs = {"watch": default_watcher} if params.watch else {}
+        pretty = params.pretty_date
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
         if stat:
@@ -1128,8 +1129,8 @@ class Shell(XCmd):
             self.show_output("Stat(")
             self.show_output("  czxid=%s", stat.czxid)
             self.show_output("  mzxid=%s", stat.mzxid)
-            self.show_output("  ctime=%s", stat.ctime)
-            self.show_output("  mtime=%s", stat.mtime)
+            self.show_output("  ctime=%s", time.ctime(stat.created) if pretty else stat.ctime)
+            self.show_output("  mtime=%s", time.ctime(stat.last_modified) if pretty else stat.mtime)
             self.show_output("  version=%s", stat.version)
             self.show_output("  cversion=%s", stat.cversion)
             self.show_output("  aversion=%s", stat.aversion)
@@ -1142,7 +1143,7 @@ class Shell(XCmd):
             self.show_output("Path %s doesn't exist", params.path)
 
     def complete_exists(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_boolean, complete_boolean]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     def do_stat(self, *args, **kwargs):
