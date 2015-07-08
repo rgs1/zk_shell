@@ -276,3 +276,11 @@ def which(program):
             return exe_file
 
     return None
+
+
+def get_matching(content, match):
+    """ filters out lines that don't include match """
+    if match != "":
+        lines = [line for line in content.split("\n") if match in line]
+        content = "\n".join(lines)
+    return content
