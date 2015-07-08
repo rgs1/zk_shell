@@ -83,7 +83,6 @@ from .util import (
     prompt_yes_no,
     split,
     to_bool,
-    to_float,
     to_int,
     which
 )
@@ -2316,7 +2315,7 @@ child_watches=%s"""
     def complete_edit(self, cmd_param_text, full_cmd, *rest):
         return complete([self._complete_path], cmd_param_text, full_cmd, *rest)
 
-    @ensure_params(Required("repeat"), Required("pause"), Multi("cmds"))
+    @ensure_params(IntegerRequired("repeat"), FloatRequired("pause"), Multi("cmds"))
     def do_loop(self, params):
         """
 \x1b[1mNAME\x1b[0m
@@ -2337,11 +2336,12 @@ child_watches=%s"""
         ...
 
         """
-        repeat = to_int(params.repeat, -1)
+        repeat = params.repeat
         if repeat < 0:
             self.show_output("<repeat> must be >= 0.")
             return
-        pause = to_float(params.pause, -1)
+
+        pause = params.pause
         if pause < 0:
             self.show_output("<pause> must be >= 0.")
             return
