@@ -9,7 +9,5 @@ install:
   - pip install coverage
   - pip install coveralls
 script: ./ensure-zookeeper-env.sh python setup.py nosetests --with-coverage --cover-package=zk_shell
-after_script:
-  - integration/stop.sh 3.5.0
 after_success:
   coveralls
