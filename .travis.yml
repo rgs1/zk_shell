@@ -4,7 +4,6 @@ python:
   - "3.3"
   - "3.4"
 install:
-  - sudo apt-get install libcppunit-dev
   - pip install -r requirements.txt --use-mirrors
   - pip install coverage
   - pip install coveralls
