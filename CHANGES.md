@@ -1,6 +1,17 @@
 ChangeLog
 =========
 
+1.1.1 (2015-XX-XX)
+--------------------
+
+Bug Handling
+************
+-
+
+Features
+********
+- add `pretty_date` option for `exists` command
+
 1.1.0 (2015-06-17)
 --------------------
 
