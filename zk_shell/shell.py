@@ -413,7 +413,7 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Optional("path"), Optional("watch"), Optional("sep", "\n"))
+    @ensure_params(Optional("path"), BooleanOptional("watch"), Optional("sep", "\n"))
     @check_paths_exists("path")
     def do_ls(self, params):
         """
@@ -445,7 +445,7 @@ class Shell(XCmd):
         configs,zookeeper
 
         """
-        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
+        kwargs = {"watch": default_watcher} if params.watch else {}
         znodes = self._zk.get_children(params.path, **kwargs)
         self.show_output(params.sep.join(sorted(znodes)))
 
@@ -1041,7 +1041,7 @@ class Shell(XCmd):
     complete_cd = _complete_path
 
     @connected
-    @ensure_params(Required("path"), Optional("watch"))
+    @ensure_params(Required("path"), BooleanOptional("watch"))
     @check_paths_exists("path")
     def do_get(self, params):
         """
@@ -1067,7 +1067,7 @@ class Shell(XCmd):
         WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
 
         """
-        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
+        kwargs = {"watch": default_watcher} if params.watch else {}
         value, _ = self._zk.get(params.path, **kwargs)
 
         # maybe it's compressed?
@@ -1084,7 +1084,7 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Optional("watch"))
+    @ensure_params(Required("path"), BooleanOptional("watch"))
     def do_exists(self, params):
         """
 \x1b[1mNAME\x1b[0m
@@ -1121,7 +1121,7 @@ class Shell(XCmd):
         WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
 
         """
-        kwargs = {"watch": default_watcher} if to_bool(params.watch) else {}
+        kwargs = {"watch": default_watcher} if params.watch else {}
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
         if stat:
