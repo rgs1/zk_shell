@@ -51,14 +51,6 @@ def to_int(sint, default):
         return default
 
 
-def to_float(sfloat, default):
-    """ get a float from an str """
-    try:
-        return float(sfloat)
-    except ValueError:
-        return default
-
-
 def decoded(s):
     if PYTHON3:
         return str.encode(s).decode('unicode_escape')
