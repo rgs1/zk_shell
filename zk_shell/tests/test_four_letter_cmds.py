@@ -2,7 +2,7 @@
 
 """test 4 letter cmds"""
 
-from .shell_test_case import  ShellTestCase
+from .shell_test_case import ShellTestCase
 
 
 # pylint: disable=R0904
@@ -13,6 +13,12 @@ class FourLetterCmdsTestCase(ShellTestCase):
         """ test mntr """
         self.shell.onecmd("mntr")
         self.assertIn("zk_server_state", self.output.getvalue())
+
+    def test_mntr_with_match(self):
+        """ test mntr with matched lines """
+        self.shell.onecmd("mntr %s zk_server_state" % self.shell.server_endpoint)
+        lines = [line for line in self.output.getvalue().split("\n") if line != ""]
+        self.assertEquals(1, len(lines))
 
     def test_cons(self):
         """ test cons """

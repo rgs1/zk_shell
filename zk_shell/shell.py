@@ -75,6 +75,7 @@ from .util import (
     decoded,
     find_outliers,
     get_ips,
+    get_matching,
     hosts_to_endpoints,
     join,
     invalid_hosts,
@@ -294,6 +295,11 @@ class Shell(XCmd):
     def client(self):
         """ the connected ZK client, if any """
         return self._zk
+
+    @property
+    def server_endpoint(self):
+        """ the literal endpoint for the currently connected server """
+        return "%s:%s" % self._zk.server if self.connected else ""
 
     @connected
     @ensure_params(Required("scheme"), Required("credential"))
@@ -1487,17 +1493,18 @@ child_watches=%s"""
         completers = [partial(complete_values, ["get", "ls", "create", "set", "rm"])]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
-    @ensure_params(Optional("hosts"))
+    @ensure_params(Optional("hosts"), Optional("match"))
     def do_mntr(self, params):
         """
 \x1b[1mNAME\x1b[0m
         mntr - Executes the mntr four-letter command
 
 \x1b[1mSYNOPSIS\x1b[0m
-        mntr [hosts]
+        mntr [hosts] [match]
 
 \x1b[1mOPTIONS\x1b[0m
         * hosts: the hosts to connect to (default: the current connected host)
+        * match: only output lines that include the given string (default: '')
 
 \x1b[1mEXAMPLES\x1b[0m
         > mntr
@@ -1517,21 +1524,23 @@ child_watches=%s"""
             self._zk = XClient()
 
         try:
-            self.show_output(self._zk.mntr(hosts))
+            content = get_matching(self._zk.mntr(hosts), params.match)
+            self.show_output(content)
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
-    @ensure_params(Optional("hosts"))
+    @ensure_params(Optional("hosts"), Optional("match"))
     def do_cons(self, params):
         """
 \x1b[1mNAME\x1b[0m
         cons - Executes the cons four-letter command
 
 \x1b[1mSYNOPSIS\x1b[0m
-        cons [hosts]
+        cons [hosts] [match]
 
 \x1b[1mOPTIONS\x1b[0m
         * hosts: the hosts to connect to (default: the current connected host)
+        * match: only output lines that include the given string (default: '')
 
 \x1b[1mEXAMPLES\x1b[0m
         > cons
@@ -1549,21 +1558,23 @@ child_watches=%s"""
             self._zk = XClient()
 
         try:
-            self.show_output(self._zk.cons(hosts))
+            content = get_matching(self._zk.cons(hosts), params.match)
+            self.show_output(content)
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 
-    @ensure_params(Optional("hosts"))
+    @ensure_params(Optional("hosts"), Optional("match"))
     def do_dump(self, params):
         """
 \x1b[1mNAME\x1b[0m
         dump - Executes the dump four-letter command
 
 \x1b[1mSYNOPSIS\x1b[0m
-        dump [hosts]
+        dump [hosts] [match]
 
 \x1b[1mOPTIONS\x1b[0m
         * hosts: the hosts to connect to (default: the current connected host)
+        * match: only output lines that include the given string (default: '')
 
 \x1b[1mEXAMPLES\x1b[0m
         > dump
@@ -1587,7 +1598,8 @@ child_watches=%s"""
             self._zk = XClient()
 
         try:
-            self.show_output(self._zk.dump(hosts))
+            content = get_matching(self._zk.dump(hosts), params.match)
+            self.show_output(content)
         except XClient.CmdFailed as ex:
             self.show_output(str(ex))
 

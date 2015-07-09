@@ -113,13 +113,13 @@ class XClient(KazooClient):
 
     @property
     def server(self):
-        """ the IP address of the connected ZK server (or "") """
+        """ the (hostaddr, port) of the connected ZK server (or "") """
         conn = self._connection
         return conn._socket.getpeername() if conn else ""
 
     @property
     def client(self):
-        """ the address (ip, port) of the local endpoint """
+        """ the (hostaddr, port) of the local endpoint (or "") """
         conn = self._connection
         return conn._socket.getsockname() if conn else ""
 
