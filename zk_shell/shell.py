@@ -1133,8 +1133,8 @@ class Shell(XCmd):
         if stat:
             session = stat.ephemeralOwner if stat.ephemeralOwner else 0
             self.show_output("Stat(")
-            self.show_output("  czxid=%s", stat.czxid)
-            self.show_output("  mzxid=%s", stat.mzxid)
+            self.show_output("  czxid=0x%x", stat.czxid)
+            self.show_output("  mzxid=0x%x", stat.mzxid)
             self.show_output("  ctime=%s", time.ctime(stat.created) if pretty else stat.ctime)
             self.show_output("  mtime=%s", time.ctime(stat.last_modified) if pretty else stat.mtime)
             self.show_output("  version=%s", stat.version)
@@ -1143,7 +1143,7 @@ class Shell(XCmd):
             self.show_output("  ephemeralOwner=0x%x", session)
             self.show_output("  dataLength=%s", stat.dataLength)
             self.show_output("  numChildren=%s", stat.numChildren)
-            self.show_output("  pzxid=%s", stat.pzxid)
+            self.show_output("  pzxid=0x%x", stat.pzxid)
             self.show_output(")")
         else:
             self.show_output("Path %s doesn't exist", params.path)
