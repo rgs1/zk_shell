@@ -2606,7 +2606,10 @@ child_watches=%s"""
                 self.show_output(conf.describe(params.args[0], error))
 
         def save():
-            pass
+            if self.prompt_yes_no("Save configuration?"):
+                if self._conf_store.save("config", self._conf):
+                    self.show_output("Configuration saved")
+                # FIXME: not dealing with failure now
 
         cmds = {
             "get": get,
