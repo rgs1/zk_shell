@@ -1,5 +1,7 @@
 """ configuration management """
 
+import json
+
 
 class ConfVar(object):
     """
@@ -16,6 +18,25 @@ class ConfVar(object):
     def description(self):
         return self._description
 
+    def to_dict(self):
+        return {
+            "name": self._name,
+            "description": self._description,
+            "value": self.value
+        }
+
+    def __eq__(self, other):
+        return (
+            self.name == other.name and
+            self.description == other.description and
+            self.value == other.value)
+
+    def __ne__(self, other):
+        return (
+            self.name != other.name or
+            self.description != other.description or
+            self.value != other.value)
+
 
 class Conf(dict):
     def __init__(self, *args, **kwargs):
@@ -30,6 +51,21 @@ class Conf(dict):
         for key, value in self.get_all():
             items.append("%s: %s" % (key, value))
         return "\n".join(items)
+
+    @classmethod
+    def from_json(cls, content):
+        dic = json.loads(content)
+        confvars = []
+        for key, vard in dic.items():
+            cvar = ConfVar(vard["name"], vard["description"], vard["value"])
+            confvars.append(cvar)
+        return cls(*confvars)
+
+    def to_json(self):
+        out = {}
+        for key, var in self.items():
+            out[key] = var.to_dict()
+        return json.dumps(out)
 
     def get_all(self):
         for key, cvar in self.items():

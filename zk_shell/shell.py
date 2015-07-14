@@ -51,6 +51,7 @@ from twitter.common.net.tunnel import TunnelHelper
 
 from .acl import ACLReader
 from .conf import Conf, ConfVar
+from .conf_store import ConfStore
 from .xclient import XClient
 from .xcmd import (
     XCmd,
@@ -186,7 +187,7 @@ def default_watcher(watched_event):
     print(str(watched_event))
 
 
-HISTORY_FILENAME = ".kz-shell-history"
+OLD_HISTORY_FILENAME = os.path.join(os.environ["HOME"], ".kz-shell-history")
 
 
 class BadJSON(Exception): pass
@@ -215,7 +216,17 @@ class Shell(XCmd):
                  async=True,
                  read_only=False,
                  tunnel=None):
-        XCmd.__init__(self, HISTORY_FILENAME, setup_readline, output)
+
+        self._conf_store = ConfStore()
+        self._conf_store.ensure_path()
+
+        # mv (old) history file to zk-shell's private dir
+        history_filename = self._conf_store.full_path("history")
+        try:
+            os.rename(OLD_HISTORY_FILENAME, history_filename)
+        except OSError: pass
+
+        XCmd.__init__(self, history_filename, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
         self._read_only = read_only

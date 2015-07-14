@@ -410,11 +410,10 @@ class XCmd(cmd.Cmd):
         for i in range(0, readline.get_current_history_length()):
             yield readline.get_history_item(i)
 
-    def _setup_readline(self, hist_file_name):
-        if not HAVE_READLINE or hist_file_name is None:
+    def _setup_readline(self, path):
+        if not HAVE_READLINE or path is None:
             return
 
-        path = os.path.join(os.environ["HOME"], hist_file_name)
         try:
             readline.read_history_file(path)
         except IOError:
