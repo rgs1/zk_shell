@@ -2649,7 +2649,7 @@ child_watches=%s"""
         sleep - Sleeps for the given seconds (may be fractional)
 
 \x1b[1mSYNOPSIS\x1b[0m
-        fill <seconds>
+        sleep <seconds>
 
 \x1b[1mEXAMPLES\x1b[0m
         > sleep 0.5

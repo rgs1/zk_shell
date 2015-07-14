@@ -6,7 +6,7 @@ ChangeLog
 
 Bug Handling
 ************
--
+- fix doc error in `sleep`'s documentation
 
 Features
 ********
