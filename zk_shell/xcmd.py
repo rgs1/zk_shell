@@ -24,7 +24,8 @@ try:
 except ImportError:
     from io import StringIO
 
-from .util import join
+from .util import join, strtobool
+
 
 PYTHON3 = sys.version_info > (3, )
 
@@ -289,7 +290,7 @@ class XCmd(cmd.Cmd):
         self.show_output(output.rstrip("\n"))
         return rv
 
-    def show_output(self, fmt_str, *params):
+    def show_output(self, fmt_str, *params, **kwargs):
         """ MAX_OUTPUT chars of the last output is available via $? """
         if PYTHON3:
             fmt_str = str(fmt_str)
@@ -302,7 +303,17 @@ class XCmd(cmd.Cmd):
         if not PYTHON3 and not sys.stdout.isatty() and out:
             out = out.encode('utf-8')
 
-        print(out, file=self._output)
+        end = kwargs['end'] if 'end' in kwargs else '\n'
+
+        print(out, file=self._output, end=end)
+
+    def prompt_yes_no(self, question):
+        while True:
+            self.show_output("%s [y/n]: ", question, end="")
+            try:
+                return strtobool(raw_input().lower())
+            except ValueError:
+                self.show_output("Please respond with 'y' or 'n'.")
 
     @property
     def commands(self):

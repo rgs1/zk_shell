@@ -62,15 +62,6 @@ def decoded_utf8(s):
     return s if PYTHON3 else s.decode('utf-8')
 
 
-def prompt_yes_no(question):
-    print('%s [y/n]: ' % question)
-    while True:
-        try:
-            return strtobool(raw_input().lower())
-        except ValueError:
-            print('Please respond with \'y\' or \'n\'.\n')
-
-
 class Netloc(namedtuple("Netloc", "host scheme credential")):
     """
     network location info: host, scheme and credential

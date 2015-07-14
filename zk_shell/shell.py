@@ -82,7 +82,6 @@ from .util import (
     invalid_hosts,
     Netloc,
     pretty_bytes,
-    prompt_yes_no,
     split,
     to_bool,
     to_int,
@@ -189,6 +188,39 @@ def default_watcher(watched_event):
 
 OLD_HISTORY_FILENAME = os.path.join(os.environ["HOME"], ".kz-shell-history")
 
+DEFAULT_CONF = Conf(
+    ConfVar(
+        "chkzk_stat_retries",
+        "Retries when running stat command on a server",
+        10
+    ),
+    ConfVar(
+        "chkzk_znode_delta",
+        "Difference in znodes to claim inconsistency between servers",
+        100
+    ),
+    ConfVar(
+        "chkzk_ephemeral_delta",
+        "Difference in ephemerals to claim inconsistency between servers",
+        50
+    ),
+    ConfVar(
+        "chkzk_datasize_delta",
+        "Difference in datasize to claim inconsistency between servers",
+        1000
+    ),
+    ConfVar(
+        "chkzk_session_delta",
+        "Difference in sessions to claim inconsistency between servers",
+        150
+    ),
+    ConfVar(
+        "chkzk_zxid_delta",
+        "Difference in zxids to claim inconsistency between servers",
+        200
+    )
+)
+
 
 class BadJSON(Exception): pass
 
@@ -237,38 +269,10 @@ class Shell(XCmd):
         self.state_transitions_enabled = True
         self._tunnel = tunnel
 
-        self._conf = Conf(
-            ConfVar(
-                "chkzk_stat_retries",
-                "Retries when running stat command on a server",
-                10
-            ),
-            ConfVar(
-                "chkzk_znode_delta",
-                "Difference in znodes to claim inconsistency between servers",
-                100
-            ),
-            ConfVar(
-                "chkzk_ephemeral_delta",
-                "Difference in ephemerals to claim inconsistency between servers",
-                50
-            ),
-            ConfVar(
-                "chkzk_datasize_delta",
-                "Difference in datasize to claim inconsistency between servers",
-                1000
-            ),
-            ConfVar(
-                "chkzk_session_delta",
-                "Difference in sessions to claim inconsistency between servers",
-                150
-            ),
-            ConfVar(
-                "chkzk_zxid_delta",
-                "Difference in zxids to claim inconsistency between servers",
-                200
-            )
-        )
+        self._conf = self._conf_store.get("config")
+        if self._conf is None:
+            self._conf_store.save("config", DEFAULT_CONF)
+            self._conf = self._conf_store.get("config")
 
         if len(self._hosts) > 0:
             self._connect(self._hosts)
@@ -632,7 +636,7 @@ class Shell(XCmd):
 
         """
         question = "Are you sure you want to replace %s with %s?" % (params.dst, params.src)
-        if params.skip_prompt or prompt_yes_no(question):
+        if params.skip_prompt or self.prompt_yes_no(question):
             self.copy(params, True, True, 0, True)
 
     def complete_mirror(self, cmd_param_text, full_cmd, *rest):
@@ -2602,7 +2606,10 @@ child_watches=%s"""
                 self.show_output(conf.describe(params.args[0], error))
 
         def save():
-            pass
+            if self.prompt_yes_no("Save configuration?"):
+                if self._conf_store.save("config", self._conf):
+                    self.show_output("Configuration saved")
+                # FIXME: not dealing with failure now
 
         cmds = {
             "get": get,

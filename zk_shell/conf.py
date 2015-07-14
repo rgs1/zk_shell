@@ -65,7 +65,7 @@ class Conf(dict):
         out = {}
         for key, var in self.items():
             out[key] = var.to_dict()
-        return json.dumps(out)
+        return json.dumps(out, indent=4)
 
     def get_all(self):
         for key, cvar in self.items():
