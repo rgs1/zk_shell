@@ -40,7 +40,7 @@ class FourLetterCmdsTestCase(ShellTestCase):
         self.assertEquals(expected_output, self.output.getvalue())
 
     def test_chkzk(self):
-        self.shell.onecmd("chkzk 0 true true")
+        self.shell.onecmd("chkzk 0 verbose=true reverse_lookup=true")
         self.assertIn("state", self.output.getvalue())
         self.assertIn("znode count", self.output.getvalue())
         self.assertIn("ephemerals", self.output.getvalue())

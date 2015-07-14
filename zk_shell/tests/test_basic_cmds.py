@@ -29,7 +29,8 @@ class BasicCmdsTestCase(ShellTestCase):
     def test_create_recursive(self):
         """ recursively create a path """
         path = "%s/one/very/long/path" % (self.tests_path)
-        self.shell.onecmd("create %s 'hello' false false true" % (path))
+        self.shell.onecmd(
+            "create %s 'hello' ephemeral=false sequence=false recursive=true" % (path))
         self.shell.onecmd("get %s" % (path))
         self.assertEqual("hello\n", self.output.getvalue())
 
@@ -151,15 +152,17 @@ class BasicCmdsTestCase(ShellTestCase):
     def test_grep(self):
         """ test grepping for content through a path """
         path = "%s/semi/long/path" % (self.tests_path)
-        self.shell.onecmd("create %s 'hello' false false true" % (path))
+        self.shell.onecmd(
+            "create %s 'hello' ephemeral=false sequence=false recursive=true" % (path))
         self.shell.onecmd("grep %s hello" % (self.tests_path))
         self.assertEqual("%s\n" % (path), self.output.getvalue())
 
     def test_igrep(self):
         """ test case-insensitive grep """
         path = "%s/semi/long/path" % (self.tests_path)
-        self.shell.onecmd("create %s 'HELLO' false false true" % (path))
-        self.shell.onecmd("igrep %s hello true" % (self.tests_path))
+        self.shell.onecmd(
+            "create %s 'HELLO' ephemeral=false sequence=false recursive=true" % (path))
+        self.shell.onecmd("igrep %s hello show_matches=true" % (self.tests_path))
         self.assertEqual("%s:\nHELLO\n" % (path), self.output.getvalue())
 
     def test_get_compressed(self):
@@ -259,7 +262,7 @@ class BasicCmdsTestCase(ShellTestCase):
     def test_ephemeral_endpoint(self):
         server = next(iter(get_global_cluster()))
         path = "%s/ephemeral" % (self.tests_path)
-        self.shell.onecmd("create %s 'foo' true" % (path))
+        self.shell.onecmd("create %s 'foo' ephemeral=true" % (path))
         self.shell.onecmd("ephemeral_endpoint %s %s" % (path, server.address))
         self.assertTrue(self.output.getvalue().startswith("0x"))
 
@@ -281,9 +284,9 @@ class BasicCmdsTestCase(ShellTestCase):
 
     def test_transaction_rm(self):
         """ multiple rm commands """
-        self.shell.onecmd("create %s/a 'x' true" % (self.tests_path))
-        self.shell.onecmd("create %s/b 'x' true" % (self.tests_path))
-        self.shell.onecmd("create %s/c 'x' true" % (self.tests_path))
+        self.shell.onecmd("create %s/a 'x' ephemeral=true" % (self.tests_path))
+        self.shell.onecmd("create %s/b 'x' ephemeral=true" % (self.tests_path))
+        self.shell.onecmd("create %s/c 'x' ephemeral=true" % (self.tests_path))
         txn = "txn 'rm %s/a' 'rm %s/b' 'rm %s/c'" % (
             self.tests_path, self.tests_path, self.tests_path)
         self.shell.onecmd(txn)
@@ -299,19 +302,22 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertEqual("None\n", self.output.getvalue())
 
     def test_create_sequential_without_prefix(self):
-        self.shell.onecmd("create %s/ '' false true" % self.tests_path)
+        self.shell.onecmd("create %s/ '' ephemeral=false sequence=true" % self.tests_path)
         self.shell.onecmd("ls %s" % self.tests_path)
         self.assertEqual("0000000000\n", self.output.getvalue())
 
     def test_rm_relative(self):
-        self.shell.onecmd("create %s/a/b '2015' false false true" % self.tests_path)
+        self.shell.onecmd(
+            "create %s/a/b '2015' ephemeral=false sequence=false recursive=true" % self.tests_path)
         self.shell.onecmd("cd %s/a" % self.tests_path)
         self.shell.onecmd("rm b")
         self.shell.onecmd("exists %s/a" % self.tests_path)
         self.assertIn("numChildren=0", self.output.getvalue())
 
     def test_rmr_relative(self):
-        self.shell.onecmd("create %s/a/b/c '2015' false false true" % self.tests_path)
+        self.shell.onecmd(
+            "create %s/a/b/c '2015' ephemeral=false sequence=false recursive=true" % (
+                self.tests_path))
         self.shell.onecmd("cd %s/a" % self.tests_path)
         self.shell.onecmd("rmr b")
         self.shell.onecmd("exists %s/a" % self.tests_path)
