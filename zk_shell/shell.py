@@ -82,7 +82,6 @@ from .util import (
     invalid_hosts,
     Netloc,
     pretty_bytes,
-    prompt_yes_no,
     split,
     to_bool,
     to_int,
@@ -637,7 +636,7 @@ class Shell(XCmd):
 
         """
         question = "Are you sure you want to replace %s with %s?" % (params.dst, params.src)
-        if params.skip_prompt or prompt_yes_no(question):
+        if params.skip_prompt or self.prompt_yes_no(question):
             self.copy(params, True, True, 0, True)
 
     def complete_mirror(self, cmd_param_text, full_cmd, *rest):
