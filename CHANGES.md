@@ -12,6 +12,11 @@ Features
 ********
 - add `pretty_date` option for `exists` command
 - print zxids in `exists` as hex
+- all boolean parameters now support a label, i.e.:
+
+  ```
+  (CONNECTED) /> ls / watch=true
+  ```
 
 1.1.0 (2015-06-17)
 --------------------
