@@ -13,6 +13,10 @@ class ConfStore(object):
     def __init__(self, path=BASEPATH):
         self._path = path
 
+    def ensure_path(self):
+        if not os.path.isdir(self._path):
+            os.mkdir(self._path)
+
     def full_path(self, config_file):
         return os.path.join(self._path, config_file)
 
