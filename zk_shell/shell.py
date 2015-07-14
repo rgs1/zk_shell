@@ -1186,7 +1186,8 @@ class Shell(XCmd):
         Required("value"),
         LabeledBooleanOptional("ephemeral"),
         LabeledBooleanOptional("sequence"),
-        LabeledBooleanOptional("recursive")
+        LabeledBooleanOptional("recursive"),
+        LabeledBooleanOptional("async"),
     )
     @check_path_absent
     def do_create(self, params):
@@ -1195,12 +1196,13 @@ class Shell(XCmd):
         create - Creates a znode
 
 \x1b[1mSYNOPSIS\x1b[0m
-        create <path> <value> [ephemeral] [sequence] [recursive]
+        create <path> <value> [ephemeral] [sequence] [recursive] [async]
 
 \x1b[1mOPTIONS\x1b[0m
         * ephemeral: make the znode ephemeral (default: false)
         * sequence: make the znode sequential (default: false)
         * recursive: recursively create the path (default: false)
+        * async: don't block waiting on the result (default: false)
 
 \x1b[1mEXAMPLES\x1b[0m
         > create /foo 'bar'
@@ -1230,7 +1232,11 @@ class Shell(XCmd):
             kwargs = {"acl": None, "ephemeral": params.ephemeral, "sequence": params.sequence}
             if not self.in_transaction:
                 kwargs["makepath"] = params.recursive
-            self.client_context.create(params.path, decoded(params.value), **kwargs)
+
+            if params.async and not self.in_transaction:
+                self.client_context.create_async(params.path, decoded(params.value), **kwargs)
+            else:
+                self.client_context.create(params.path, decoded(params.value), **kwargs)
         except NodeExistsError:
             self.show_output("Path %s exists", params.path)
         except NoNodeError:
@@ -1244,6 +1250,7 @@ class Shell(XCmd):
             complete_labeled_boolean("ephemeral"),
             complete_labeled_boolean("sequence"),
             complete_labeled_boolean("recursive"),
+            complete_labeled_boolean("async"),
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 

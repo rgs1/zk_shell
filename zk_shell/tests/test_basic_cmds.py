@@ -373,3 +373,10 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("time 'ls /'")
         self.assertIn("Took", self.output.getvalue())
         self.assertIn("seconds", self.output.getvalue())
+
+    def test_create_async(self):
+        self.shell.onecmd(
+            "create %s/foo bar ephemeral=false sequence=false recursive=false async=true" % (
+                self.tests_path))
+        self.shell.onecmd("exists %s/foo" % self.tests_path)
+        self.assertIn("numChildren=0", self.output.getvalue())
