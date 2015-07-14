@@ -50,3 +50,5 @@ def complete_values(values, cmd_param_text, full_cmd, *rest):
 complete_boolean = partial(complete_values, ["true", "false"])
 
 
+def complete_labeled_boolean(label):
+    return partial(complete_values, ["%s=true" % label, "%s=false" % label, "true", "false"])

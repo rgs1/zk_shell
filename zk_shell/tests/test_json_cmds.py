@@ -29,7 +29,7 @@ class JsonCmdsTestCase(ShellTestCase):
         invalid = '{"a": ["foo"'
         self.shell.onecmd("create %s/valid '%s'" % (self.tests_path, valid))
         self.shell.onecmd("create %s/invalid '%s'" % (self.tests_path, invalid))
-        self.shell.onecmd("json_valid %s true" % (self.tests_path))
+        self.shell.onecmd("json_valid %s recursive=true" % (self.tests_path))
         expected_output = "valid: yes.\ninvalid: no.\n"
         self.assertEqual(expected_output, self.output.getvalue())
 
@@ -49,7 +49,7 @@ class JsonCmdsTestCase(ShellTestCase):
         jsonstr = '{"a": ["foo", "bar"], "b": ["foo", 3]}'
         self.shell.onecmd("create %s/json_a '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("create %s/json_b '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_cat %s true" % (self.tests_path))
+        self.shell.onecmd("json_cat %s recursive=true" % (self.tests_path))
 
         def dict_by_path(output):
             paths = defaultdict(str)
@@ -86,7 +86,7 @@ class JsonCmdsTestCase(ShellTestCase):
         jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
         self.shell.onecmd("create %s/a '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_get %s a.b.c.d true" % (self.tests_path))
+        self.shell.onecmd("json_get %s a.b.c.d recursive=true" % (self.tests_path))
 
         self.assertIn("a: value", self.output.getvalue())
         self.assertIn("b: value", self.output.getvalue())
@@ -104,7 +104,8 @@ class JsonCmdsTestCase(ShellTestCase):
         jsonstr = '{"a": {"b": {"c": {"d": "value"}}}}'
         self.shell.onecmd("create %s/a '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("create %s/b '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_get %s 'the value is: #{a.b.c.d}' true" % (self.tests_path))
+        self.shell.onecmd(
+            "json_get %s 'the value is: #{a.b.c.d}' recursive=true" % (self.tests_path))
 
         self.assertIn("a: the value is: value", self.output.getvalue())
         self.assertIn("b: the value is: value", self.output.getvalue())

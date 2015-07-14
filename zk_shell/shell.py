@@ -55,10 +55,10 @@ from .conf_store import ConfStore
 from .xclient import XClient
 from .xcmd import (
     XCmd,
-    BooleanOptional,
     FloatRequired,
     IntegerOptional,
     IntegerRequired,
+    LabeledBooleanOptional,
     interruptible,
     ensure_params,
     Multi,
@@ -66,7 +66,7 @@ from .xcmd import (
     Optional,
     Required,
 )
-from .complete import complete, complete_boolean, complete_values
+from .complete import complete, complete_boolean, complete_labeled_boolean, complete_values
 from .copy import CopyError, Proxy
 from .keys import Keys
 from .pathmap import PathMap
@@ -337,7 +337,7 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Required("acls"), BooleanOptional("recursive"))
+    @ensure_params(Required("path"), Required("acls"), LabeledBooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_set_acls(self, params):
         """
@@ -386,12 +386,12 @@ class Shell(XCmd):
             "world:anyone:cdrwa",
         ]
         complete_acl = partial(complete_values, possible_acl)
-        completers = [self._complete_path, complete_acl, complete_boolean]
+        completers = [self._complete_path, complete_acl, complete_labeled_boolean("recursive")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
     @interruptible
-    @ensure_params(Required("path"), IntegerOptional("depth", -1), BooleanOptional("ephemerals"))
+    @ensure_params(Required("path"), IntegerOptional("depth", -1), LabeledBooleanOptional("ephemerals"))
     @check_paths_exists("path")
     def do_get_acls(self, params):
         """
@@ -429,11 +429,11 @@ class Shell(XCmd):
 
     def complete_get_acls(self, cmd_param_text, full_cmd, *rest):
         complete_depth = partial(complete_values, [str(i) for i in range(-1, 11)])
-        completers = [self._complete_path, complete_depth, complete_boolean]
+        completers = [self._complete_path, complete_depth, complete_labeled_boolean("ephemerals")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Optional("path"), BooleanOptional("watch"), Optional("sep", "\n"))
+    @ensure_params(Optional("path"), LabeledBooleanOptional("watch"), Optional("sep", "\n"))
     @check_paths_exists("path")
     def do_ls(self, params):
         """
@@ -470,7 +470,7 @@ class Shell(XCmd):
         self.show_output(params.sep.join(sorted(znodes)))
 
     def complete_ls(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_labeled_boolean("watch")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
@@ -538,10 +538,10 @@ class Shell(XCmd):
     @ensure_params(
         Required("src"),
         Required("dst"),
-        BooleanOptional("recursive"),
-        BooleanOptional("overwrite"),
-        BooleanOptional("async"),
-        BooleanOptional("verbose"),
+        LabeledBooleanOptional("recursive"),
+        LabeledBooleanOptional("overwrite"),
+        LabeledBooleanOptional("async"),
+        LabeledBooleanOptional("verbose"),
         IntegerOptional("max_items", 0)
     )
     def do_cp(self, params):
@@ -588,10 +588,10 @@ class Shell(XCmd):
         completers = [
             self._complete_path,
             self._complete_path,
-            complete_boolean,
-            complete_boolean,
-            complete_boolean,
-            complete_boolean,
+            complete_labeled_boolean("recursive"),
+            complete_labeled_boolean("overwrite"),
+            complete_labeled_boolean("async"),
+            complete_labeled_boolean("verbose"),
             complete_max
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
@@ -599,9 +599,9 @@ class Shell(XCmd):
     @ensure_params(
         Required("src"),
         Required("dst"),
-        BooleanOptional("async"),
-        BooleanOptional("verbose"),
-        BooleanOptional("skip_prompt")
+        LabeledBooleanOptional("async"),
+        LabeledBooleanOptional("verbose"),
+        LabeledBooleanOptional("skip_prompt")
     )
     def do_mirror(self, params):
         """
@@ -643,9 +643,9 @@ class Shell(XCmd):
         completers = [
             self._complete_path,
             self._complete_path,
-            complete_boolean,
-            complete_boolean,
-            complete_boolean
+            complete_labeled_boolean("async"),
+            complete_labeled_boolean("verbose"),
+            complete_labeled_boolean("skip_prompt")
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -825,7 +825,7 @@ class Shell(XCmd):
     @ensure_params(
         Required("path"),
         Required("pattern"),
-        BooleanOptional("inverse", default=False)
+        LabeledBooleanOptional("inverse", default=False)
     )
     @check_paths_exists("path")
     def do_child_matches(self, params):
@@ -867,7 +867,7 @@ class Shell(XCmd):
 
     def complete_child_matches(self, cmd_param_text, full_cmd, *rest):
         complete_pats = partial(complete_values, ["some-pattern"])
-        completers = [self._complete_path, complete_pats, complete_boolean]
+        completers = [self._complete_path, complete_pats, complete_labeled_boolean("inverse")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
@@ -966,7 +966,7 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
+    @ensure_params(Optional("path"), Required("content"), LabeledBooleanOptional("show_matches"))
     @check_paths_exists("path")
     def do_grep(self, params):
         """
@@ -990,11 +990,11 @@ class Shell(XCmd):
 
     def complete_grep(self, cmd_param_text, full_cmd, *rest):
         complete_content = partial(complete_values, ["sometext"])
-        completers = [self._complete_path, complete_content, complete_boolean]
+        completers = [self._complete_path, complete_content, complete_labeled_boolean("show_matches")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Optional("path"), Required("content"), BooleanOptional("show_matches"))
+    @ensure_params(Optional("path"), Required("content"), LabeledBooleanOptional("show_matches"))
     @check_paths_exists("path")
     def do_igrep(self, params):
         """
@@ -1061,7 +1061,7 @@ class Shell(XCmd):
     complete_cd = _complete_path
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("watch"))
+    @ensure_params(Required("path"), LabeledBooleanOptional("watch"))
     @check_paths_exists("path")
     def do_get(self, params):
         """
@@ -1100,11 +1100,11 @@ class Shell(XCmd):
         self.show_output(value)
 
     def complete_get(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_labeled_boolean("watch")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("watch"), BooleanOptional("pretty_date"))
+    @ensure_params(Required("path"), LabeledBooleanOptional("watch"), LabeledBooleanOptional("pretty_date"))
     def do_exists(self, params):
         """
 \x1b[1mNAME\x1b[0m
@@ -1164,7 +1164,11 @@ class Shell(XCmd):
             self.show_output("Path %s doesn't exist", params.path)
 
     def complete_exists(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean, complete_boolean]
+        completers = [
+            self._complete_path,
+            complete_labeled_boolean("watch"),
+            complete_labeled_boolean("pretty_date")
+        ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     def do_stat(self, *args, **kwargs):
@@ -1180,9 +1184,9 @@ class Shell(XCmd):
     @ensure_params(
         Required("path"),
         Required("value"),
-        BooleanOptional("ephemeral"),
-        BooleanOptional("sequence"),
-        BooleanOptional("recursive")
+        LabeledBooleanOptional("ephemeral"),
+        LabeledBooleanOptional("sequence"),
+        LabeledBooleanOptional("recursive")
     )
     @check_path_absent
     def do_create(self, params):
@@ -1237,9 +1241,9 @@ class Shell(XCmd):
         completers = [
             self._complete_path,
             complete_value,
-            complete_boolean,
-            complete_boolean,
-            complete_boolean
+            complete_labeled_boolean("ephemeral"),
+            complete_labeled_boolean("sequence"),
+            complete_labeled_boolean("recursive"),
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -1620,8 +1624,8 @@ child_watches=%s"""
 
     @ensure_params(
         Required("hosts"),
-        BooleanOptional("verbose", default=False),
-        BooleanOptional("reverse_lookup")
+        LabeledBooleanOptional("verbose", default=False),
+        LabeledBooleanOptional("reverse_lookup")
     )
     def do_chkzk(self, params):
         """
@@ -1788,7 +1792,11 @@ child_watches=%s"""
     def complete_chkzk(self, cmd_param_text, full_cmd, *rest):
         # TODO: store a list of used clusters
         complete_cluster = partial(complete_values, ["localhost", "0"])
-        completers = [complete_cluster, complete_boolean, complete_boolean]
+        completers = [
+            complete_cluster,
+            complete_labeled_boolean("verbose"),
+            complete_labeled_boolean("reverse_lookup")
+        ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
@@ -1835,7 +1843,7 @@ child_watches=%s"""
     complete_sync = _complete_path
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("verbose"))
+    @ensure_params(Required("path"), LabeledBooleanOptional("verbose"))
     @check_paths_exists("path")
     def do_child_watch(self, params):
         """
@@ -1859,7 +1867,7 @@ child_watches=%s"""
         get_child_watcher(self._zk).update(params.path, params.verbose)
 
     def complete_child_watch(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_labeled_boolean("verbose")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
@@ -1903,7 +1911,7 @@ child_watches=%s"""
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("recursive"))
+    @ensure_params(Required("path"), LabeledBooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_valid(self, params):
         """
@@ -1951,11 +1959,11 @@ child_watches=%s"""
                 check_valid(cpath, True)
 
     def complete_json_valid(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_labeled_boolean("recursive")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), BooleanOptional("recursive"))
+    @ensure_params(Required("path"), LabeledBooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_cat(self, params):
         """
@@ -2013,11 +2021,11 @@ child_watches=%s"""
                 json_output(cpath, True)
 
     def complete_json_cat(self, cmd_param_text, full_cmd, *rest):
-        completers = [self._complete_path, complete_boolean]
+        completers = [self._complete_path, complete_labeled_boolean("recursive")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Required("keys"), BooleanOptional("recursive"))
+    @ensure_params(Required("path"), Required("keys"), LabeledBooleanOptional("recursive"))
     @check_paths_exists("path")
     def do_json_get(self, params):
         """
@@ -2074,7 +2082,7 @@ child_watches=%s"""
     def complete_json_get(self, cmd_param_text, full_cmd, *rest):
         """ TODO: prefetch & parse znodes & suggest keys """
         complete_keys = partial(complete_values, ["key1", "key2", "#{key1.key2}"])
-        completers = [self._complete_path, complete_keys, complete_boolean]
+        completers = [self._complete_path, complete_keys, complete_labeled_boolean("recursive")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
@@ -2083,9 +2091,9 @@ child_watches=%s"""
         Required("keys"),
         IntegerOptional("top", 0),
         IntegerOptional("minfreq", 1),
-        BooleanOptional("reverse", default=True),
-        BooleanOptional("report_errors", default=False),
-        BooleanOptional("print_path", default=False),
+        LabeledBooleanOptional("reverse", default=True),
+        LabeledBooleanOptional("report_errors", default=False),
+        LabeledBooleanOptional("print_path", default=False),
     )
     @check_paths_exists("path")
     def do_json_count_values(self, params):
@@ -2165,9 +2173,9 @@ child_watches=%s"""
             complete_keys,
             complete_top,
             complete_freq,
-            complete_boolean,
-            complete_boolean,
-            complete_boolean,
+            complete_labeled_boolean("reverse"),
+            complete_labeled_boolean("report_errors"),
+            complete_labeled_boolean("print_path")
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -2176,7 +2184,7 @@ child_watches=%s"""
         Required("path"),
         Required("keys"),
         Optional("prefix", ""),
-        BooleanOptional("report_errors", default=False),
+        LabeledBooleanOptional("report_errors", default=False),
     )
     @check_paths_exists("path")
     def do_json_dupes_for_keys(self, params):
@@ -2269,7 +2277,7 @@ child_watches=%s"""
         completers = [
             self._complete_path,
             complete_keys,
-            complete_boolean,
+            complete_labeled_boolean("report_errors")
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -2402,8 +2410,8 @@ child_watches=%s"""
     @ensure_params(
         Required("path"),
         Required("hosts"),
-        BooleanOptional("recursive"),
-        BooleanOptional("reverse")
+        LabeledBooleanOptional("recursive"),
+        LabeledBooleanOptional("reverse")
     )
     @check_paths_exists("path")
     def do_ephemeral_endpoint(self, params):
@@ -2463,11 +2471,16 @@ child_watches=%s"""
     def complete_ephemeral_endpoint(self, cmd_param_text, full_cmd, *rest):
         """ TODO: the hosts lists can be retrieved from self.zk.hosts """
         complete_hosts = partial(complete_values, ["127.0.0.1:2181"])
-        completers = [self._complete_path, complete_hosts, complete_boolean, complete_boolean]
+        completers = [
+            self._complete_path,
+            complete_hosts,
+            complete_labeled_boolean("recursive"),
+            complete_labeled_boolean("reverse")
+        ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("session"), Required("hosts"), BooleanOptional("reverse"))
+    @ensure_params(Required("session"), Required("hosts"), LabeledBooleanOptional("reverse"))
     def do_session_endpoint(self, params):
         """
 \x1b[1mNAME\x1b[0m
@@ -2506,7 +2519,7 @@ child_watches=%s"""
     def complete_session_endpoint(self, cmd_param_text, full_cmd, *rest):
         """ TODO: the hosts lists can be retrieved from self.zk.hosts """
         complete_hosts = partial(complete_values, ["127.0.0.1:2181"])
-        completers = [self._complete_path, complete_hosts, complete_boolean]
+        completers = [self._complete_path, complete_hosts, complete_labeled_boolean("reverse")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected

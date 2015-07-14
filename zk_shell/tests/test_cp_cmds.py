@@ -43,7 +43,9 @@ class CpCmdsTestCase(ShellTestCase):
         """ try to copy from non-existent path in zk to a json file """
         src = "%s/src" % (self.tests_path)
         jsonf = ("%s/backup.json" % (self.temp_dir)).replace("/", "!")
-        self.shell.onecmd("cp zk://%s%s json://%s/backup true true" % (self.zk_hosts, src, jsonf))
+        self.shell.onecmd(
+            "cp zk://%s%s json://%s/backup recursive=true overwrite=true" % (
+                self.zk_hosts, src, jsonf))
         expected_output = "znode /tests/src in %s doesn't exist\n" % (self.zk_hosts)
         self.assertIn(expected_output, self.output.getutf8())
 
@@ -68,15 +70,17 @@ class CpCmdsTestCase(ShellTestCase):
         jsonf = ("%s/backup.json" % (self.temp_dir)).replace("/", "!")
         src = "json://%s/backup" % (jsonf)
         dst = "zk://%s/%s/from-json" % (self.zk_hosts, self.tests_path)
-        self.shell.onecmd("cp %s %s  true true" % (src, dst))
+        self.shell.onecmd("cp %s %s recursive=true overwrite=true" % (src, dst))
         expected_output = "Path /backup doesn't exist\n"
         self.assertIn(expected_output, self.output.getutf8())
 
     def test_cp_local(self):
         """ copy one path to another in the connected ZK cluster """
         path = "%s/very/nested/znode" % (self.tests_path)
-        self.shell.onecmd("create %s 'HELLO' false false true" % (path))
-        self.shell.onecmd("cp %s/very %s/backup true true" % (self.tests_path, self.tests_path))
+        self.shell.onecmd(
+            "create %s 'HELLO' ephemeral=false sequence=false recursive=true" % (path))
+        self.shell.onecmd(
+            "cp %s/very %s/backup recursive=true overwrite=true" % (self.tests_path, self.tests_path))
         self.shell.onecmd("tree %s/backup" % (self.tests_path))
         expected_output = u""".
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
@@ -87,7 +91,7 @@ class CpCmdsTestCase(ShellTestCase):
         """ try copy non existent path in the local zk cluster """
         src = "%s/doesnt/exist/path" % (self.tests_path)
         dst = "%s/some/other/nonexistent/path" % (self.tests_path)
-        self.shell.onecmd("cp %s %s true true" % (src, dst))
+        self.shell.onecmd("cp %s %s recursive=true overwrite=true" % (src, dst))
         self.assertIn("doesn't exist\n", self.output.getutf8())
 
     def test_bad_auth(self):
@@ -102,9 +106,11 @@ class CpCmdsTestCase(ShellTestCase):
         host = self.zk_hosts
         src = "%s/src" % (self.tests_path)
         dst = "%s/dst" % (self.tests_path)
-        self.shell.onecmd("create %s/nested/znode 'HELLO' false false true" % (src))
+        self.shell.onecmd(
+            "create %s/nested/znode 'HELLO' ephemeral=false sequence=false recursive=true" % (src))
         asyncp = "true" if async else "false"
-        self.shell.onecmd("cp zk://%s%s zk://%s%s true true %s" % (host, src, host, dst, asyncp))
+        self.shell.onecmd("cp zk://%s%s zk://%s%s recursive=true overwrite=true %s" % (
+            host, src, host, dst, asyncp))
         self.shell.onecmd("tree %s" % (dst))
         expected_output = u""".
 \u251c\u2500\u2500 nested\n\u2502   \u251c\u2500\u2500 znode
@@ -120,12 +126,13 @@ class CpCmdsTestCase(ShellTestCase):
         if compressed:
             self.create_compressed(nested_path, "HELLO")
         else:
-            self.shell.onecmd("create %s 'HELLO' false false true" % (nested_path))
+            self.shell.onecmd(
+                "create %s 'HELLO' ephemeral=false sequence=false recursive=true" % (nested_path))
 
         src = "zk://%s%s" % (self.zk_hosts, src_path)
         dst = "json://%s/backup" % (json_file.replace("/", "!"))
         asyncp = "true" if async else "false"
-        self.shell.onecmd("cp %s %s true true %s" % (src, dst, asyncp))
+        self.shell.onecmd("cp %s %s recursive=true overwrite=true async=%s" % (src, dst, asyncp))
 
         with open(json_file, "r") as jfp:
             copied_znodes = json.load(jfp)
@@ -154,16 +161,19 @@ class CpCmdsTestCase(ShellTestCase):
         if compressed:
             self.create_compressed(nested_path, u'HELLO')
         else:
-            self.shell.onecmd("create %s 'HELLO' false false true" % (nested_path))
+            self.shell.onecmd(
+                "create %s 'HELLO' ephemeral=false sequence=false recursive=true" % (nested_path))
 
         asyncp = "true" if async else "false"
 
         json_url = "json://%s/backup" % (json_file.replace("/", "!"))
         src_zk = "zk://%s%s" % (self.zk_hosts, src_path)
-        self.shell.onecmd("cp %s %s true true %s" % (src_zk, json_url, asyncp))
+        self.shell.onecmd(
+            "cp %s %s recursive=true overwrite=true async=%s" % (src_zk, json_url, asyncp))
 
         dst_zk = "zk://%s/%s/from-json" % (self.zk_hosts, self.tests_path)
-        self.shell.onecmd("cp %s %s true true %s" % (json_url, dst_zk, asyncp))
+        self.shell.onecmd(
+            "cp %s %s recursive=true overwrite=true async=%s" % (json_url, dst_zk, asyncp))
         self.shell.onecmd("tree %s/from-json" % (self.tests_path))
         self.shell.onecmd("get %s/from-json/nested/znode" % (self.tests_path))
 

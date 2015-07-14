@@ -76,13 +76,6 @@ class MultiOptional(BasicParam):
     pass
 
 
-class BooleanOptional(BasicParam):
-    """ an optional boolean param """
-    def __init__(self, label, default=False):
-        super(BooleanOptional, self).__init__(label)
-        self.default = default
-
-
 class IntegerOptional(BasicParam):
     """ an optional integer param """
     def __init__(self, label, default=0):
@@ -90,10 +83,34 @@ class IntegerOptional(BasicParam):
         self.default = default
 
 
+class BooleanOptional(BasicParam):
+    """ an optional boolean param """
+    def __init__(self, label, default=False):
+        super(BooleanOptional, self).__init__(label)
+        self.default = default
+
+
 class BooleanAction(argparse.Action):
     """ used to parse boolean string params """
     def __call__(self, parser, namespace, values, option_string=None):
         value = values if type(values) == bool else values.lower() == "true"
+        setattr(namespace, self.dest, value)
+
+
+class LabeledBooleanOptional(BooleanOptional):
+    """ like a BooleanOption, but can be labeled (i.e.: recurse=true) """
+    pass
+
+
+class LabeledBooleanAction(argparse.Action):
+    """ used to parse (potentially) labeled boolean string params (i.e.: recurse=true) """
+    def __call__(self, parser, namespace, values, option_string=None):
+        if type(values) == bool:
+            value = values
+        else:
+            if "=" in values:
+                _, values = values.rsplit("=", 1)
+            value = values.lower() == "true"
         setattr(namespace, self.dest, value)
 
 
@@ -117,6 +134,10 @@ class ShellParser(argparse.ArgumentParser):
                 parser.add_argument(param.label, type=float)
             elif isinstance(param, Optional):
                 parser.add_argument(param.label, nargs="?", default=param.default, type=str)
+            # LabeledBooleanOptional is also a BooleanOptional, so try to match it first
+            elif isinstance(param, LabeledBooleanOptional):
+                parser.add_argument(
+                    param.label, nargs="?", default=param.default, action=LabeledBooleanAction)
             elif isinstance(param, BooleanOptional):
                 parser.add_argument(param.label, nargs="?", default=param.default, action=BooleanAction)
             elif isinstance(param, IntegerOptional):
