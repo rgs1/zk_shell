@@ -368,3 +368,8 @@ class BasicCmdsTestCase(ShellTestCase):
         # now remove it
         self.shell.onecmd("reconfig remove 100")
         self.assertNotIn(joining, self.output.getvalue())
+
+    def test_time(self):
+        self.shell.onecmd("time 'ls /'")
+        self.assertIn("Took", self.output.getvalue())
+        self.assertIn("seconds", self.output.getvalue())

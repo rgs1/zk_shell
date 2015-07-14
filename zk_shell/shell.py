@@ -2661,6 +2661,34 @@ child_watches=%s"""
         complete_vals = partial(complete_values, ["0.5", "1.0", "2.0", "5.0", "10.0"])
         return complete([complete_vals], cmd_param_text, full_cmd, *rest)
 
+    @ensure_params(Multi("cmds"))
+    def do_time(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        time - Measures elapsed seconds after running commands
+
+\x1b[1mSYNOPSIS\x1b[0m
+        time <cmd1> <cmd2> ... <cmdN>
+
+\x1b[1mEXAMPLES\x1b[0m
+        > time 'loop 10 0 "create /foo_ bar ephemeral=false sequence=true"'
+        Took 0.05585 seconds
+        """
+        start = time.time()
+        for cmd in params.cmds:
+            try:
+                self.onecmd(cmd)
+            except Exception as ex:
+                self.show_output("Command failed: %s.", ex)
+
+        elapsed = "{0:.5f}".format(time.time() - start)
+        self.show_output("Took %s seconds" % elapsed)
+
+    def complete_time(self, cmd_param_text, full_cmd, *rest):
+        cmds = ["get ", "ls ", "create ", "set ", "rm "]
+        complete_cmds = partial(complete_values, cmds)
+        return complete([complete_cmds], cmd_param_text, full_cmd, *rest)
+
     @connected
     @ensure_params(Required("cmd"), Required("args"), IntegerOptional("from_config", -1))
     def do_reconfig(self, params):
