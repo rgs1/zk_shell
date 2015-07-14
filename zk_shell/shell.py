@@ -186,7 +186,7 @@ def default_watcher(watched_event):
     print(str(watched_event))
 
 
-HISTORY_FILENAME = ".kz-shell-history"
+HISTORY_FILENAME = os.path.join(os.environ["HOME"], ".kz-shell-history")
 
 
 class BadJSON(Exception): pass
