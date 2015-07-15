@@ -170,6 +170,11 @@ class XClient(KazooClient):
         value = to_bytes(value)
         super(XClient, self).create(path, value, acl, ephemeral, sequence, makepath)
 
+    def create_async(self, path, value=b"", acl=None, ephemeral=False, sequence=False, makepath=False):
+        """ wraps the default create() and handles encoding (Py3k) """
+        value = to_bytes(value)
+        return super(XClient, self).create_async(path, value, acl, ephemeral, sequence, makepath)
+
     def transaction(self):
         """ use XTransactionRequest which is encoding aware (Py3k) """
         return XTransactionRequest(self)
