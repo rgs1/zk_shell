@@ -1186,7 +1186,8 @@ class Shell(XCmd):
         Required("value"),
         LabeledBooleanOptional("ephemeral"),
         LabeledBooleanOptional("sequence"),
-        LabeledBooleanOptional("recursive")
+        LabeledBooleanOptional("recursive"),
+        LabeledBooleanOptional("async"),
     )
     @check_path_absent
     def do_create(self, params):
@@ -1195,12 +1196,13 @@ class Shell(XCmd):
         create - Creates a znode
 
 \x1b[1mSYNOPSIS\x1b[0m
-        create <path> <value> [ephemeral] [sequence] [recursive]
+        create <path> <value> [ephemeral] [sequence] [recursive] [async]
 
 \x1b[1mOPTIONS\x1b[0m
         * ephemeral: make the znode ephemeral (default: false)
         * sequence: make the znode sequential (default: false)
         * recursive: recursively create the path (default: false)
+        * async: don't block waiting on the result (default: false)
 
 \x1b[1mEXAMPLES\x1b[0m
         > create /foo 'bar'
@@ -1230,7 +1232,11 @@ class Shell(XCmd):
             kwargs = {"acl": None, "ephemeral": params.ephemeral, "sequence": params.sequence}
             if not self.in_transaction:
                 kwargs["makepath"] = params.recursive
-            self.client_context.create(params.path, decoded(params.value), **kwargs)
+
+            if params.async and not self.in_transaction:
+                self.client_context.create_async(params.path, decoded(params.value), **kwargs)
+            else:
+                self.client_context.create(params.path, decoded(params.value), **kwargs)
         except NodeExistsError:
             self.show_output("Path %s exists", params.path)
         except NoNodeError:
@@ -1244,6 +1250,7 @@ class Shell(XCmd):
             complete_labeled_boolean("ephemeral"),
             complete_labeled_boolean("sequence"),
             complete_labeled_boolean("recursive"),
+            complete_labeled_boolean("async"),
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -2649,7 +2656,7 @@ child_watches=%s"""
         sleep - Sleeps for the given seconds (may be fractional)
 
 \x1b[1mSYNOPSIS\x1b[0m
-        fill <seconds>
+        sleep <seconds>
 
 \x1b[1mEXAMPLES\x1b[0m
         > sleep 0.5
@@ -2660,6 +2667,34 @@ child_watches=%s"""
     def complete_sleep(self, cmd_param_text, full_cmd, *rest):
         complete_vals = partial(complete_values, ["0.5", "1.0", "2.0", "5.0", "10.0"])
         return complete([complete_vals], cmd_param_text, full_cmd, *rest)
+
+    @ensure_params(Multi("cmds"))
+    def do_time(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        time - Measures elapsed seconds after running commands
+
+\x1b[1mSYNOPSIS\x1b[0m
+        time <cmd1> <cmd2> ... <cmdN>
+
+\x1b[1mEXAMPLES\x1b[0m
+        > time 'loop 10 0 "create /foo_ bar ephemeral=false sequence=true"'
+        Took 0.05585 seconds
+        """
+        start = time.time()
+        for cmd in params.cmds:
+            try:
+                self.onecmd(cmd)
+            except Exception as ex:
+                self.show_output("Command failed: %s.", ex)
+
+        elapsed = "{0:.5f}".format(time.time() - start)
+        self.show_output("Took %s seconds" % elapsed)
+
+    def complete_time(self, cmd_param_text, full_cmd, *rest):
+        cmds = ["get ", "ls ", "create ", "set ", "rm "]
+        complete_cmds = partial(complete_values, cmds)
+        return complete([complete_cmds], cmd_param_text, full_cmd, *rest)
 
     @connected
     @ensure_params(Required("cmd"), Required("args"), IntegerOptional("from_config", -1))
