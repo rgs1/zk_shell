@@ -1452,7 +1452,7 @@ class Shell(XCmd):
         > session_info
         state=CONNECTED
         xid=4
-        last_zxid=11
+        last_zxid=0x000000505f8be5b3
         timeout=10000
         client=('127.0.0.1', 60348)
         server=('127.0.0.1', 2181)
@@ -1463,7 +1463,7 @@ sessionid=%s
 auth_info=%s
 protocol_version=%d
 xid=%d
-last_zxid=%d
+last_zxid=0x%.16x
 timeout=%d
 client=%s
 server=%s
