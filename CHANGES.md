@@ -19,6 +19,7 @@ Features
   ```
 - new command `time`: allows time the execution of the given commands
 - the `create` command now supports async mode (async=true)
+- print last_zxid in `session_info` as hex
 
 1.1.0 (2015-06-17)
 --------------------
