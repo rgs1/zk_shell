@@ -1,6 +1,20 @@
 ChangeLog
 =========
 
+1.1.2 (2015-12-XX)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+-
+
+Features
+~~~~~~~~
+
+- `json_dupes_for_keys` now accepts a parameter `first` that includes the
+  original non duplicated znode
+
 1.1.1 (2015-09-25)
 ------------------
 
