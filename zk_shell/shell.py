@@ -2778,6 +2778,35 @@ child_watches=%s"""
         completers = [complete_cmd, complete_arg, complete_config]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
+    @ensure_params(Required("fmtstr"), MultiOptional("cmds"))
+    def do_echo(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        echo - displays formatted data
+
+\x1b[1mSYNOPSIS\x1b[0m
+        echo <fmtstr> [cmd1] [cmd2] ... [cmdN]
+
+\x1b[1mEXAMPLES\x1b[0m
+        > echo hello
+        hello
+        > echo 'The value of /foo is %s' 'get /foo'
+        bar
+        """
+        values = []
+
+        with self.output_context() as context:
+            for cmd in params.cmds:
+                rv = self.onecmd(cmd)
+                val = "" if rv is False else context.value.rstrip("\n")
+                values.append(val)
+                context.reset()
+
+        try:
+            self.show_output(params.fmtstr, *values)
+        except TypeError:
+            self.show_output("Bad format string or missing arguments.")
+
     @ensure_params(Required("hosts"))
     def do_connect(self, params):
         """
