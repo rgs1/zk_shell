@@ -4,8 +4,6 @@
 A powerful & scriptable ZooKeeper shell
 """
 
-from __future__ import print_function
-
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial, wraps
@@ -180,10 +178,6 @@ def check_path_absent(func):
             return func(self, params)
         self.show_output("Path %s already exists", params.path)
     return wrapper
-
-
-def default_watcher(watched_event):
-    print(str(watched_event))
 
 
 OLD_HISTORY_FILENAME = os.path.join(os.environ["HOME"], ".kz-shell-history")
@@ -465,7 +459,8 @@ class Shell(XCmd):
         configs,zookeeper
 
         """
-        kwargs = {"watch": default_watcher} if params.watch else {}
+        watcher = lambda evt: self.show_output(str(evt))
+        kwargs = {"watch": watcher} if params.watch else {}
         znodes = self._zk.get_children(params.path, **kwargs)
         self.show_output(params.sep.join(sorted(znodes)))
 
@@ -527,7 +522,7 @@ class Shell(XCmd):
                     wm.stats(params.path)
                     time.sleep(sleep)
         else:
-            print("watch <start|stop|stats> <path> [verbose]")
+            self.show_output("watch <start|stop|stats> <path> [verbose]")
 
     def complete_watch(self, cmd_param_text, full_cmd, *rest):
         complete_cmd = partial(complete_values, ["start", "stats", "stop"])
@@ -1087,7 +1082,8 @@ class Shell(XCmd):
         WatchedEvent(type='CHANGED', state='CONNECTED', path=u'/foo')
 
         """
-        kwargs = {"watch": default_watcher} if params.watch else {}
+        watcher = lambda evt: self.show_output(str(evt))
+        kwargs = {"watch": watcher} if params.watch else {}
         value, _ = self._zk.get(params.path, **kwargs)
 
         # maybe it's compressed?
@@ -1141,7 +1137,8 @@ class Shell(XCmd):
         WatchedEvent(type='DELETED', state='CONNECTED', path=u'/foo')
 
         """
-        kwargs = {"watch": default_watcher} if params.watch else {}
+        watcher = lambda evt: self.show_output(str(evt))
+        kwargs = {"watch": watcher} if params.watch else {}
         pretty = params.pretty_date
         path = self.resolve_path(params.path)
         stat = self._zk.exists(path, **kwargs)
