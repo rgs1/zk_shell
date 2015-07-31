@@ -18,7 +18,7 @@ Features
   ```
   (CONNECTED) /> ls / watch=true
   ```
-- new command `time`: allows time the execution of the given commands
+- new `time` command to measure execution (time) of the given commands
 - the `create` command now supports async mode (async=true)
 - print last_zxid in `session_info` as hex
 - the `session_info` commands now has an optional [match] parameter
