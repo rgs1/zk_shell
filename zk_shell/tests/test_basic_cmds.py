@@ -380,3 +380,9 @@ class BasicCmdsTestCase(ShellTestCase):
                 self.tests_path))
         self.shell.onecmd("exists %s/foo" % self.tests_path)
         self.assertIn("numChildren=0", self.output.getvalue())
+
+    def test_session_info(self):
+        self.shell.onecmd("session_info sessionid")
+        lines = [line for line in self.output.getvalue().split("\n") if line != ""]
+        self.assertEqual(1, len(lines))
+        self.assertIn("sessionid", self.output.getvalue())
