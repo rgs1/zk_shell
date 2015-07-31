@@ -404,7 +404,7 @@ class XClient(KazooClient):
         ips = get_ips(host, port)
 
         if len(ips) == 0:
-            raise self.CmdFailed("Failed to resolve: %s" % (ex))
+            raise self.CmdFailed("Failed to resolve: %s" % (host))
 
         for ip in ips:
             try:

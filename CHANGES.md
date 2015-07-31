@@ -7,6 +7,7 @@ ChangeLog
 Bug Handling
 ************
 - fix doc error in `sleep`'s documentation
+- fix NameError in xclient when dns lookups fail
 
 Features
 ********
