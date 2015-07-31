@@ -1436,14 +1436,17 @@ class Shell(XCmd):
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params()
+    @ensure_params(Optional("match"))
     def do_session_info(self, params):
         """
 \x1b[1mNAME\x1b[0m
         session_info - Shows information about the current session
 
 \x1b[1mSYNOPSIS\x1b[0m
-        session_info
+        session_info [match]
+
+\x1b[1mOPTIONS\x1b[0m
+        * match: only include lines that match (default: '')
 
 \x1b[1mEXAMPLES\x1b[0m
         > session_info
@@ -1466,18 +1469,38 @@ client=%s
 server=%s
 data_watches=%s
 child_watches=%s"""
-        self.show_output(fmt_str,
-                         self._zk.client_state,
-                         self._zk.sessionid,
-                         list(self._zk.auth_data),
-                         self._zk.protocol_version,
-                         self._zk.xid,
-                         self._zk.last_zxid,
-                         self._zk.session_timeout,
-                         self._zk.client,
-                         self._zk.server,
-                         ",".join(self._zk.data_watches),
-                         ",".join(self._zk.child_watches))
+        content = fmt_str % (
+        self._zk.client_state,
+            self._zk.sessionid,
+            list(self._zk.auth_data),
+            self._zk.protocol_version,
+            self._zk.xid,
+            self._zk.last_zxid,
+            self._zk.session_timeout,
+            self._zk.client,
+            self._zk.server,
+            ",".join(self._zk.data_watches),
+            ",".join(self._zk.child_watches)
+        )
+
+        output = get_matching(content, params.match)
+        self.show_output(output)
+
+    def complete_session_info(self, cmd_param_text, full_cmd, *rest):
+        values = [
+            "sessionid",
+            "auth_info",
+            "protocol_version",
+            "xid",
+            "last_zxid",
+            "timeout",
+            "client",
+            "server",
+            "data_watches",
+            "child_watches"
+        ]
+        completers = [partial(complete_values, values)]
+        return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @ensure_params(Optional("match"))
     def do_history(self, params):
