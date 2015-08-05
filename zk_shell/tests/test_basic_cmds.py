@@ -386,3 +386,8 @@ class BasicCmdsTestCase(ShellTestCase):
         lines = [line for line in self.output.getvalue().split("\n") if line != ""]
         self.assertEqual(1, len(lines))
         self.assertIn("sessionid", self.output.getvalue())
+
+    def test_echo(self):
+        self.shell.onecmd("create %s/jimeh gimeh" % (self.tests_path))
+        self.shell.onecmd("echo 'jimeh = %%s' 'get %s/jimeh'" %  (self.tests_path))
+        self.assertIn("jimeh = gimeh", self.output.getvalue())

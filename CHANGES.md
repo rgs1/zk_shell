@@ -22,6 +22,7 @@ Features
 - the `create` command now supports async mode (async=true)
 - print last_zxid in `session_info` as hex
 - the `session_info` commands now has an optional [match] parameter
+- new command `echo` to print formatted strings with extrapolated commands
 
 1.1.0 (2015-06-17)
 --------------------
