@@ -1,5 +1,5 @@
 include TODO
-include README.md
+include README.rst
 include LICENSE
 include MANIFEST.in
 exclude .gitignore
