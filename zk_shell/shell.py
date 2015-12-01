@@ -2212,6 +2212,7 @@ child_watches=%s"""
         Required("keys"),
         Optional("prefix", ""),
         LabeledBooleanOptional("report_errors", default=False),
+        LabeledBooleanOptional("first", default=False)
     )
     @check_paths_exists("path")
     def do_json_dupes_for_keys(self, params):
@@ -2220,7 +2221,7 @@ child_watches=%s"""
         json_duples_for_keys - Gets the duplicate znodes for the given keys
 
 \x1b[1mSYNOPSIS\x1b[0m
-        json_dupes_for_keys <path> <keys> [prefix] [report_errors]
+        json_dupes_for_keys <path> <keys> [prefix] [report_errors] [first]
 
 \x1b[1mDESCRIPTION\x1b[0m
         Znodes with duplicated keys are sorted and all but the first (original) one
@@ -2229,6 +2230,7 @@ child_watches=%s"""
 \x1b[1mOPTIONS\x1b[0m
         * prefix: only include matching znodes
         * report_errors: turn on error reporting (i.e.: bad JSON in a znode)
+        * first: print the first, non duplicated, znode too.
 
 \x1b[1mEXAMPLES\x1b[0m
         > json_cat /configs/primary_service true
@@ -2288,7 +2290,8 @@ child_watches=%s"""
             for _, paths in paths_by_value.items():
                 if len(paths) > 1:
                     paths.sort()
-                    for path in paths[1:]:
+                    paths = paths if params.first else paths[1:]
+                    for path in paths:
                         idx = bisect.bisect(dupes, path)
                         dupes.insert(idx, path)
 
