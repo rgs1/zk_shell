@@ -87,10 +87,10 @@ _valid_host_part = re.compile("(?!-)[a-z\d-]{1,63}(?<!-)$", re.IGNORECASE)
 _valid_ipv4 = re.compile("\A(\d+)\.(\d+)\.(\d+)\.(\d+)\Z")
 
 
-def valid_port(port):
+def valid_port(port, start=1, end=65535):
     try:
         port = int(port)
-        return port >= 0 and port <= 65536
+        return port >= start and port <= end
     except ValueError: pass
 
     return False

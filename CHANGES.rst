@@ -7,7 +7,7 @@ ChangeLog
 Bug Handling
 ~~~~~~~~~~~~
 
--
+- use the right range for valid_port()
 
 Features
 ~~~~~~~~
