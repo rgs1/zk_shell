@@ -93,7 +93,7 @@ class BooleanOptional(BasicParam):
 class BooleanAction(argparse.Action):
     """ used to parse boolean string params """
     def __call__(self, parser, namespace, values, option_string=None):
-        value = values if type(values) == bool else values.lower() == "true"
+        value = values if isinstance(values, bool) else values.lower() == "true"
         setattr(namespace, self.dest, value)
 
 
@@ -105,7 +105,7 @@ class LabeledBooleanOptional(BooleanOptional):
 class LabeledBooleanAction(argparse.Action):
     """ used to parse (potentially) labeled boolean string params (i.e.: recurse=true) """
     def __call__(self, parser, namespace, values, option_string=None):
-        if type(values) == bool:
+        if isinstance(values, bool):
             value = values
         else:
             if "=" in values:
@@ -186,8 +186,8 @@ def ensure_params_with_parser(parser, func):
             return func(args[0], params)
         except (ShellParser.ParserException, ValueError) as ex:
             doc = getattr(func, "__doc__", None)
-            cmd = func.__name__.replace("do_", "")
-            print("\n%s\n\n%s: %s" % (ex, cmd, doc) if doc else ex)
+            command = func.__name__.replace("do_", "")
+            print("\n%s\n\n%s: %s" % (ex, command, doc) if doc else ex)
     return wrapper
 
 
@@ -296,11 +296,11 @@ class XCmd(cmd.Cmd):
         rv = True
         output = ""
         with self.output_context() as octxt:
-            for cmd in params.cmds:
+            for command in params.cmds:
                 inlines = output.rstrip("\n").split("\n")
                 output = ""
                 for line in inlines:
-                    rv = self.onecmd("%s %s" % (cmd, line))
+                    rv = self.onecmd("%s %s" % (command, line))
                     if rv is False:
                         # just output the error
                         output = octxt.value
@@ -329,6 +329,7 @@ class XCmd(cmd.Cmd):
         print(out, file=self._output, end=end)
 
     def prompt_yes_no(self, question):
+        """ yes or no question """
         while True:
             self.show_output("%s [y/n]: ", question, end="")
             try:
@@ -361,9 +362,9 @@ class XCmd(cmd.Cmd):
             return False
 
         if len(args) > 0 and not args[0].startswith("#"):  # ignore commented lines, ala Bash
-            cmd = self._special_commands.get(args[0])
-            if cmd:
-                return cmd(args[1:])
+            command = self._special_commands.get(args[0])
+            if command:
+                return command(args[1:])
             else:
                 similar = list(matches(self.all_commands, args[0], 0.85))
                 if len(similar) == 1:
@@ -377,20 +378,22 @@ class XCmd(cmd.Cmd):
 
         return False
 
-    def run_last_command(self, *args):
+    def run_last_command(self, *_):
         self.onecmd(self.last_command)
 
-    def echo_last_output(self, *args):
+    def echo_last_output(self, *_):
         print(self._last_output, file=self._output)
 
     def emptyline(self):
         pass
 
     def run(self, intro=None):
+        """ runs xcmd's main loop """
         self.intro = intro
         self.cmdloop()
 
     def _exit(self, newline=True):
+        """ gets called before exiting """
         if newline:
             self.show_output("")
         sys.exit(0)
@@ -424,10 +427,12 @@ class XCmd(cmd.Cmd):
 
     @property
     def state(self):
+        """ the state displayed in the prompt """
         return ""
 
     @property
     def last_command(self):
+        """ returns the last executed command """
         if not HAVE_READLINE:
             return ""
 
@@ -436,6 +441,7 @@ class XCmd(cmd.Cmd):
 
     @property
     def history(self):
+        """ returns all the executed commands """
         if not HAVE_READLINE:
             return
 
@@ -443,6 +449,7 @@ class XCmd(cmd.Cmd):
             yield readline.get_history_item(i)
 
     def _setup_readline(self, path):
+        """ configures readline, if it's available """
         if not HAVE_READLINE or path is None:
             return
 
