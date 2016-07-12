@@ -7,7 +7,6 @@ import socket
 from .shell_test_case import PYTHON3, ShellTestCase
 
 from kazoo.testing.harness import get_global_cluster
-from nose import SkipTest
 
 
 # pylint: disable=R0904
