@@ -1,6 +1,7 @@
 """ decorate cmd with some convenience stuff """
 from __future__ import print_function
 
+from distutils.util import strtobool
 from functools import partial, wraps
 
 import argparse
@@ -23,8 +24,6 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
-
-from .util import strtobool
 
 
 PYTHON3 = sys.version_info > (3, )
