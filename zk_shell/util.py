@@ -165,13 +165,6 @@ def invalid_hosts(hosts):
     return not valid_hosts(hosts)
 
 
-def join(parent, child):
-    """
-    properly joins parent and child
-    """
-    return '%s%s' % (parent if parent == '/' else parent + '/', child)
-
-
 def split(path):
     """
     splits path into parent, child

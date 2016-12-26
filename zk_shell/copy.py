@@ -27,7 +27,7 @@ from kazoo.exceptions import (
 
 from .acl import ACLReader
 from .statmap import StatMap
-from .util import join, Netloc, to_bytes
+from .util import Netloc, to_bytes
 
 
 DEFAULT_ZK_PORT = 2181
@@ -214,8 +214,8 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
                             dst_children.remove(child)
                         if max_items > 0 and i == max_items:
                             break
-                        self.set_url(join(src_url, child))
-                        dst.set_url(join(dst_url, child))
+                        self.set_url(os.path.join(src_url, child))
+                        dst.set_url(os.path.join(dst_url, child))
                         self.do_copy(dst, opname)
 
                         # reset to base urls
@@ -224,7 +224,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
                 if mirror:
                     for child in dst_children:
-                        dst.set_url(join(dst_url, child))
+                        dst.set_url(os.path.join(dst_url, child))
                         dst.delete_path_recursively()
 
         end = time.time()
@@ -372,7 +372,7 @@ class ZKProxy(Proxy):
         """
         skip ephemeral znodes since there's no point in copying those
         """
-        full_path = join(root_path, branch_path) if branch_path else root_path
+        full_path = os.path.join(root_path, branch_path) if branch_path else root_path
 
         try:
             children = self.client.get_children(full_path)
@@ -382,10 +382,10 @@ class ZKProxy(Proxy):
             raise AuthError("read children", full_path)
 
         for child in children:
-            child_path = join(branch_path, child) if branch_path else child
+            child_path = os.path.join(branch_path, child) if branch_path else child
 
             try:
-                stat = self.client.exists(join(root_path, child_path))
+                stat = self.client.exists(os.path.join(root_path, child_path))
             except NoAuthError:
                 raise AuthError("read", child)
 
@@ -413,7 +413,7 @@ class FileProxy(Proxy):
     def read_path(self):
         if os.path.isfile(self.path):
             with open(self.path, "r") as fph:
-                return PathValue("".join(fph.readlines()))
+                return PathValue("".os.path.join(fph.readlines()))
         elif os.path.isdir(self.path):
             return PathValue("")
 
@@ -438,7 +438,7 @@ class FileProxy(Proxy):
             if path != "":
                 yield path
             for filename in files:
-                yield join(path, filename) if path != "" else filename
+                yield os.path.join(path, filename) if path != "" else filename
 
     def delete_path_recursively(self):
         shutil.rmtree(self.path, True)
@@ -540,5 +540,5 @@ class JSONProxy(Proxy):
         if self.path in self._tree:
             # build a set from the iterable so we don't change the dictionary during iteration
             for c in set(self.children_of()):
-                self._tree.pop(join(self.path, c))
+                self._tree.pop(os.path.join(self.path, c))
             self._tree.pop(self.path)

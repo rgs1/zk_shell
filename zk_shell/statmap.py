@@ -16,14 +16,14 @@ Async recursive builder for map<child_path, Stat>
 
 """
 
+import os
+
 try:
     from Queue import Queue
 except ImportError: # py3k
     from queue import Queue
 
 from kazoo.exceptions import NoAuthError, NoNodeError
-
-from .util import join
 
 
 class Request(object):
@@ -66,7 +66,7 @@ class StatMap(object):
             return
 
         for child in children:
-            dispatch_exists(join(path, child))
+            dispatch_exists(os.path.join(path, child))
 
         pending = len(children)
 
@@ -83,7 +83,7 @@ class StatMap(object):
                 else:
                     for child in req.value:
                         pending += 1
-                        dispatch_exists(join(req.path, child))
+                        dispatch_exists(os.path.join(req.path, child))
             except (NoNodeError, NoAuthError): pass
 
             pending -= 1

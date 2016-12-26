@@ -11,7 +11,7 @@ Install local requirements:
 
 ::
 
-    $ pip install -r requirements.txt --use-mirrors
+    $ pip install -r requirements.txt
 
 Bootstrapping a local ZooKeeper
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -76,7 +76,6 @@ from .util import (
     get_ips,
     get_matching,
     hosts_to_endpoints,
-    join,
     invalid_hosts,
     Netloc,
     pretty_bytes,
@@ -290,11 +289,11 @@ class Shell(XCmd):
 
         rpath = self.resolve_path(path)
         if self._zk.exists(rpath):
-            opts = [join(path, znode) for znode in self._zk.get_children(rpath)]
+            opts = [os.path.join(path, znode) for znode in self._zk.get_children(rpath)]
         else:
             parent, child = os.path.dirname(rpath), os.path.basename(rpath)
             relpath = os.path.dirname(path)
-            to_rel = lambda n: join(relpath, n) if relpath != "" else n
+            to_rel = lambda n: os.path.join(relpath, n) if relpath != "" else n
             opts = [to_rel(n) for n in self._zk.get_children(parent) if n.startswith(child)]
 
         offs = len(cmd_param) - len(cmd_param_text)
