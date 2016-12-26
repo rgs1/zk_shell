@@ -24,7 +24,7 @@ try:
 except ImportError:
     from io import StringIO
 
-from .util import join, strtobool
+from .util import strtobool
 
 
 PYTHON3 = sys.version_info > (3, )
@@ -415,7 +415,7 @@ class XCmd(cmd.Cmd):
         elif path == "-":
             path = self.olddir
         elif not path.startswith("/"):
-            path = join(self.curdir, path)
+            path = os.path.join(self.curdir, path)
 
         return os.path.normpath(path)
 

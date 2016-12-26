@@ -15,7 +15,7 @@ from kazoo.protocol.states import KazooState
 from .statmap import StatMap
 from .tree import Tree
 from .usage import Usage
-from .util import get_ips, hosts_to_endpoints, join, to_bytes
+from .util import get_ips, hosts_to_endpoints, to_bytes
 
 
 @contextmanager
@@ -285,14 +285,14 @@ class XClient(KazooClient):
             children = []
 
         for child in children:
-            cpath = join(path, child) if full_path else child
+            cpath = os.path.join(path, child) if full_path else child
             if include_stat:
-                yield cpath, level, self.stat(join(path, child))
+                yield cpath, level, self.stat(os.path.join(path, child))
             else:
                 yield cpath, level
 
             if max_depth == 0 or level + 1 < max_depth:
-                cpath = join(path, child)
+                cpath = os.path.join(path, child)
                 for rchild_rlevel_rstat in self.do_tree(cpath, max_depth, level + 1, full_path, include_stat):
                     yield rchild_rlevel_rstat
 
@@ -330,7 +330,7 @@ class XClient(KazooClient):
         # first, check what's missing & changed in dst
         for child_a, level in self.tree(path_a, 0, True):
             child_sub = child_a[len_a + 1:]
-            child_b = join(path_b, child_sub)
+            child_b = os.path.join(path_b, child_sub)
 
             if not self.exists(child_b):
                 yield -1, child_sub

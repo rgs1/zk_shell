@@ -16,14 +16,14 @@ Async tree builder
 
 """
 
+import os
+
 try:
     from Queue import Queue
 except ImportError: # py3k
     from queue import Queue
 
 from kazoo.exceptions import NoAuthError, NoNodeError
-
-from .util import join
 
 
 class Request(object):
@@ -66,7 +66,7 @@ class Tree(object):
             try:
                 children = req.value
                 for child in children:
-                    cpath = join(req.path, child)
+                    cpath = os.path.join(req.path, child)
                     if exclude_recurse is None or not exclude_recurse in child:
                         pending += 1
                         reqs.put(dispatch(cpath))

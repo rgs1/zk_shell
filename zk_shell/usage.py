@@ -12,14 +12,14 @@ Fast path size calculations
 
 """
 
+import os
+
 try:
     from Queue import Queue
 except ImportError: # py3k
     from queue import Queue
 
 from kazoo.exceptions import NoAuthError, NoNodeError
-
-from .util import join
 
 
 class Request(object):
@@ -89,7 +89,7 @@ class Usage(object):
             if stat.numChildren > 0:
                 pending += stat.numChildren
                 for child in children:
-                    reqs.put(dispatch(join(req.path, child)))
+                    reqs.put(dispatch(os.path.join(req.path, child)))
 
             pending -= 1
 
