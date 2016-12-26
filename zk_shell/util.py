@@ -7,7 +7,6 @@ import re
 import socket
 import sys
 
-from distutils.util import strtobool
 
 PYTHON3 = sys.version_info > (3, )
 
