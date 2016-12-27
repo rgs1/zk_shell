@@ -17,6 +17,10 @@ zk-shell
     :target: https://requires.io/github/rgs1/zk_shell/requirements/?branch=master
     :alt: Requirements Status
 
+.. image:: https://img.shields.io/pypi/pyversions/zk_shell.svg
+    :target: https://pypi.python.org/pypi/zk_shell
+    :alt: Python Versions
+
 **Table of Contents**
 
 -  `tl;dr <#tldr>`__
