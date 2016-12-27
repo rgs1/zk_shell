@@ -21,6 +21,10 @@ zk-shell
     :target: https://pypi.python.org/pypi/zk_shell
     :alt: Python Versions
 
+.. image:: https://codeclimate.com/github/rgs1/zk_shell.png
+    :target: https://codeclimate.com/github/rgs1/zk_shell
+    :alt: Code Climate
+
 **Table of Contents**
 
 -  `tl;dr <#tldr>`__
