@@ -13,6 +13,10 @@ zk-shell
     :target: http://badge.fury.io/py/zk_shell
     :alt: PyPI version
 
+.. image:: https://requires.io/github/rgs1/zk_shell/requirements.svg?branch=master
+    :target: https://requires.io/github/rgs1/zk_shell/requirements/?branch=master
+    :alt: Requirements Status
+
 **Table of Contents**
 
 -  `tl;dr <#tldr>`__
