@@ -245,7 +245,7 @@ to use:
 Dependencies
 ~~~~~~~~~~~~
 
--  Python 2.7, 3.3 or 3.4
+-  Python 2.7, 3.3, 3.4, 3.5 or 3.6
 -  Kazoo >= 2.2
 
 Testing and Development
