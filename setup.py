@@ -49,14 +49,16 @@ setup(name='zk_shell',
           'ansicolors==1.0.2',
           'kazoo==2.2.1',
           'tabulate==0.7.7',
-          'twitter.common.net==0.3.9'
+          'twitter.common.net==0.3.9',
+          'xcmd==0.0.1'
       ],
       tests_require=[
           'ansicolors==1.0.2',
           'kazoo==2.2.1',
           'nose==1.3.7',
           'tabulate==0.7.7',
-          'twitter.common.net==0.3.9'
+          'twitter.common.net==0.3.9',
+          'xcmd==0.0.1'
       ],
       extras_require={
           'test': [
@@ -64,7 +66,8 @@ setup(name='zk_shell',
               'kazoo==2.2.1',
               'nose==1.3.7',
               'tabulate==0.7.7',
-              'twitter.common.net==0.3.9'
+              'twitter.common.net==0.3.9',
+              'xcmd==0.0.1'
           ]
       },
       include_package_data=True,
