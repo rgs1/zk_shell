@@ -47,7 +47,6 @@ from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
 from twitter.common.net.tunnel import TunnelHelper
 from xcmd.conf import Conf, ConfVar
-from xcmd.conf_store import ConfStore
 from xcmd.xcmd import (
     XCmd,
     FloatRequired,
@@ -179,43 +178,8 @@ def check_path_absent(func):
     return wrapper
 
 
-OLD_HISTORY_FILENAME = os.path.join(os.environ["HOME"], ".kz-shell-history")
-
-DEFAULT_CONF = Conf(
-    ConfVar(
-        "chkzk_stat_retries",
-        "Retries when running stat command on a server",
-        10
-    ),
-    ConfVar(
-        "chkzk_znode_delta",
-        "Difference in znodes to claim inconsistency between servers",
-        100
-    ),
-    ConfVar(
-        "chkzk_ephemeral_delta",
-        "Difference in ephemerals to claim inconsistency between servers",
-        50
-    ),
-    ConfVar(
-        "chkzk_datasize_delta",
-        "Difference in datasize to claim inconsistency between servers",
-        1000
-    ),
-    ConfVar(
-        "chkzk_session_delta",
-        "Difference in sessions to claim inconsistency between servers",
-        150
-    ),
-    ConfVar(
-        "chkzk_zxid_delta",
-        "Difference in zxids to claim inconsistency between servers",
-        200
-    )
-)
-
-
-class BadJSON(Exception): pass
+class BadJSON(Exception):
+    pass
 
 
 def json_deserialize(data):
@@ -232,6 +196,40 @@ def json_deserialize(data):
 
 # pylint: disable=R0904
 class Shell(XCmd):
+    CONF_PATH = os.path.join(os.environ["HOME"], ".zk_shell")
+    DEFAULT_CONF = Conf(
+        ConfVar(
+            "chkzk_stat_retries",
+            "Retries when running stat command on a server",
+            10
+        ),
+        ConfVar(
+            "chkzk_znode_delta",
+            "Difference in znodes to claim inconsistency between servers",
+            100
+        ),
+        ConfVar(
+            "chkzk_ephemeral_delta",
+            "Difference in ephemerals to claim inconsistency between servers",
+            50
+        ),
+        ConfVar(
+            "chkzk_datasize_delta",
+            "Difference in datasize to claim inconsistency between servers",
+            1000
+        ),
+        ConfVar(
+            "chkzk_session_delta",
+            "Difference in sessions to claim inconsistency between servers",
+            150
+        ),
+        ConfVar(
+            "chkzk_zxid_delta",
+            "Difference in zxids to claim inconsistency between servers",
+            200
+        )
+    )
+
     """ main class """
     def __init__(self,
                  hosts=None,
@@ -241,18 +239,7 @@ class Shell(XCmd):
                  async=True,
                  read_only=False,
                  tunnel=None):
-
-        self._conf_store = ConfStore(
-            path=os.path.join(os.environ["HOME"], ".zk_shell"))
-        self._conf_store.ensure_path()
-
-        # mv (old) history file to zk-shell's private dir
-        history_filename = self._conf_store.full_path("history")
-        try:
-            os.rename(OLD_HISTORY_FILENAME, history_filename)
-        except OSError: pass
-
-        XCmd.__init__(self, history_filename, setup_readline, output)
+        XCmd.__init__(self, None, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
         self._read_only = read_only
@@ -262,11 +249,6 @@ class Shell(XCmd):
         self.connected = False
         self.state_transitions_enabled = True
         self._tunnel = tunnel
-
-        self._conf = self._conf_store.get("config")
-        if self._conf is None:
-            self._conf_store.save("config", DEFAULT_CONF)
-            self._conf = self._conf_store.get("config")
 
         if len(self._hosts) > 0:
             self._connect(self._hosts)
@@ -1502,43 +1484,6 @@ child_watches=%s"""
         completers = [partial(complete_values, values)]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
-    @ensure_params(Optional("match"))
-    def do_history(self, params):
-        """
-\x1b[1mNAME\x1b[0m
-        history - Prints all previous commands
-
-\x1b[1mSYNOPSIS\x1b[0m
-        history [match]
-
-\x1b[1mOPTIONS\x1b[0m
-        * match: only include commands if match is substr (default: '')
-
-\x1b[1mEXAMPLES\x1b[0m
-        > history
-        ls
-        create
-        get /foo
-        get /bar
-
-        # only those that match 'get'
-        > history get
-        get /foo
-        get /bar
-
-        """
-        for hcmd in self.history:
-            if hcmd is None:
-                continue
-
-            if params.match == "" or params.match in hcmd:
-                self.show_output("%s", hcmd)
-
-    def complete_history(self, cmd_param_text, full_cmd, *rest):
-        """ TODO: howto introspect & suggest all avail commands? """
-        completers = [partial(complete_values, ["get", "ls", "create", "set", "rm"])]
-        return complete(completers, cmd_param_text, full_cmd, *rest)
-
     @ensure_params(Optional("hosts"), Optional("match"))
     def do_mntr(self, params):
         """
@@ -2573,103 +2518,6 @@ child_watches=%s"""
         complete_value = partial(complete_values, ["X", "Y"])
         complete_repeat = partial(complete_values, [str(i) for i in range(0, 11)])
         completers = [self._complete_path, complete_value, complete_repeat]
-        return complete(completers, cmd_param_text, full_cmd, *rest)
-
-    @ensure_params(Required("cmd"), MultiOptional("args"))
-    def do_conf(self, params):
-        """
-\x1b[1mNAME\x1b[0m
-        conf - Runtime configuration management
-
-\x1b[1mSYNOPSIS\x1b[0m
-        conf <describe|get|save|set> [args]
-
-\x1b[1mDESCRIPTION\x1b[0m
-
-        conf describe [name]
-
-          describes the configuration variable [name], or all if no name is given.
-
-        conf get [name]
-
-          with a name given, it gets the value for the configuration variable. Otherwise, it'll
-          get all available configuration variables.
-
-        conf set <name> <value>
-
-          sets the variable <name> to <value>.
-
-        conf save
-
-          persists the running configuration.
-
-\x1b[1mEXAMPLES\x1b[0m
-        > conf get
-        foo: bar
-        two: dos
-
-        > conf describe foo
-        foo is used to set the operating parameter for bar
-
-        > conf get foo
-        bar
-
-        > conf set foo 2
-
-        > conf get foo
-        2
-
-        > conf save
-        Configuration saved.
-
-        """
-        conf = self._conf
-        error = "Unknown variable."
-
-        def get():
-            if len(params.args) == 0:
-                out = str(conf)
-            else:
-                out = conf.get_str(params.args[0], error)
-            self.show_output(out)
-
-        def setv():
-            if len(params.args) != 2:
-                raise ValueError
-            cvar = conf.get(params.args[0])
-            if cvar:
-                cvar.value = params.args[1]
-            else:
-                self.show_output(error)
-
-        def describe():
-            if len(params.args) == 0:
-                self.show_output(conf.describe_all())
-            else:
-                self.show_output(conf.describe(params.args[0], error))
-
-        def save():
-            if self.prompt_yes_no("Save configuration?"):
-                if self._conf_store.save("config", self._conf):
-                    self.show_output("Configuration saved")
-                # FIXME: not dealing with failure now
-
-        cmds = {
-            "get": get,
-            "describe": describe,
-            "save": save,
-            "set": setv,
-        }
-
-        cmd = cmds.get(params.cmd)
-        if not cmd:
-            raise ValueError
-        cmd()
-
-    def complete_conf(self, cmd_param_text, full_cmd, *rest):
-        complete_cmd = partial(complete_values, ["get", "describe", "save", "set"])
-        complete_var = partial(complete_values, self._conf.keys())
-        completers = [complete_cmd, complete_var]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @ensure_params(FloatRequired("seconds"))
