@@ -46,12 +46,9 @@ from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
 from twitter.common.net.tunnel import TunnelHelper
-
-from .acl import ACLReader
-from .conf import Conf, ConfVar
-from .conf_store import ConfStore
-from .xclient import XClient
-from .xcmd import (
+from xcmd.conf import Conf, ConfVar
+from xcmd.conf_store import ConfStore
+from xcmd.xcmd import (
     XCmd,
     FloatRequired,
     IntegerOptional,
@@ -64,6 +61,8 @@ from .xcmd import (
     Optional,
     Required,
 )
+
+from .acl import ACLReader
 from .complete import complete, complete_boolean, complete_labeled_boolean, complete_values
 from .copy import CopyError, Proxy
 from .keys import Keys
@@ -84,6 +83,7 @@ from .util import (
     to_int,
     which
 )
+from .xclient import XClient
 
 
 def connected(func):
@@ -242,7 +242,8 @@ class Shell(XCmd):
                  read_only=False,
                  tunnel=None):
 
-        self._conf_store = ConfStore()
+        self._conf_store = ConfStore(
+            path=os.path.join(os.environ["HOME"], ".zk_shell"))
         self._conf_store.ensure_path()
 
         # mv (old) history file to zk-shell's private dir
