@@ -46,6 +46,12 @@ from kazoo.protocol.states import KazooState
 from kazoo.security import OPEN_ACL_UNSAFE, READ_ACL_UNSAFE
 from tabulate import tabulate
 from twitter.common.net.tunnel import TunnelHelper
+from xcmd.complete import (
+    complete,
+    complete_boolean,
+    complete_labeled_boolean,
+    complete_values
+)
 from xcmd.conf import Conf, ConfVar
 from xcmd.xcmd import (
     XCmd,
@@ -62,7 +68,6 @@ from xcmd.xcmd import (
 )
 
 from .acl import ACLReader
-from .complete import complete, complete_boolean, complete_labeled_boolean, complete_values
 from .copy import CopyError, Proxy
 from .keys import Keys
 from .pathmap import PathMap
