@@ -4,6 +4,7 @@ from collections import namedtuple
 from functools import partial
 import argparse
 import logging
+import os
 import signal
 import sys
 
@@ -69,6 +70,7 @@ def get_params():
                         help="Display version and exit.")
     parser.add_argument("hosts",
                         nargs="*",
+                        default=os.getenv('ZK_SHELL_HOSTS').split(','),
                         help="ZK hosts to connect")
     params = parser.parse_args()
     return CLIParams(
