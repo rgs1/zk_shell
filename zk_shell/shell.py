@@ -2688,6 +2688,7 @@ child_watches=%s"""
 
         """
         self._disconnect()
+        self._hosts = []
         self.update_curdir("/")
 
     @connected
@@ -2784,13 +2785,14 @@ child_watches=%s"""
                            timeout=self._connect_timeout,
                            auth_data=auth_data if len(auth_data) > 0 else None)
         if self._async:
-            self._connect_async()
+            self._connect_async(hosts)
         else:
-            self._connect_sync()
+            self._connect_sync(hosts)
 
-    def _connect_async(self):
+    def _connect_async(self, hosts):
         def listener(state):
             self.connected = state == KazooState.CONNECTED
+            self._hosts = hosts
             self.update_curdir("/")
             # hack to restart sys.stdin.readline()
             self.show_output("")
@@ -2800,17 +2802,21 @@ child_watches=%s"""
         self._zk.start_async()
         self.update_curdir("/")
 
-    def _connect_sync(self):
+    def _connect_sync(self, hosts):
         try:
             self._zk.start(timeout=self._connect_timeout)
             self.connected = True
         except self._zk.handler.timeout_exception as ex:
             self.show_output("Failed to connect: %s", ex)
+        self._hosts = hosts
         self.update_curdir("/")
 
     @property
     def state(self):
-        return "(%s) " % (self._zk.client_state if self._zk else "DISCONNECTED")
+        if self._zk and self._zk.client_state != 'CLOSED':
+            return "(%s) " % ('%s [%s]' % (self._zk.client_state, ','.join(self._hosts)))
+        else:
+            return "(DISCONNECTED) "
 
     def do_man(self, *args, **kwargs):
         """
