@@ -54,7 +54,7 @@ def get_params():
     parser.add_argument("--sync-connect",
                         action="store_true",
                         default=False,
-                        help="Connect syncronously.")
+                        help="Connect synchronously.")
     parser.add_argument("--readonly",
                         action="store_true",
                         default=False,

@@ -549,7 +549,7 @@ class Shell(XCmd):
 \x1b[1mOPTIONS\x1b[0m
         * recursive: recursively copy src (default: false)
         * overwrite: overwrite the dst path (default: false)
-        * async: do asyncronous copies (default: false)
+        * async: do asynchronous copies (default: false)
         * verbose: verbose output of every path (default: false)
         * max_items: max number of paths to copy (0 is infinite) (default: 0)
 
@@ -608,7 +608,7 @@ class Shell(XCmd):
         of ephemeral nodes.
 
 \x1b[1mOPTIONS\x1b[0m
-        * async: do asyncronous copies (default: false)
+        * async: do asynchronous copies (default: false)
         * verbose: verbose output of every path (default: false)
         * skip_prompt: don't ask for confirmation (default: false)
 

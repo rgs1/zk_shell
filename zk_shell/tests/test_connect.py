@@ -75,7 +75,7 @@ class ConnectTestCase(unittest.TestCase):
     def test_connect_async(self):
         """ test async """
 
-        # SIGUSR2 is emitted when connecting asyncronously, so handle it
+        # SIGUSR2 is emitted when connecting asynchronously, so handle it
         def handler(*args, **kwargs):
             pass
         signal.signal(signal.SIGUSR2, handler)
