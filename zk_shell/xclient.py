@@ -207,15 +207,16 @@ class XClient(KazooClient):
             yield tpath, acls
 
     def find(self, path, match, flags):
-        """ find every matchin child path under path """
+        """ find every matching child path under path """
         try:
             match = re.compile(match, flags)
         except sre_constants.error as ex:
             print("Bad regexp: %s" % (ex))
             return
 
+        offset = len(path)
         for cpath in Tree(self, path).get():
-            if match.search(cpath):
+            if match.search(cpath[offset:]):
                 yield cpath
 
     def grep(self, path, content, flags):

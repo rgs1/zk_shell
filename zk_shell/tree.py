@@ -51,8 +51,12 @@ class Tree(object):
         pending = 1
         path = self.path
         zk = self.zk
-        child_of = lambda path: zk.get_children_async(path)
-        dispatch = lambda path: Request(path, child_of(path))
+
+        def child_of(path):
+            return zk.get_children_async(path)
+
+        def dispatch(path):
+            return Request(path, child_of(path))
 
         stat = zk.exists(path)
         if stat is None or stat.numChildren == 0:
@@ -67,7 +71,7 @@ class Tree(object):
                 children = req.value
                 for child in children:
                     cpath = os.path.join(req.path, child)
-                    if exclude_recurse is None or not exclude_recurse in child:
+                    if exclude_recurse is None or exclude_recurse not in child:
                         pending += 1
                         reqs.put(dispatch(cpath))
                     yield cpath
