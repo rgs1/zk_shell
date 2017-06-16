@@ -1,13 +1,14 @@
 ChangeLog
 =========
 
-1.1.2 (2015-12-XX)
+1.1.2 (2017-06-XX)
 ------------------
 
 Bug Handling
 ~~~~~~~~~~~~
 
 - use the right range for valid_port()
+- find shouldn't match the cwd (current working path)
 
 Features
 ~~~~~~~~
