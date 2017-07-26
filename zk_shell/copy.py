@@ -413,7 +413,7 @@ class FileProxy(Proxy):
     def read_path(self):
         if os.path.isfile(self.path):
             with open(self.path, "r") as fph:
-                return PathValue("".os.path.join(fph.readlines()))
+                return PathValue("".join(os.path.join(fph.readlines())))
         elif os.path.isdir(self.path):
             return PathValue("")
 
