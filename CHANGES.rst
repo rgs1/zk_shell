@@ -1,6 +1,19 @@
 ChangeLog
 =========
 
+1.1.3 (2017-08-01)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+- update xcmd to fix optional arguments handling
+
+Features
+~~~~~~~~
+
+-
+
 1.1.2 (2017-06-16)
 ------------------
 
