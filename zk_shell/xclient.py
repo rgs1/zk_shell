@@ -162,7 +162,7 @@ class XClient(KazooClient):
 
     def set(self, path, value, version=-1):
         """ wraps the default set() and handles encoding (Py3k) """
-        value = to_bytes(value)
+        value = to_bytes("".join(value))
         super(XClient, self).set(path, value, version)
 
     def create(self, path, value=b"", acl=None, ephemeral=False, sequence=False, makepath=False):
