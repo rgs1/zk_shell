@@ -260,7 +260,6 @@ def which(program):
 
     return None
 
-
 def get_matching(content, match):
     """ filters out lines that don't include match """
     if match != "":
