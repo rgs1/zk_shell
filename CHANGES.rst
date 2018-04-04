@@ -1,6 +1,19 @@
 ChangeLog
 =========
 
+1.1.4 (2018-04-04)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+- fix error in copying (Strajan Sebastian Ioan)
+
+Features
+~~~~~~~~
+
+- show connected host in prompt
+
 1.1.3 (2017-08-01)
 ------------------
 
