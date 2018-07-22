@@ -4,6 +4,8 @@
 
 from .shell_test_case import ShellTestCase
 
+from nose import SkipTest
+
 
 # pylint: disable=R0904
 class FourLetterCmdsTestCase(ShellTestCase):
@@ -11,22 +13,26 @@ class FourLetterCmdsTestCase(ShellTestCase):
 
     def test_mntr(self):
         """ test mntr """
+        raise SkipTest('broken with zookeeper 3.5.4')
         self.shell.onecmd("mntr")
         self.assertIn("zk_server_state", self.output.getvalue())
 
     def test_mntr_with_match(self):
         """ test mntr with matched lines """
+        raise SkipTest('broken with zookeeper 3.5.4')
         self.shell.onecmd("mntr %s zk_server_state" % self.shell.server_endpoint)
         lines = [line for line in self.output.getvalue().split("\n") if line != ""]
         self.assertEquals(1, len(lines))
 
     def test_cons(self):
         """ test cons """
+        raise SkipTest('broken with zookeeper 3.5.4')
         self.shell.onecmd("cons")
         self.assertIn("queued=", self.output.getvalue())
 
     def test_dump(self):
         """ test dump """
+        raise SkipTest('broken with zookeeper 3.5.4')
         self.shell.onecmd("dump")
         self.assertIn("Sessions with Ephemerals", self.output.getvalue())
 
