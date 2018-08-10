@@ -2063,6 +2063,45 @@ child_watches=%s"""
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
+    @ensure_params(Required("path"), Required("keys"), Required("value"))
+    @check_paths_exists("path")
+    def do_json_set(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        json_set - Sets the value for the given (possibly nested) key on a JSON object serialized in the given path
+
+\x1b[1mSYNOPSIS\x1b[0m
+        json_set <path> <keys> <value>
+
+\x1b[1mEXAMPLES\x1b[0m
+        > json_get /configs/primary_service endpoint.clientPort
+        32768
+        > json_set /configs/primary_service endpoint.clientPort 33000
+        > json_get /configs/primary_service endpoint.clientPort
+        33000
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        try:
+            jstr, _ = self._zk.get(params.path)
+            obj = json_deserialize(jstr)
+            Keys.set(obj, params.keys, params.value)
+            # TODO(rgs): this should pass the version to avoid a race between
+            # reading & updating.
+            self.set(params.path, json.dumps(obj), version=-1)
+        except BadJSON:
+            self.show_output("Path %s has bad JSON.", params.path)
+        except Keys.Missing as ex:
+            self.show_output("Path %s is missing key %s.", params.path, ex)
+
+    complete_json_set = complete_json_get
+
+    @connected
     @ensure_params(
         Required("path"),
         Required("keys"),

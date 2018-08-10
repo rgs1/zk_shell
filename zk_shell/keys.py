@@ -10,8 +10,11 @@ class Keys(object):
     in template strings
     """
 
-    class Bad(Exception): pass
-    class Missing(Exception): pass
+    class Bad(Exception):
+        pass
+
+    class Missing(Exception):
+        pass
 
     @staticmethod
     def extract(keystr):
@@ -23,6 +26,8 @@ class Keys(object):
         """ validates one key string """
         if re.match(r"\w+(?:\.\w+)*$", keystr) is None:
             raise cls.Bad("Bad key syntax for: %s. Should be: key1.key2..." % (keystr))
+
+        return True
 
     @classmethod
     def from_template(cls, template):
@@ -47,7 +52,6 @@ class Keys(object):
             # plain keys str
             cls.validate_one(keystr)
 
-
     @classmethod
     def fetch(cls, obj, keys):
         """
@@ -68,7 +72,6 @@ class Keys(object):
 
         return current
 
-
     @classmethod
     def value(cls, obj, keystr):
         """
@@ -88,3 +91,27 @@ class Keys(object):
             value = cls.fetch(obj, keystr)
 
         return value
+
+    @classmethod
+    def set(cls, obj, keys, value):
+        """
+        sets the value for the given to keys from obj
+        """
+        current = obj
+        keys_list = keys.split(".")
+
+        for idx, key in enumerate(keys_list, 1):
+            if type(current) == list:
+                try:
+                    key = int(key)
+                except TypeError:
+                    raise cls.Missing(key)
+
+            try:
+                if idx == len(keys_list):
+                    current[key] = value
+                    return
+
+                current = current[key]
+            except (IndexError, KeyError, TypeError):
+                raise cls.Missing(key)
