@@ -95,10 +95,18 @@ class Keys(object):
     @classmethod
     def set(cls, obj, keys, value):
         """
-        sets the value for the given keys on obj
+        sets the value for the given keys on obj. if any of the given
+        keys does not exist, create the intermediate containers.
         """
         current = obj
         keys_list = keys.split(".")
+
+        def container_for_key(k):
+            try:
+                int(k)
+                return []
+            except ValueError:
+                return {}
 
         for idx, key in enumerate(keys_list, 1):
             if type(current) == list:
@@ -111,6 +119,20 @@ class Keys(object):
                 if idx == len(keys_list):
                     current[key] = value
                     return
+
+                # Do we have a container for this key?
+                if type(key) == int:
+                    try:
+                        current[key]
+                    except IndexError:
+                        # For a list, we need to populate every element with
+                        # the container type of the next key.
+                        cnext = container_for_key(keys_list[idx])
+                        for _ in range(key + 1):
+                            current.append([] if type(cnext) == list else {})
+                else:
+                    if key not in current:
+                        current[key] = container_for_key(keys_list[idx])
 
                 current = current[key]
             except (IndexError, KeyError, TypeError):

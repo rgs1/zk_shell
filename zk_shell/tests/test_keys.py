@@ -40,3 +40,13 @@ class KeysTestCase(unittest.TestCase):
         obj = {'foo': {'bar': 'v1'}}
         Keys.set(obj, 'foo.bar', 'v2')
         self.assertEqual('v2', obj['foo']['bar'])
+
+    def test_set_missing(self):
+        obj = {'foo': {'bar': 'v1'}}
+        Keys.set(obj, 'foo.bar2.bar3.k', 'v2')
+        self.assertEqual('v2', obj['foo']['bar2']['bar3']['k'])
+
+    def test_set_missing_list(self):
+        obj = {'foo': {'bar': 'v1'}}
+        Keys.set(obj, 'foo.bar2.0.k', 'v2')
+        self.assertEqual('v2', obj['foo']['bar2'][0]['k'])

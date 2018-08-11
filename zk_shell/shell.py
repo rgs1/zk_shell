@@ -2104,7 +2104,7 @@ child_watches=%s"""
             return
 
         try:
-            jstr, _ = self._zk.get(params.path)
+            jstr, stat = self._zk.get(params.path)
             obj_src = json_deserialize(jstr)
             obj_dst = copy.deepcopy(obj_src)
 
@@ -2134,9 +2134,8 @@ child_watches=%s"""
                 if not self.prompt_yes_no("Apply update?"):
                     return
 
-            # TODO(rgs): this should pass the version to avoid a race between
-            # reading & updating.
-            self.set(params.path, json.dumps(obj_dst), version=-1)
+            # Pass along the read version, to ensure we are updating what we read.
+            self.set(params.path, json.dumps(obj_dst), version=stat.version)
         except BadJSON:
             self.show_output("Path %s has bad JSON.", params.path)
         except Keys.Missing as ex:
