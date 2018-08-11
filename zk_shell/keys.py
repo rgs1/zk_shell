@@ -95,7 +95,7 @@ class Keys(object):
     @classmethod
     def set(cls, obj, keys, value):
         """
-        sets the value for the given to keys from obj
+        sets the value for the given keys on obj
         """
         current = obj
         keys_list = keys.split(".")
