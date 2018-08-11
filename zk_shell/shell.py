@@ -2079,7 +2079,7 @@ child_watches=%s"""
         json_set - Sets the value for the given (possibly nested) key on a JSON object serialized in the given path
 
 \x1b[1mSYNOPSIS\x1b[0m
-        json_set <path> <keys> <value>
+        json_set <path> <keys> <value> <value_type> [confirm]
 
 \x1b[1mDESCRIPTION\x1b[0m
         If the key exists and the value is different, the znode will be updated with the key set to its new value.
