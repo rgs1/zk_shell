@@ -10,6 +10,8 @@ from functools import partial, wraps
 from threading import Thread
 
 import bisect
+import copy
+import difflib
 import json
 import os
 import re
@@ -68,7 +70,7 @@ from xcmd.xcmd import (
 )
 
 from .acl import ACLReader
-from .copy import CopyError, Proxy
+from .copy_util import CopyError, Proxy
 from .keys import Keys
 from .pathmap import PathMap
 from .watcher import get_child_watcher
@@ -2063,7 +2065,7 @@ child_watches=%s"""
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Required("keys"), Required("value"))
+    @ensure_params(Required("path"), Required("keys"), Required("value"), LabeledBooleanOptional("confirm"))
     @check_paths_exists("path")
     def do_json_set(self, params):
         """
@@ -2089,11 +2091,21 @@ child_watches=%s"""
 
         try:
             jstr, _ = self._zk.get(params.path)
-            obj = json_deserialize(jstr)
-            Keys.set(obj, params.keys, params.value)
+            obj_src = json_deserialize(jstr)
+            obj_dst = copy.deepcopy(obj_src)
+            Keys.set(obj_dst, params.keys, params.value)
+
+            if params.confirm:
+                a = json.dumps(obj_src, sort_keys=True, indent=4)
+                b = json.dumps(obj_dst, sort_keys=True, indent=4)
+                diff = difflib.unified_diff(a.split("\n"), b.split("\n"))
+                self.show_output("\n".join(diff))
+                if not self.prompt_yes_no("Apply update?"):
+                    return
+
             # TODO(rgs): this should pass the version to avoid a race between
             # reading & updating.
-            self.set(params.path, json.dumps(obj), version=-1)
+            self.set(params.path, json.dumps(obj_dst), version=-1)
         except BadJSON:
             self.show_output("Path %s has bad JSON.", params.path)
         except Keys.Missing as ex:
