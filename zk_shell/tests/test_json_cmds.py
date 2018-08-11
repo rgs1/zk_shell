@@ -138,3 +138,12 @@ class JsonCmdsTestCase(ShellTestCase):
         self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
 
         self.assertEqual("v2\n", self.output.getvalue())
+
+    def test_json_set_missing_key(self):
+        """ test set """
+        jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a.b.c.e v2" % (self.tests_path))
+        self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
+
+        self.assertEqual("v1\n", self.output.getvalue())
