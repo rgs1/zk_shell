@@ -1,6 +1,20 @@
 ChangeLog
 =========
 
+1.1.5 (2018-08-10)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+- skip failing tests with zk 3.5.4
+
+Features
+~~~~~~~~
+
+- add json_set command
+
+
 1.1.4 (2018-04-04)
 ------------------
 
