@@ -2087,14 +2087,30 @@ child_watches=%s"""
         the new object. The value's type will be determined by the value_type parameter.
 
 \x1b[1mEXAMPLES\x1b[0m
-        > json_get /configs/primary_service endpoint.clientPort
-        32768
-        > json_set /configs/primary_service endpoint.clientPort 33000 int
-        > json_get /configs/primary_service endpoint.clientPort
-        33000
-        > json_set /configs/primary_service endpoint.newProperty true bool
-        > json_get /configs/primary_service endpoint.clientPort
-        true
+        > create /props '{"a": {"b": 4}}'
+        > json_cat /props
+        {
+            "a": {
+                "b": 4
+            }
+        }
+        > json_set /props a.b 5 int
+        > json_cat /props
+        {
+            "a": {
+                "b": 5
+            }
+        }
+        > json_set /props a.c.d true bool
+        > json_cat /props
+        {
+            "a": {
+                "c": {
+                    "d": true
+                },
+                "b": 5
+            }
+        }
 
         """
         try:
