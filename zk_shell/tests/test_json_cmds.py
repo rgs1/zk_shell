@@ -147,3 +147,13 @@ class JsonCmdsTestCase(ShellTestCase):
         self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
 
         self.assertEqual("v1\n", self.output.getvalue())
+
+    def test_json_set_bad_json(self):
+        """ test with malformed json """
+        jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}'  # missing closing }
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a.b.c.e v2" % (self.tests_path))
+        self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
+
+        expected = "Path /tests/json has bad JSON.\nPath /tests/json has bad JSON.\n"
+        self.assertEqual(expected, self.output.getvalue())
