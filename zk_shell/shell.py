@@ -2065,7 +2065,13 @@ child_watches=%s"""
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
     @connected
-    @ensure_params(Required("path"), Required("keys"), Required("value"), LabeledBooleanOptional("confirm"))
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
+        Required("value"),
+        Required("value_type"),
+        LabeledBooleanOptional("confirm")
+    )
     @check_paths_exists("path")
     def do_json_set(self, params):
         """
@@ -2075,12 +2081,20 @@ child_watches=%s"""
 \x1b[1mSYNOPSIS\x1b[0m
         json_set <path> <keys> <value>
 
+\x1b[1mDESCRIPTION\x1b[0m
+        If the key exists and the value is different, the znode will be updated with the key set to its new value.
+        If the key does not exist, it'll be created and the znode will be updated with the serialized version of
+        the new object. The value's type will be determined by the value_type parameter.
+
 \x1b[1mEXAMPLES\x1b[0m
         > json_get /configs/primary_service endpoint.clientPort
         32768
-        > json_set /configs/primary_service endpoint.clientPort 33000
+        > json_set /configs/primary_service endpoint.clientPort 33000 int
         > json_get /configs/primary_service endpoint.clientPort
         33000
+        > json_set /configs/primary_service endpoint.newProperty true bool
+        > json_get /configs/primary_service endpoint.clientPort
+        true
 
         """
         try:
@@ -2093,7 +2107,24 @@ child_watches=%s"""
             jstr, _ = self._zk.get(params.path)
             obj_src = json_deserialize(jstr)
             obj_dst = copy.deepcopy(obj_src)
-            Keys.set(obj_dst, params.keys, params.value)
+
+            # Cast value to its given type.
+            value = params.value
+            if params.value_type == 'str':
+                pass  # already an str
+            elif params.value_type == 'int':
+                value = int(params.value)
+            elif params.value_type == 'float':
+                value = float(params.value)
+            elif params.value_type == 'bool':
+                value = bool(params.value)
+            elif params.value_type == 'json':
+                value = json.loads(params.value)
+            else:
+                self.show_output('Unknown type')
+                return
+
+            Keys.set(obj_dst, params.keys, value)
 
             if params.confirm:
                 a = json.dumps(obj_src, sort_keys=True, indent=4)
@@ -2110,6 +2141,8 @@ child_watches=%s"""
             self.show_output("Path %s has bad JSON.", params.path)
         except Keys.Missing as ex:
             self.show_output("Path %s is missing key %s.", params.path, ex)
+        except ValueError:
+            self.show_output("Bad value_type")
 
     complete_json_set = complete_json_get
 

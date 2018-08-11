@@ -130,20 +130,51 @@ class JsonCmdsTestCase(ShellTestCase):
         expected_output = u"%s/b\n%s/c\n" % (self.tests_path, self.tests_path)
         self.assertEqual(expected_output, self.output.getvalue())
 
-    def test_json_set(self):
-        """ test set """
+    def test_json_set_str(self):
+        """ test setting an str """
         jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}}'
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_set %s/json a.b.c.d v2" % (self.tests_path))
+        self.shell.onecmd("json_set %s/json a.b.c.d v2 str" % (self.tests_path))
         self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
 
         self.assertEqual("v2\n", self.output.getvalue())
+
+    def test_json_set_int(self):
+        """ test setting an int """
+        jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a.b.c.d 2 int" % (self.tests_path))
+        self.shell.onecmd("json_cat %s/json a.b.c.d" % (self.tests_path))
+
+        expected = {u'a': {u'b': {u'c': {u'd': 2}}}}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_set_bool(self):
+        """ test setting a bool """
+        jsonstr = '{"a": {"b": {"c": {"d": false}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a.b.c.d true bool" % (self.tests_path))
+        self.shell.onecmd("json_cat %s/json a.b.c.d" % (self.tests_path))
+
+        expected = {u'a': {u'b': {u'c': {u'd': True}}}}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_set_json(self):
+        """ test setting serialized json """
+        jsonstr = '{"a": {"b": {"c": {"d": false}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        jstr = json.dumps({'c2': {'d2': True}})
+        self.shell.onecmd("json_set %s/json a.b '%s' json" % (self.tests_path, jstr))
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'a': {u'b': {u'c2': {u'd2': True}}}}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
 
     def test_json_set_missing_key(self):
         """ test set """
         jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}}'
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_set %s/json a.b.c.e v2" % (self.tests_path))
+        self.shell.onecmd("json_set %s/json a.b.c.e v2 str" % (self.tests_path))
         self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
 
         self.assertEqual("v1\n", self.output.getvalue())
@@ -152,7 +183,7 @@ class JsonCmdsTestCase(ShellTestCase):
         """ test with malformed json """
         jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}'  # missing closing }
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
-        self.shell.onecmd("json_set %s/json a.b.c.e v2" % (self.tests_path))
+        self.shell.onecmd("json_set %s/json a.b.c.e v2 str" % (self.tests_path))
         self.shell.onecmd("json_get %s/json a.b.c.d" % (self.tests_path))
 
         expected = "Path /tests/json has bad JSON.\nPath /tests/json has bad JSON.\n"
