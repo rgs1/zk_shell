@@ -8,6 +8,7 @@ Bug Handling
 ~~~~~~~~~~~~
 
 - skip failing tests with zk 3.5.4
+- drop support for python 3.3
 
 Features
 ~~~~~~~~
