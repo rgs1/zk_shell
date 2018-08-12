@@ -50,3 +50,29 @@ class KeysTestCase(unittest.TestCase):
         obj = {'foo': {'bar': 'v1'}}
         Keys.set(obj, 'foo.bar2.0.k', 'v2')
         self.assertEqual('v2', obj['foo']['bar2'][0]['k'])
+
+    def test_set_append_list(self):
+        # list has only 2 elements, we want to set a value for the 3rd elem.
+        obj = {'items': [False, False]}
+        Keys.set(obj, 'items.2', True)
+        self.assertEqual([False, False, True], obj['items'])
+
+    def test_set_append_list_backwards(self):
+        # list has only 2 elements, we want to set a value for the 1st elem,
+        # but also extend the list.
+        obj = {'items': [False, False]}
+        Keys.set(obj, 'items.-3', True, fill_list_value=False)
+        self.assertEqual([True, False, False], obj['items'])
+
+    def test_set_update_list_element(self):
+        # list has only 2 elements, we want to set a value for the 3rd elem.
+        obj = {'items': [False, False, False]}
+        Keys.set(obj, 'items.1', True)
+        self.assertEqual([False, True, False], obj['items'])
+
+    def test_set_update_dict_element_inside_list(self):
+        # Access an element within an existing list, ensure the list is
+        # properly updated.
+        obj = {'items': [{}, {'prop1': 'v1', 'prop2': 'v2'}]}
+        Keys.set(obj, 'items.1.prop1', 'v2')
+        self.assertEqual([{}, {'prop1': 'v2', 'prop2': 'v2'}], obj['items'])

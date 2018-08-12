@@ -1,6 +1,48 @@
 """ helpers for JSON keys DSL """
 
+import copy
 import re
+
+
+def container_for_key(key):
+    """ Determines what type of container is needed for `key` """
+    try:
+        int(key)
+        return []
+    except ValueError:
+        return {}
+
+
+def safe_list_set(plist, idx, fill_with, value):
+    """
+    Sets:
+
+    ```
+    plist[idx] = value
+    ```
+
+    If len(plist) is smaller than what idx is trying
+    to dereferece, we first grow plist to get the needed
+    capacity and fill the new elements with fill_with
+    (or fill_with(), if it's a callable).
+    """
+    assert callable(fill_with)
+
+    try:
+        plist[idx] = value
+        return
+    except IndexError:
+        pass
+
+    # Fill in the missing positions. Handle negative indexes.
+    end = idx + 1 if idx >= 0 else abs(idx)
+    for _ in range(len(plist), end):
+        if callable(fill_with):
+            plist.append(fill_with())
+        else:
+            plist.append(fill_with)
+
+    plist[idx] = value
 
 
 class Keys(object):
@@ -93,20 +135,13 @@ class Keys(object):
         return value
 
     @classmethod
-    def set(cls, obj, keys, value):
+    def set(cls, obj, keys, value, fill_list_value=None):
         """
         sets the value for the given keys on obj. if any of the given
         keys does not exist, create the intermediate containers.
         """
         current = obj
         keys_list = keys.split(".")
-
-        def container_for_key(k):
-            try:
-                int(k)
-                return []
-            except ValueError:
-                return {}
 
         for idx, key in enumerate(keys_list, 1):
             if type(current) == list:
@@ -117,7 +152,17 @@ class Keys(object):
 
             try:
                 if idx == len(keys_list):
-                    current[key] = value
+                    if type(current) == list:
+                        safe_list_set(
+                            current,
+                            key,
+                            lambda: copy.copy(fill_list_value),
+                            value
+                        )
+                    else:
+                        current[key] = value
+
+                    # done.
                     return
 
                 # Do we have a container for this key?
@@ -125,11 +170,20 @@ class Keys(object):
                     try:
                         current[key]
                     except IndexError:
-                        # For a list, we need to populate every element with
-                        # the container type of the next key.
                         cnext = container_for_key(keys_list[idx])
-                        for _ in range(key + 1):
-                            current.append([] if type(cnext) == list else {})
+                        if type(cnext) == list:
+                            def fill_with():
+                                return []
+                        else:
+                            def fill_with():
+                                return {}
+
+                        safe_list_set(
+                            current,
+                            key,
+                            fill_with,
+                            [] if type(cnext) == list else {}
+                        )
                 else:
                     if key not in current:
                         current[key] = container_for_key(keys_list[idx])
