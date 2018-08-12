@@ -64,6 +64,11 @@ class KeysTestCase(unittest.TestCase):
         Keys.set(obj, 'items.-3', True, fill_list_value=False)
         self.assertEqual([True, False, False], obj['items'])
 
+    def test_set_invalid_list_key(self):
+        # list has only 2 elements, we want to set a value for the 3rd elem.
+        obj = {'items': [False, False]}
+        self.assertRaises(Keys.Missing, Keys.set, obj, 'items.a', True)
+
     def test_set_update_list_element(self):
         # list has only 2 elements, we want to set a value for the 3rd elem.
         obj = {'items': [False, False, False]}

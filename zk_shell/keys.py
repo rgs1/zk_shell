@@ -144,13 +144,14 @@ class Keys(object):
 
         for idx, key in enumerate(keys_list, 1):
             if type(current) == list:
+                # Validate this key works with a list.
                 try:
                     key = int(key)
-                except TypeError:
+                except ValueError:
                     raise cls.Missing(key)
 
             try:
-                # This the last key, so set the value.
+                # This is the last key, so set the value.
                 if idx == len(keys_list):
                     if type(current) == list:
                         safe_list_set(
