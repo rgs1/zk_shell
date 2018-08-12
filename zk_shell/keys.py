@@ -150,6 +150,7 @@ class Keys(object):
                     raise cls.Missing(key)
 
             try:
+                # This the last key, so set the value.
                 if idx == len(keys_list):
                     if type(current) == list:
                         safe_list_set(
@@ -164,11 +165,12 @@ class Keys(object):
                     # done.
                     return
 
-                # Do we have a container for this key?
+                # More keys left, ensure we have a container for this key.
                 if type(key) == int:
                     try:
                         current[key]
                     except IndexError:
+                        # Create a list for this key.
                         cnext = container_for_key(keys_list[idx])
                         if type(cnext) == list:
                             def fill_with():
@@ -185,8 +187,10 @@ class Keys(object):
                         )
                 else:
                     if key not in current:
+                        # Create a list for this key.
                         current[key] = container_for_key(keys_list[idx])
 
+                # Move on to the next key.
                 current = current[key]
             except (IndexError, KeyError, TypeError):
                 raise cls.Missing(key)
