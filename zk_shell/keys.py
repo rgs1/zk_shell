@@ -26,7 +26,6 @@ def safe_list_set(plist, idx, fill_with, value):
     capacity and fill the new elements with fill_with
     (or fill_with(), if it's a callable).
     """
-    assert callable(fill_with)
 
     try:
         plist[idx] = value
