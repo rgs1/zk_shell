@@ -144,7 +144,7 @@ class JsonCmdsTestCase(ShellTestCase):
         jsonstr = '{"a": {"b": {"c": {"d": "v1"}}}}'
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("json_set %s/json a.b.c.d 2 int" % (self.tests_path))
-        self.shell.onecmd("json_cat %s/json a.b.c.d" % (self.tests_path))
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
 
         expected = {u'a': {u'b': {u'c': {u'd': 2}}}}
         self.assertEqual(expected, json.loads(self.output.getvalue()))
@@ -154,10 +154,29 @@ class JsonCmdsTestCase(ShellTestCase):
         jsonstr = '{"a": {"b": {"c": {"d": false}}}}'
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("json_set %s/json a.b.c.d true bool" % (self.tests_path))
-        self.shell.onecmd("json_cat %s/json a.b.c.d" % (self.tests_path))
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
 
         expected = {u'a': {u'b': {u'c': {u'd': True}}}}
         self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_set_bool_false(self):
+        """ test setting a bool to false """
+        jsonstr = '{"a": true}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a false bool" % (self.tests_path))
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'a': False}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_set_bool_bad(self):
+        """ test setting a bool """
+        jsonstr = '{"a": true}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set %s/json a blah bool" % (self.tests_path))
+
+        expected = 'Bad bool value: blah\n'
+        self.assertEqual(expected, self.output.getvalue())
 
     def test_json_set_json(self):
         """ test setting serialized json """

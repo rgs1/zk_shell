@@ -2133,7 +2133,13 @@ child_watches=%s"""
             elif params.value_type == 'float':
                 value = float(params.value)
             elif params.value_type == 'bool':
-                value = bool(params.value)
+                if params.value.lower() == 'true':
+                    value = True
+                elif params.value.lower() == 'false':
+                    value = False
+                else:
+                    self.show_output('Bad bool value: %s', params.value)
+                    return
             elif params.value_type == 'json':
                 value = json.loads(params.value)
             else:
