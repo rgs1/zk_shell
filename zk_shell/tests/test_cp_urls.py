@@ -1,7 +1,7 @@
 """ test url parsing/handling via copy.Proxy """
 import unittest
 
-from zk_shell.copy import Proxy
+from zk_shell.copy_util import Proxy
 
 
 # pylint: disable=R0904

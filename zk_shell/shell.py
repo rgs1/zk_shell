@@ -10,6 +10,8 @@ from functools import partial, wraps
 from threading import Thread
 
 import bisect
+import copy
+import difflib
 import json
 import os
 import re
@@ -68,7 +70,7 @@ from xcmd.xcmd import (
 )
 
 from .acl import ACLReader
-from .copy import CopyError, Proxy
+from .copy_util import CopyError, Proxy
 from .keys import Keys
 from .pathmap import PathMap
 from .watcher import get_child_watcher
@@ -2061,6 +2063,103 @@ child_watches=%s"""
         complete_keys = partial(complete_values, ["key1", "key2", "#{key1.key2}"])
         completers = [self._complete_path, complete_keys, complete_labeled_boolean("recursive")]
         return complete(completers, cmd_param_text, full_cmd, *rest)
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
+        Required("value"),
+        Required("value_type"),
+        LabeledBooleanOptional("confirm")
+    )
+    @check_paths_exists("path")
+    def do_json_set(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        json_set - Sets the value for the given (possibly nested) key on a JSON object serialized in the given path
+
+\x1b[1mSYNOPSIS\x1b[0m
+        json_set <path> <keys> <value> <value_type> [confirm]
+
+\x1b[1mDESCRIPTION\x1b[0m
+        If the key exists and the value is different, the znode will be updated with the key set to its new value.
+        If the key does not exist, it'll be created and the znode will be updated with the serialized version of
+        the new object. The value's type will be determined by the value_type parameter.
+
+\x1b[1mEXAMPLES\x1b[0m
+        > create /props '{"a": {"b": 4}}'
+        > json_cat /props
+        {
+            "a": {
+                "b": 4
+            }
+        }
+        > json_set /props a.b 5 int
+        > json_cat /props
+        {
+            "a": {
+                "b": 5
+            }
+        }
+        > json_set /props a.c.d true bool
+        > json_cat /props
+        {
+            "a": {
+                "c": {
+                    "d": true
+                },
+                "b": 5
+            }
+        }
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        try:
+            jstr, stat = self._zk.get(params.path)
+            obj_src = json_deserialize(jstr)
+            obj_dst = copy.deepcopy(obj_src)
+
+            # Cast value to its given type.
+            value = params.value
+            if params.value_type == 'str':
+                pass  # already an str
+            elif params.value_type == 'int':
+                value = int(params.value)
+            elif params.value_type == 'float':
+                value = float(params.value)
+            elif params.value_type == 'bool':
+                value = bool(params.value)
+            elif params.value_type == 'json':
+                value = json.loads(params.value)
+            else:
+                self.show_output('Unknown type')
+                return
+
+            Keys.set(obj_dst, params.keys, value)
+
+            if params.confirm:
+                a = json.dumps(obj_src, sort_keys=True, indent=4)
+                b = json.dumps(obj_dst, sort_keys=True, indent=4)
+                diff = difflib.unified_diff(a.split("\n"), b.split("\n"))
+                self.show_output("\n".join(diff))
+                if not self.prompt_yes_no("Apply update?"):
+                    return
+
+            # Pass along the read version, to ensure we are updating what we read.
+            self.set(params.path, json.dumps(obj_dst), version=stat.version)
+        except BadJSON:
+            self.show_output("Path %s has bad JSON.", params.path)
+        except Keys.Missing as ex:
+            self.show_output("Path %s is missing key %s.", params.path, ex)
+        except ValueError:
+            self.show_output("Bad value_type")
+
+    complete_json_set = complete_json_get
 
     @connected
     @ensure_params(
