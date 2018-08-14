@@ -48,26 +48,26 @@ setup(name='zk_shell',
       test_suite="zk_shell.tests",
       scripts=['bin/zk-shell'],
       install_requires=[
-          'ansicolors==1.0.2',
-          'kazoo==2.2.1',
-          'tabulate==0.7.7',
+          'ansicolors==1.1.8',
+          'kazoo==2.5.0',
+          'tabulate==0.8.2',
           'twitter.common.net==0.3.9',
           'xcmd==0.0.3'
       ],
       tests_require=[
-          'ansicolors==1.0.2',
-          'kazoo==2.2.1',
+          'ansicolors==1.1.8',
+          'kazoo==2.5.0',
           'nose==1.3.7',
-          'tabulate==0.7.7',
+          'tabulate==0.8.2',
           'twitter.common.net==0.3.9',
           'xcmd==0.0.3'
       ],
       extras_require={
           'test': [
-              'ansicolors==1.0.2',
-              'kazoo==2.2.1',
+              'ansicolors==1.1.8',
+              'kazoo==2.5.0',
               'nose==1.3.7',
-              'tabulate==0.7.7',
+              'tabulate==0.8.2',
               'twitter.common.net==0.3.9',
               'xcmd==0.0.3'
           ]
