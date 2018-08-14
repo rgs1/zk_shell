@@ -10,7 +10,6 @@ Bug Handling
 - update requirements
 
 
-
 1.1.6 (2018-08-13)
 ------------------
 
