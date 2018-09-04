@@ -62,7 +62,7 @@ class ShellTestCase(unittest.TestCase):
         self.client.create(self.tests_path, str.encode(""))
 
         self.output = XStringIO()
-        self.shell = Shell([self.zk_hosts], 5, self.output, setup_readline=False, async=False)
+        self.shell = Shell([self.zk_hosts], 5, self.output, setup_readline=False, asynchronous=False)
 
         # Create an empty test dir (needed for some tests)
         self.temp_dir = tempfile.mkdtemp()

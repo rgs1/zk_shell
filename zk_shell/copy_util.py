@@ -106,11 +106,11 @@ class ProxyType(type):
 class Proxy(ProxyType("ProxyBase", (object,), {})):
     SCHEME = ""
 
-    def __init__(self, parse_result, exists, async, verbose):
+    def __init__(self, parse_result, exists, asynchronous, verbose):
         self.parse_result = parse_result
         self.netloc = Netloc.from_string(parse_result.netloc)
         self.exists = exists
-        self.async = async
+        self.asynchronous = asynchronous
         self.verbose = verbose
 
     @property
@@ -145,7 +145,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         self.parse_result = Proxy.parse(string)
 
     @classmethod
-    def from_string(cls, string, exists=False, async=False, verbose=False):
+    def from_string(cls, string, exists=False, asynchronous=False, verbose=False):
         """
         if exists is bool, then check it either exists or it doesn't.
         if exists is None, we don't care.
@@ -155,7 +155,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
         if result.scheme not in cls.TYPES:
             raise CopyError("Invalid scheme: %s" % (result.scheme))
 
-        return cls.TYPES[result.scheme](result, exists, async, verbose)
+        return cls.TYPES[result.scheme](result, exists, asynchronous, verbose)
 
     @classmethod
     def parse(cls, url_string):
@@ -233,7 +233,7 @@ class Proxy(ProxyType("ProxyBase", (object,), {})):
 
     def do_copy(self, dst, opname):
         if self.verbose:
-            if self.async:
+            if self.asynchronous:
                 print("%sing (asynchronously) from %s to %s" % (opname, self.url, dst.url))
             else:
                 print("%sing from %s to %s" % (opname, self.url, dst.url))
@@ -261,8 +261,8 @@ class ZKProxy(Proxy):
             acls = self.acl if self.acl else []
             return [ACLReader.to_dict(a) for a in acls]
 
-    def __init__(self, parse_result, exists, async, verbose):
-        super(ZKProxy, self).__init__(parse_result, exists, async, verbose)
+    def __init__(self, parse_result, exists, asynchronous, verbose):
+        super(ZKProxy, self).__init__(parse_result, exists, asynchronous, verbose)
         self.client = None
         self.need_client = True  # whether we build a client or one is provided
 
@@ -359,7 +359,7 @@ class ZKProxy(Proxy):
             raise CopyError("Zookeeper server error")
 
     def children_of(self):
-        if self.async:
+        if self.asynchronous:
             offs = 1 if self.path == "/" else len(self.path) + 1
             for path, stat in StatMap(self.client, self.path, recursive=True).get():
                 if stat.ephemeralOwner == 0:
@@ -398,8 +398,8 @@ class ZKProxy(Proxy):
 class FileProxy(Proxy):
     SCHEME = "file"
 
-    def __init__(self, parse_result, exists, async, verbose):
-        super(FileProxy, self).__init__(parse_result, exists, async, verbose)
+    def __init__(self, parse_result, exists, asynchronous, verbose):
+        super(FileProxy, self).__init__(parse_result, exists, asynchronous, verbose)
 
         if exists is not None:
             self.check_path()
