@@ -37,7 +37,7 @@ class ConnectTestCase(unittest.TestCase):
         """
         self.zk_hosts = ",".join(server.address for server in get_global_cluster())
         self.output = StringIO()
-        self.shell = Shell([], 1, self.output, setup_readline=False, async=False)
+        self.shell = Shell([], 1, self.output, setup_readline=False, asynchronous=False)
 
     def tearDown(self):
         if self.output:
@@ -80,7 +80,7 @@ class ConnectTestCase(unittest.TestCase):
             pass
         signal.signal(signal.SIGUSR2, handler)
 
-        shell = Shell([], 1, self.output, setup_readline=False, async=True)
+        shell = Shell([], 1, self.output, setup_readline=False, asynchronous=True)
         shell.onecmd("connect %s" % (self.zk_hosts))
         self.assertTrue(wait_connected(shell))
 

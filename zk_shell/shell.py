@@ -243,14 +243,14 @@ class Shell(XCmd):
                  timeout=10.0,
                  output=sys.stdout,
                  setup_readline=True,
-                 async=True,
+                 asynchronous=True,
                  read_only=False,
                  tunnel=None):
         XCmd.__init__(self, None, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
         self._read_only = read_only
-        self._async = async
+        self._asynchronous = asynchronous
         self._zk = None
         self._txn = None        # holds the current transaction, if any
         self.connected = False
@@ -524,7 +524,7 @@ class Shell(XCmd):
         Required("dst"),
         LabeledBooleanOptional("recursive"),
         LabeledBooleanOptional("overwrite"),
-        LabeledBooleanOptional("async"),
+        LabeledBooleanOptional("asynchronous"),
         LabeledBooleanOptional("verbose"),
         IntegerOptional("max_items", 0)
     )
@@ -534,7 +534,7 @@ class Shell(XCmd):
         cp - Copy from/to local/remote or remote/remote paths
 
 \x1b[1mSYNOPSIS\x1b[0m
-        cp <src> <dst> [recursive] [overwrite] [async] [verbose] [max_items]
+        cp <src> <dst> [recursive] [overwrite] [asynchronous] [verbose] [max_items]
 
 \x1b[1mDESCRIPTION\x1b[0m
         src and dst can be:
@@ -551,7 +551,7 @@ class Shell(XCmd):
 \x1b[1mOPTIONS\x1b[0m
         * recursive: recursively copy src (default: false)
         * overwrite: overwrite the dst path (default: false)
-        * async: do asynchronous copies (default: false)
+        * asynchronous: do asynchronous copies (default: false)
         * verbose: verbose output of every path (default: false)
         * max_items: max number of paths to copy (0 is infinite) (default: 0)
 
@@ -574,7 +574,7 @@ class Shell(XCmd):
             self._complete_path,
             complete_labeled_boolean("recursive"),
             complete_labeled_boolean("overwrite"),
-            complete_labeled_boolean("async"),
+            complete_labeled_boolean("asynchronous"),
             complete_labeled_boolean("verbose"),
             complete_max
         ]
@@ -583,7 +583,7 @@ class Shell(XCmd):
     @ensure_params(
         Required("src"),
         Required("dst"),
-        LabeledBooleanOptional("async"),
+        LabeledBooleanOptional("asynchronous"),
         LabeledBooleanOptional("verbose"),
         LabeledBooleanOptional("skip_prompt")
     )
@@ -627,7 +627,7 @@ class Shell(XCmd):
         completers = [
             self._complete_path,
             self._complete_path,
-            complete_labeled_boolean("async"),
+            complete_labeled_boolean("asynchronous"),
             complete_labeled_boolean("verbose"),
             complete_labeled_boolean("skip_prompt")
         ]
@@ -658,14 +658,14 @@ class Shell(XCmd):
             if mirror and not max_items == 0:
                 raise CopyError("Mirroring must not have a max items limit", True)
 
-            src = Proxy.from_string(params.src, True, params.async, params.verbose)
+            src = Proxy.from_string(params.src, True, params.asynchronous, params.verbose)
             if src_connected_zk:
                 src.need_client = False
                 src.client = self._zk
 
             dst = Proxy.from_string(params.dst,
                                     exists=None if overwrite else False,
-                                    async=params.async,
+                                    asynchronous=params.asynchronous,
                                     verbose=params.verbose)
             if dst_connected_zk:
                 dst.need_client = False
@@ -1173,7 +1173,7 @@ class Shell(XCmd):
         LabeledBooleanOptional("ephemeral"),
         LabeledBooleanOptional("sequence"),
         LabeledBooleanOptional("recursive"),
-        LabeledBooleanOptional("async"),
+        LabeledBooleanOptional("asynchronous"),
     )
     @check_path_absent
     def do_create(self, params):
@@ -1219,7 +1219,7 @@ class Shell(XCmd):
             if not self.in_transaction:
                 kwargs["makepath"] = params.recursive
 
-            if params.async and not self.in_transaction:
+            if params.asynchronous and not self.in_transaction:
                 self.client_context.create_async(params.path, decoded(params.value), **kwargs)
             else:
                 self.client_context.create(params.path, decoded(params.value), **kwargs)
@@ -1236,7 +1236,7 @@ class Shell(XCmd):
             complete_labeled_boolean("ephemeral"),
             complete_labeled_boolean("sequence"),
             complete_labeled_boolean("recursive"),
-            complete_labeled_boolean("async"),
+            complete_labeled_boolean("asynchronous"),
         ]
         return complete(completers, cmd_param_text, full_cmd, *rest)
 
@@ -2889,7 +2889,7 @@ child_watches=%s"""
                            read_only=self._read_only,
                            timeout=self._connect_timeout,
                            auth_data=auth_data if len(auth_data) > 0 else None)
-        if self._async:
+        if self._asynchronous:
             self._connect_async(hosts)
         else:
             self._connect_sync(hosts)

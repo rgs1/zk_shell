@@ -125,7 +125,7 @@ class CLI(object):
             sys.exit(0)
 
         interactive = params.run_once == "" and not params.run_from_stdin
-        async = False if params.sync_connect or not interactive else True
+        asynchronous = False if params.sync_connect or not interactive else True
 
         if not interactive:
             set_unbuffered_mode()
@@ -134,7 +134,7 @@ class CLI(object):
                       params.connect_timeout,
                       setup_readline=interactive,
                       output=sys.stdout,
-                      async=async,
+                      asynchronous=asynchronous,
                       read_only=params.readonly,
                       tunnel=params.tunnel)
 
