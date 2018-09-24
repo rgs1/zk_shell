@@ -51,21 +51,29 @@ class Keys(object):
     in template strings
     """
 
+    # Good keys:
+    # * foo.bar
+    # * foo_bar
+    # * foo-bar
+    ALLOWED_KEY = '\w+(?:[\.-]\w+)*'
+
     class Bad(Exception):
         pass
 
     class Missing(Exception):
         pass
 
-    @staticmethod
-    def extract(keystr):
+    @classmethod
+    def extract(cls, keystr):
         """ for #{key} returns key """
-        return re.match(r"#{\s*(\w+(?:\.\w+)*)\s*}", keystr).group(1)
+        regex = r'#{\s*(%s)\s*}' % cls.ALLOWED_KEY
+        return re.match(regex, keystr).group(1)
 
     @classmethod
     def validate_one(cls, keystr):
         """ validates one key string """
-        if re.match(r"\w+(?:\.\w+)*$", keystr) is None:
+        regex = r'%s$' % cls.ALLOWED_KEY
+        if re.match(regex, keystr) is None:
             raise cls.Bad("Bad key syntax for: %s. Should be: key1.key2..." % (keystr))
 
         return True
@@ -75,7 +83,8 @@ class Keys(object):
         """
         extracts keys out of template in the form of: "a = #{key1}, b = #{key2.key3} ..."
         """
-        keys = re.findall(r"#{\s*\w+(?:\.\w+)*\s*}", template)
+        regex = r'#{\s*%s\s*}' % cls.ALLOWED_KEY
+        keys = re.findall(regex, template)
         if len(keys) == 0:
             raise cls.Bad("Bad keys template: %s. Should be: \"%s\"" % (
                 template, "a = #{key1}, b = #{key2.key3} ..."))
