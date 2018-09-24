@@ -81,3 +81,8 @@ class KeysTestCase(unittest.TestCase):
         obj = {'items': [{}, {'prop1': 'v1', 'prop2': 'v2'}]}
         Keys.set(obj, 'items.1.prop1', 'v2')
         self.assertEqual([{}, {'prop1': 'v2', 'prop2': 'v2'}], obj['items'])
+
+    def test_set_with_dash(self):
+        obj = {'foo': {'bar-x': 'v1'}}
+        Keys.set(obj, 'foo.bar-x', 'v2')
+        self.assertEqual('v2', obj['foo']['bar-x'])
