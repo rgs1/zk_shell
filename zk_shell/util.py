@@ -1,6 +1,7 @@
 """ helpers """
 
 from collections import namedtuple
+from itertools import izip
 
 import os
 import re
@@ -267,3 +268,9 @@ def get_matching(content, match):
         lines = [line for line in content.split("\n") if match in line]
         content = "\n".join(lines)
     return content
+
+
+def grouper(iterable, n):
+    """ Group iterable in chunk of n size """
+    args = [iter(iterable)] * n
+    return izip(*args)

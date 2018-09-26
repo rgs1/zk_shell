@@ -175,7 +175,7 @@ class JsonCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
         self.shell.onecmd("json_set %s/json a blah bool" % (self.tests_path))
 
-        expected = 'Bad bool value: blah\n'
+        expected = 'Bad value_type\n'
         self.assertEqual(expected, self.output.getvalue())
 
     def test_json_set_json(self):
@@ -238,3 +238,13 @@ class JsonCmdsTestCase(ShellTestCase):
 
         expected = "Path /tests/json has bad JSON.\nPath /tests/json has bad JSON.\n"
         self.assertEqual(expected, self.output.getvalue())
+
+    def test_json_set_many(self):
+        """ test setting many keys """
+        jsonstr = '{"a": {"b": {"c": {"d": false}}}}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_set_many %s/json a.b.c.d true bool a.b.c.d1 hello str" % self.tests_path)
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'a': {u'b': {u'c': {u'd': True, u'd1': u'hello'}}}}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
