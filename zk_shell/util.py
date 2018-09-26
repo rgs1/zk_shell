@@ -271,6 +271,6 @@ def get_matching(content, match):
 
 
 def grouper(iterable, n):
-    """ Group iterable in chunk of n size """
+    """ Group iterable in chunks of n size """
     args = [iter(iterable)] * n
     return izip(*args)
