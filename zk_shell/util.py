@@ -1,7 +1,12 @@
 """ helpers """
 
 from collections import namedtuple
-from itertools import izip
+
+try:
+    from itertools import izip
+except ImportError:
+    # py3k
+    izip = zip
 
 import os
 import re
