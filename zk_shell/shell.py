@@ -71,7 +71,7 @@ from xcmd.xcmd import (
 
 from .acl import ACLReader
 from .copy_util import CopyError, Proxy
-from .keys import Keys
+from .keys import Keys, to_type
 from .pathmap import PathMap
 from .watcher import get_child_watcher
 from .watch_manager import get_watch_manager
@@ -80,6 +80,7 @@ from .util import (
     find_outliers,
     get_ips,
     get_matching,
+    grouper,
     hosts_to_endpoints,
     invalid_hosts,
     Netloc,
@@ -2125,27 +2126,7 @@ child_watches=%s"""
             obj_dst = copy.deepcopy(obj_src)
 
             # Cast value to its given type.
-            value = params.value
-            if params.value_type == 'str':
-                pass  # already an str
-            elif params.value_type == 'int':
-                value = int(params.value)
-            elif params.value_type == 'float':
-                value = float(params.value)
-            elif params.value_type == 'bool':
-                if params.value.lower() == 'true':
-                    value = True
-                elif params.value.lower() == 'false':
-                    value = False
-                else:
-                    self.show_output('Bad bool value: %s', params.value)
-                    return
-            elif params.value_type == 'json':
-                value = json.loads(params.value)
-            else:
-                self.show_output('Unknown type')
-                return
-
+            value = to_type(params.value, params.value_type)
             Keys.set(obj_dst, params.keys, value)
 
             if params.confirm:
@@ -2166,6 +2147,83 @@ child_watches=%s"""
             self.show_output("Bad value_type")
 
     complete_json_set = complete_json_get
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Multi("keys_values_types")
+    )
+    @check_paths_exists("path")
+    def do_json_set_many(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        json_set_many - like `json_set`, but for multiple key/value pairs
+
+\x1b[1mSYNOPSIS\x1b[0m
+        json_set_many <path> <keys> <value> <value_type> <keys1> <value1> <value_type1> ...
+
+\x1b[1mDESCRIPTION\x1b[0m
+        If the key exists and the value is different, the znode will be updated with the key set to its new value.
+        If the key does not exist, it'll be created and the znode will be updated with the serialized version of
+        the new object. The value's type will be determined by the value_type parameter.
+
+        This is an atomic operation, either all given keys are set in one ZK operation or none are.
+
+\x1b[1mEXAMPLES\x1b[0m
+        > create /props '{"a": {"b": 4}}'
+        > json_cat /props
+        {
+            "a": {
+                "b": 4
+            }
+        }
+        > json_set_many /props a.b 5 int a.c.d true bool
+        > json_cat /props
+        {
+            "a": {
+                "c": {
+                    "d": true
+                },
+                "b": 5
+            }
+        }
+
+        """
+        # Ensure we have a balance set of (key, value, type) tuples.
+        if len(params.keys_values_types) % 3 != 0:
+            self.show_output('Bad list of parameters')
+            return
+
+        for key, _, _ in grouper(params.keys_values_types, 3):
+            try:
+                Keys.validate(key)
+            except Keys.Bad as ex:
+                self.show_output(str(ex))
+                return
+
+        # Fetch & deserialize znode.
+        jstr, stat = self._zk.get(params.path)
+        try:
+            obj_src = json_deserialize(jstr)
+        except BadJSON:
+            self.show_output("Path %s has bad JSON.", params.path)
+        obj_dst = copy.deepcopy(obj_src)
+
+        # Cast values to their given type.
+        for key, value, ptype in grouper(params.keys_values_types, 3):
+            try:
+                Keys.set(obj_dst, key, to_type(value, ptype))
+            except Keys.Missing as ex:
+                self.show_output("Path %s is missing key %s.", params.path, ex)
+                return
+            except ValueError:
+                self.show_output("Bad value_type")
+                return
+
+        # Pass along the read version, to ensure we are updating what we read.
+        self.set(params.path, json.dumps(obj_dst), version=stat.version)
+
+    complete_json_set_many = complete_json_get
 
     @connected
     @ensure_params(

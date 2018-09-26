@@ -1,6 +1,7 @@
 """ helpers for JSON keys DSL """
 
 import copy
+import json
 import re
 
 
@@ -204,3 +205,23 @@ class Keys(object):
                 current = current[key]
             except (IndexError, KeyError, TypeError):
                 raise cls.Missing(key)
+
+
+def to_type(value, ptype):
+    """ Convert value to ptype """
+    if ptype == 'str':
+        return str(value)
+    elif ptype == 'int':
+        return int(value)
+    elif ptype == 'float':
+        return float(value)
+    elif ptype == 'bool':
+        if value.lower() == 'true':
+            return True
+        elif value.lower() == 'false':
+            return False
+        raise ValueError('Bad bool value: %s' % value)
+    elif ptype == 'json':
+        return json.loads(value)
+
+    return ValueError('Unknown type')

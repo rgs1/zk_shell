@@ -2,6 +2,12 @@
 
 from collections import namedtuple
 
+try:
+    from itertools import izip
+except ImportError:
+    # py3k
+    izip = zip
+
 import os
 import re
 import socket
@@ -267,3 +273,9 @@ def get_matching(content, match):
         lines = [line for line in content.split("\n") if match in line]
         content = "\n".join(lines)
     return content
+
+
+def grouper(iterable, n):
+    """ Group iterable in chunks of n size """
+    args = [iter(iterable)] * n
+    return izip(*args)
