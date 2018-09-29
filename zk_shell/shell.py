@@ -1844,7 +1844,8 @@ child_watches=%s"""
         > child_watch / true
 
         """
-        get_child_watcher(self._zk).update(params.path, params.verbose)
+        get_child_watcher(self._zk, print_func=self.show_output).update(
+            params.path, params.verbose)
 
     def complete_child_watch(self, cmd_param_text, full_cmd, *rest):
         completers = [self._complete_path, complete_labeled_boolean("verbose")]

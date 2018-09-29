@@ -1,6 +1,14 @@
 ChangeLog
 =========
 
+1.2.1 (2018-09-29)
+------------------
+
+Features
+~~~~~~~~
+
+- child_watch <path> true now prints added/deleted children (diff style)
+
 1.2.0 (2018-09-25)
 ------------------
 

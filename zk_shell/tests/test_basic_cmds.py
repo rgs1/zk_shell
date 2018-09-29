@@ -3,6 +3,7 @@
 """test basic cmds"""
 
 import socket
+import time
 
 from .shell_test_case import PYTHON3, ShellTestCase
 
@@ -394,3 +395,16 @@ class BasicCmdsTestCase(ShellTestCase):
         self.shell.onecmd("create %s/jimeh gimeh" % (self.tests_path))
         self.shell.onecmd("echo 'jimeh = %%s' 'get %s/jimeh'" %  (self.tests_path))
         self.assertIn("jimeh = gimeh", self.output.getvalue())
+
+    def test_child_watch(self):
+        self.shell.onecmd("create /serverset ''")
+        self.shell.onecmd("child_watch /serverset true")
+        self.shell.onecmd("create /serverset/foo ''")
+        self.shell.onecmd("create /serverset/bar ''")
+        self.shell.onecmd("rm /serverset/bar")
+
+        # FIXME: find a better to wait for the last event.
+        time.sleep(0.5)
+
+        expected = "\n/serverset:\n\n\n/serverset:\n+ foo\n\n/serverset:\n+ bar\n  foo\n\n/serverset:\n- bar\n  foo\n"
+        self.assertEqual(expected, self.output.getvalue())
