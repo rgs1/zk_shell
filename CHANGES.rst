@@ -1,6 +1,15 @@
 ChangeLog
 =========
 
+1.2.2 (2018-09-29)
+------------------
+
+Features
+~~~~~~~~
+
+- Added 'sasl' schema for Kerberos support
+
+
 1.2.1 (2018-09-29)
 ------------------
 
