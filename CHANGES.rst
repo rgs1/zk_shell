@@ -1,6 +1,16 @@
 ChangeLog
 =========
 
+1.2.3 (2018-10-07)
+------------------
+
+Features
+~~~~~~~~
+
+- add json_append command to append an element to a list within a JSON object
+- add json_remove to remove the first or all occurrences of a value within a list of
+  a JSON object
+
 1.2.2 (2018-09-29)
 ------------------
 

@@ -2230,6 +2230,187 @@ child_watches=%s"""
     @ensure_params(
         Required("path"),
         Required("keys"),
+        Required("value"),
+        Required("value_type"),
+        LabeledBooleanOptional("confirm")
+    )
+    @check_paths_exists("path")
+    def do_json_append(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        json_append - append an element to a list
+
+\x1b[1mSYNOPSIS\x1b[0m
+        json_append <path> <keys> <value> <value_type> [confirm]
+
+\x1b[1mDESCRIPTION\x1b[0m
+        The key must exist within the serialized JSON object and be of type list, otherwise this command
+        will error out. The given value will be appended to the list and the znode will be updated with the
+        serialized version of the new object. The value's type will be determined by the <value_type> parameter.
+
+        This is an atomic operation, if the read version of the znode changed before the update completes
+        this command will fail.
+
+\x1b[1mEXAMPLES\x1b[0m
+        > create /settings '{"versions": ["v1", "v2"]}'
+        > json_cat /settings
+        {
+            "versions": [
+                "v1",
+                "v2"
+            ]
+        }
+        > json_append /settings versions v3 str
+        > json_cat /settings
+        {
+            "versions": [
+                "v1",
+                "v2",
+                "v3"
+            ]
+        }
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        try:
+            jstr, stat = self._zk.get(params.path)
+            obj_src = json_deserialize(jstr)
+            obj_dst = copy.deepcopy(obj_src)
+
+            plist = Keys.fetch(obj_dst, params.keys)
+            if not isinstance(plist, list):
+                self.show_output("%s is not a list.", params.keys)
+                return
+
+            # Cast value to its given type.
+            value = to_type(params.value, params.value_type)
+            plist.append(value)
+
+            if params.confirm:
+                a = json.dumps(obj_src, sort_keys=True, indent=4)
+                b = json.dumps(obj_dst, sort_keys=True, indent=4)
+                diff = difflib.unified_diff(a.split("\n"), b.split("\n"))
+                self.show_output("\n".join(diff))
+                if not self.prompt_yes_no("Apply update?"):
+                    return
+
+            # Pass along the read version, to ensure we are updating what we read.
+            self.set(params.path, json.dumps(obj_dst), version=stat.version)
+        except BadJSON:
+            self.show_output("Path %s has bad JSON.", params.path)
+        except Keys.Missing as ex:
+            self.show_output("Path %s is missing key %s.", params.path, ex)
+        except ValueError:
+            self.show_output("Bad value_type")
+
+    complete_json_append = complete_json_get
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
+        Required("value"),
+        Required("value_type"),
+        LabeledBooleanOptional("remove_all"),
+        LabeledBooleanOptional("confirm")
+    )
+    @check_paths_exists("path")
+    def do_json_remove(self, params):
+        """
+\x1b[1mNAME\x1b[0m
+        json_remove - remove occurrences of the given value from a list
+
+\x1b[1mSYNOPSIS\x1b[0m
+        json_remove <path> <keys> <value> <value_type> [remove_all] [confirm]
+
+\x1b[1mDESCRIPTION\x1b[0m
+        The key must exist within the serialized JSON object and be of type list, otherwise this command
+        will error out. The first occurrence of the value will be removed from the list. If the optional
+        parameter <remove_all> is true, then all occurrences will be removed. The value's type will be
+        determined by the <value_type> parameter.
+
+        The znode will be updated with the serialized version of the updated object.
+
+        This is an atomic operation, if the read version of the znode changed before the update completes
+        this command will fail.
+
+\x1b[1mEXAMPLES\x1b[0m
+        > create /settings '{"versions": ["v1", "v2", "v3"]}'
+        > json_cat /settings
+        {
+            "versions": [
+                "v1",
+                "v2",
+                "v3"
+            ]
+        }
+        > json_remove /settings versions v2 str
+        > json_cat /settings
+        {
+            "versions": [
+                "v1",
+                "v3"
+            ]
+        }
+
+        """
+        try:
+            Keys.validate(params.keys)
+        except Keys.Bad as ex:
+            self.show_output(str(ex))
+            return
+
+        try:
+            jstr, stat = self._zk.get(params.path)
+            obj_src = json_deserialize(jstr)
+            obj_dst = copy.deepcopy(obj_src)
+
+            plist = Keys.fetch(obj_dst, params.keys)
+            if not isinstance(plist, list):
+                self.show_output("%s is not a list.", params.keys)
+                return
+
+            # Cast value to its given type.
+            value = to_type(params.value, params.value_type)
+
+            # Remove one or more occurrences of value.
+            while True:
+                try:
+                    plist.remove(value)
+                    if not params.remove_all:
+                        break
+                except ValueError:
+                    # no more remaining values.
+                    break
+
+            if params.confirm:
+                a = json.dumps(obj_src, sort_keys=True, indent=4)
+                b = json.dumps(obj_dst, sort_keys=True, indent=4)
+                diff = difflib.unified_diff(a.split("\n"), b.split("\n"))
+                self.show_output("\n".join(diff))
+                if not self.prompt_yes_no("Apply update?"):
+                    return
+
+            # Pass along the read version, to ensure we are updating what we read.
+            self.set(params.path, json.dumps(obj_dst), version=stat.version)
+        except BadJSON:
+            self.show_output("Path %s has bad JSON.", params.path)
+        except Keys.Missing as ex:
+            self.show_output("Path %s is missing key %s.", params.path, ex)
+        except ValueError:
+            self.show_output("Bad value_type")
+
+    complete_json_remove = complete_json_get
+
+    @connected
+    @ensure_params(
+        Required("path"),
+        Required("keys"),
         IntegerOptional("top", 0),
         IntegerOptional("minfreq", 1),
         LabeledBooleanOptional("reverse", default=True),
