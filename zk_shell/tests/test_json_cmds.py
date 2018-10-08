@@ -248,3 +248,33 @@ class JsonCmdsTestCase(ShellTestCase):
 
         expected = {u'a': {u'b': {u'c': {u'd': True, u'd1': u'hello'}}}}
         self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_append(self):
+        """ append a value to a list """
+        jsonstr = '{"versions": ["v1", "v2"]}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_append %s/json versions v3 str" % self.tests_path)
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'versions': [u'v1', u'v2', u'v3']}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_remove(self):
+        """ remove the first occurrence of the given value from a list """
+        jsonstr = '{"versions": ["v1", "v2", "v3"]}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_remove %s/json versions v2 str" % self.tests_path)
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'versions': [u'v1', u'v3']}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
+
+    def test_json_remove_all(self):
+        """ remove all occurrences of the given value from a list """
+        jsonstr = '{"versions": ["v1", "v2", "v3", "v2"]}'
+        self.shell.onecmd("create %s/json '%s'" % (self.tests_path, jsonstr))
+        self.shell.onecmd("json_remove %s/json versions v2 str true" % self.tests_path)
+        self.shell.onecmd("json_cat %s/json" % (self.tests_path))
+
+        expected = {u'versions': [u'v1', u'v3']}
+        self.assertEqual(expected, json.loads(self.output.getvalue()))
