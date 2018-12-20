@@ -1699,25 +1699,14 @@ child_watches=%s"""
             datasize[idx] = int(dsize)
             sessions[idx] = int(session_count)
 
-            def fetch_zxid(endpoint):
-                zxid = -1
-                try:
-                    stat = self._zk.cmd(hosts_to_endpoints(endpoint), "stat")
-                    for line in stat.split("\n"):
-                        if "Zxid:" in line:
-                            zxid = int(line.split(None)[1], 0)
-                except:
-                    pass
-                return zxid
-
-            # the stat cmd is a bit flaky, so try a few times
-            zxid = -1
-            for i in range(0, stat_retries):
-                zxid = fetch_zxid(endpoint)
-                if zxid != -1:
-                    break
-
-            zxids[idx]= zxid
+            try:
+                srvr = self._zk.cmd(hosts_to_endpoints(endpoint), "srvr")
+                for line in srvr.split("\n"):
+                    if "Zxid:" in line:
+                        zxids[idx] = int(line.split(None)[1], 0)
+                        break
+            except:
+                zxids[idx] = -1
 
         workers = []
         for idx, endpoint in enumerate(endpoints, 1):
