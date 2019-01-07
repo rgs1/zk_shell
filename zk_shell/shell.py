@@ -1698,6 +1698,7 @@ child_watches=%s"""
             ephemerals[idx] = int(eph_count)
             datasize[idx] = int(dsize)
             sessions[idx] = int(session_count)
+            zxids[idx] = -1
 
             try:
                 srvr = self._zk.cmd(hosts_to_endpoints(endpoint), "srvr")
@@ -1706,7 +1707,7 @@ child_watches=%s"""
                         zxids[idx] = int(line.split(None)[1], 0)
                         break
             except:
-                zxids[idx] = -1
+                pass
 
         workers = []
         for idx, endpoint in enumerate(endpoints, 1):
