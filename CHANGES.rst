@@ -1,6 +1,16 @@
 ChangeLog
 =========
 
+1.2.4 (2019-04-26)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+- fix copy function
+- use srvr, not stat for zxid
+
+
 1.2.3 (2018-10-07)
 ------------------
 
