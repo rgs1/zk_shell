@@ -27,6 +27,7 @@ else
     echo "Already downloaded zookeeper $ZOOKEEPER_VERSION to $ZOOKEEPER_PATH"
 fi
 
+export ZOOKEEPER_VERSION
 export ZOOKEEPER_PATH
 cd $HERE
 
