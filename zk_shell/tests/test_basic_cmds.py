@@ -342,8 +342,6 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertEqual(u"bar\n", self.output.getvalue())
 
     def test_reconfig(self):
-        raise SkipTest('broken with zookeeper 3.5.4')
-
         # handle bad input
         self.shell.onecmd("reconfig add foo")
         self.assertIn("Bad arguments", self.output.getvalue())
