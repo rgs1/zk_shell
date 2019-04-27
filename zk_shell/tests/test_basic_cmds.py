@@ -342,6 +342,9 @@ class BasicCmdsTestCase(ShellTestCase):
         self.assertEqual(u"bar\n", self.output.getvalue())
 
     def test_reconfig(self):
+        # become super user
+        self.shell.onecmd("add_auth digest super:%s" % (self.super_password))
+
         # handle bad input
         self.shell.onecmd("reconfig add foo")
         self.assertIn("Bad arguments", self.output.getvalue())
