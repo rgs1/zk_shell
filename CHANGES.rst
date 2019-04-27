@@ -9,6 +9,11 @@ Features
 
 - update requirements
 
+Bug Handling
+~~~~~~~~~~~~
+
+- fix broken/skipped tests
+
 1.2.4 (2019-04-26)
 ------------------
 
