@@ -51,7 +51,7 @@ class ShellTestCase(unittest.TestCase):
         self.username = os.getenv("ZKSHELL_USER", "user")
         self.password = os.getenv("ZKSHELL_PASSWD", "user")
         self.digested_password = os.getenv("ZKSHELL_DIGESTED_PASSWD", "F46PeTVYeItL6aAyygIVQ9OaaeY=")
-        self.super_password = os.getenv("ZKSHELL_SUPER_PASSWD", "secret")
+        self.super_password = os.getenv("ZKSHELL_SUPER_PASSWD", "test")
         self.scheme = os.getenv("ZKSHELL_AUTH_SCHEME", "digest")
 
         self.client = KazooClient(self.zk_hosts, 5)
