@@ -16,7 +16,7 @@ function download_zookeeper(){
     mkdir -p $ZOO_BASE_DIR
     cd $ZOO_BASE_DIR
     curl --silent -C - $ZOO_MIRROR_URL/zookeeper/zookeeper-$ZOOKEEPER_VERSION/apache-zookeeper-$ZOOKEEPER_VERSION.tar.gz | tar -zx
-    mv zookeeper-$ZOOKEEPER_VERSION $ZOOKEEPER_VERSION
+    mv apache-zookeeper-$ZOOKEEPER_VERSION $ZOOKEEPER_VERSION
     chmod a+x $ZOOKEEPER_PATH/bin/zkServer.sh
 }
 
