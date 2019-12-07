@@ -6,17 +6,16 @@
 set -e
 
 HERE=`pwd`
-ZOO_BASE_DIR="$HERE/zookeeper"
-ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-3.5.6}
-ZOOKEEPER_PATH="$ZOO_BASE_DIR/$ZOOKEEPER_VERSION"
-ZOO_MIRROR_URL="https://apache.osuosl.org"
-
+ZOO_BASE_DIR="${HERE}/zookeeper"
+ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-3.5.4-beta}
+ZOOKEEPER_PATH="${ZOO_BASE_DIR}/${ZOOKEEPER_VERSION}"
+ZOO_MIRROR_URL="https://archive.apache.org"
 
 function download_zookeeper(){
     mkdir -p $ZOO_BASE_DIR
     cd $ZOO_BASE_DIR
-    curl --silent -C - $ZOO_MIRROR_URL/zookeeper/zookeeper-$ZOOKEEPER_VERSION/apache-zookeeper-$ZOOKEEPER_VERSION.tar.gz | tar -zx
-    mv apache-zookeeper-$ZOOKEEPER_VERSION $ZOOKEEPER_VERSION
+    curl --silent -C - $ZOO_MIRROR_URL/dist/zookeeper/zookeeper-$ZOOKEEPER_VERSION/zookeeper-$ZOOKEEPER_VERSION.tar.gz | tar -zx
+    mv zookeeper-$ZOOKEEPER_VERSION $ZOOKEEPER_VERSION
     chmod a+x $ZOOKEEPER_PATH/bin/zkServer.sh
 }
 
