@@ -26,6 +26,7 @@ import time
 import zlib
 
 from colors import green, red
+from kazoo.client import KazooClient
 from kazoo.exceptions import (
     APIError,
     AuthFailedError,
@@ -246,7 +247,8 @@ class Shell(XCmd):
                  setup_readline=True,
                  asynchronous=True,
                  read_only=False,
-                 tunnel=None):
+                 tunnel=None,
+                 zk_client=None):
         XCmd.__init__(self, None, setup_readline, output)
         self._hosts = hosts if hosts else []
         self._connect_timeout = float(timeout)
@@ -258,8 +260,8 @@ class Shell(XCmd):
         self.state_transitions_enabled = True
         self._tunnel = tunnel
 
-        if len(self._hosts) > 0:
-            self._connect(self._hosts)
+        if hosts or zk_client:
+            self._connect(self._hosts, zk_client)
         if not self.connected:
             self.update_curdir("/")
 
@@ -3085,8 +3087,10 @@ child_watches=%s"""
             self._zk = None
         self.connected = False
 
-    def _connect(self, hosts_list):
+    def _init_zk_client(self, hosts_list):
         """
+        Initialize the zookeeper client (based on the provided list of hosts.
+
         In the basic case, hostsp is a list of hosts like:
 
         ```
@@ -3099,7 +3103,6 @@ child_watches=%s"""
         [digest:foo:bar@10.0.0.2:2181, 10.0.0.3:2181]
         ```
         """
-        self._disconnect()
         auth_data = []
         hosts = []
 
@@ -3115,10 +3118,34 @@ child_watches=%s"""
             if nl.scheme != "":
                 auth_data.append((nl.scheme, nl.credential))
 
-        self._zk = XClient(",".join(hosts),
+        return KazooClient(",".join(hosts),
                            read_only=self._read_only,
                            timeout=self._connect_timeout,
                            auth_data=auth_data if len(auth_data) > 0 else None)
+
+    def _connect(self, hosts_list=None, zk_client=None):
+        """
+        In the basic case, hostsp is a list of hosts like:
+
+        ```
+        [10.0.0.2:2181, 10.0.0.3:2181]
+        ```
+
+        It might also contain auth info:
+
+        ```
+        [digest:foo:bar@10.0.0.2:2181, 10.0.0.3:2181]
+        ```
+        """
+        self._disconnect()
+
+        if not zk_client:
+            zk_client = self._init_zk_client(hosts_list)
+
+        self._zk = XClient(zk_client)
+
+        hosts = ['{0}:{1}'.format(*host_port) for host_port in zk_client.hosts]
+
         if self._asynchronous:
             self._connect_async(hosts)
         else:
