@@ -1,6 +1,21 @@
 ChangeLog
 =========
 
+1.3.0 (2019-12-16)
+------------------
+
+Features
+~~~~~~~~
+
+- `kazoo.client.KazooClient` object can be passed to `zk_shell.shell.Shell` to
+  connect to Zookeeper so custom authentication schemes are now supported
+- requirements now define minimum versions
+
+Bug Handling
+~~~~~~~~~~~~
+
+- fixed build script of the CI tests
+
 1.2.5 (2019-04-27)
 ------------------
 
