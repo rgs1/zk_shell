@@ -89,8 +89,8 @@ class XTransactionRequest(TransactionRequest):
         super(XTransactionRequest, self).set_data(path, to_bytes(value), version)
 
 
-class XClient(KazooClient):
-    """ adds some extra methods to KazooClient """
+class XClient():
+    """ adds some extra methods to a wrapped KazooClient """
 
     class CmdFailed(Exception):
         """ 4 letter cmd failed """
@@ -99,6 +99,9 @@ class XClient(KazooClient):
     SESSION_REGEX = re.compile(r"^(0x\w+):")
     IP_PORT_REGEX = re.compile(r"^\tip:\s/(\d+\.\d+\.\d+\.\d+):(\d+)\ssessionId:\s(0x\w+)\Z")
     PATH_REGEX = re.compile(r"^\t((?:/.*)+)\Z")
+
+    def __init__(self, zk_client=None):
+        self._zk = zk_client or KazooClient()
 
     @property
     def xid(self):
@@ -146,7 +149,7 @@ class XClient(KazooClient):
 
     def get(self, *args, **kwargs):
         """ wraps the default get() and deals with encoding """
-        value, stat = super(XClient, self).get(*args, **kwargs)
+        value, stat = self._zk.get(*args, **kwargs)
 
         try:
             if value is not None:
@@ -158,22 +161,22 @@ class XClient(KazooClient):
 
     def get_bytes(self, *args, **kwargs):
         """ no string decoding performed """
-        return super(XClient, self).get(*args, **kwargs)
+        return self._zk.get(*args, **kwargs)
 
     def set(self, path, value, version=-1):
         """ wraps the default set() and handles encoding (Py3k) """
         value = to_bytes(value)
-        super(XClient, self).set(path, value, version)
+        self._zk.set(path, value, version)
 
     def create(self, path, value=b"", acl=None, ephemeral=False, sequence=False, makepath=False):
         """ wraps the default create() and handles encoding (Py3k) """
         value = to_bytes(value)
-        return super(XClient, self).create(path, value, acl, ephemeral, sequence, makepath)
+        return self._zk.create(path, value, acl, ephemeral, sequence, makepath)
 
     def create_async(self, path, value=b"", acl=None, ephemeral=False, sequence=False, makepath=False):
         """ wraps the default create() and handles encoding (Py3k) """
         value = to_bytes(value)
-        return super(XClient, self).create_async(path, value, acl, ephemeral, sequence, makepath)
+        return self._zk.create_async(path, value, acl, ephemeral, sequence, makepath)
 
     def transaction(self):
         """ use XTransactionRequest which is encoding aware (Py3k) """
@@ -533,3 +536,6 @@ class XClient(KazooClient):
 
         return info_by_id
 
+    def __getattr__(self, attr):
+        """kazoo.client method and attribute proxy"""
+        return getattr(self._zk, attr)
