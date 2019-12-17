@@ -1,6 +1,15 @@
 ChangeLog
 =========
 
+1.3.1 (2019-12-17)
+------------------
+
+Bug Handling
+~~~~~~~~~~~~
+
+- requirements have been updated in `setup.py` as well so they're aligned with
+  `requirements.txt`
+
 1.3.0 (2019-12-16)
 ------------------
 
