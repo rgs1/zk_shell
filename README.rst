@@ -41,6 +41,12 @@ ZooKeeper <http://zookeeper.apache.org/>`__
 Installing
 ~~~~~~~~~~
 
+As Dockerfile:
+
+::
+    $ docker build . -f Dockerfile -t zk-shell:1.3.2
+
+
 From PyPI:
 
 ::
@@ -72,6 +78,11 @@ More info about PEX `here <https://pex.readthedocs.org>`__.
 
 Usage
 ~~~~~
+Docker Version
+::
+    $ docker run -it zk-shell:1.3.2
+
+and use the connect command to connect to your zookeeper instance
 
 ::
 

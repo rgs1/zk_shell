@@ -1,6 +1,14 @@
 ChangeLog
 =========
 
+1.3.2 (2020-06-14)
+------------------
+
+Features
+~~~~~~~~
+
+- Added pre-defined Dockerfile for docker execution
+
 1.3.1 (2019-12-17)
 ------------------
 
