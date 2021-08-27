@@ -248,6 +248,8 @@ class XClient():
                 value = ""
 
             if value is not None:
+                if isinstance(value, bytes):
+                    value = value.decode(errors='ignore')
                 matches = [line for line in value.split("\n") if match.search(line)]
                 if len(matches) > 0:
                     yield (full_path, matches)
