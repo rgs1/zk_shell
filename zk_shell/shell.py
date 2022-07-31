@@ -1090,8 +1090,7 @@ class Shell(XCmd):
         if value is not None:
             try:
                 value = lz4.frame.decompress(value)
-            except BaseException as err:
-                print(err)
+            except:
                 pass
 
         self.show_output(value)

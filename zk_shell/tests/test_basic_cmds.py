@@ -171,6 +171,13 @@ class BasicCmdsTestCase(ShellTestCase):
         expected_output = "b'some value'\n" if PYTHON3 else "some value\n"
         self.assertEqual(expected_output, self.output.getvalue())
 
+    def test_get_lz4_compressed(self):
+        """ test getting lz4 compressed content out of znode """
+        self.create_lz4_compressed("%s/one" % (self.tests_path), "some value")
+        self.shell.onecmd("get %s/one" % (self.tests_path))
+        expected_output = "b'some value'\n" if PYTHON3 else "some value\n"
+        self.assertEqual(expected_output, self.output.getvalue())
+
     def test_child_count(self):
         """ test child count for a given path """
         self.shell.onecmd("create %s/something ''" % (self.tests_path))
