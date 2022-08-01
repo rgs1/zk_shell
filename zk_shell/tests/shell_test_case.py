@@ -3,6 +3,7 @@
 """ base test case """
 
 
+import lz4.frame
 import os
 import shutil
 import sys
@@ -105,4 +106,12 @@ class ShellTestCase(unittest.TestCase):
         to create a znode with zlib compressed content.
         """
         compressed = zlib.compress(bytes(value, "utf-8") if PYTHON3 else value)
+        self.client.create(path, compressed, makepath=True)
+
+    def create_lz4_compressed(self, path, value):
+        """
+        ZK Shell doesn't support creating directly from a bytes array so we use a Kazoo client
+        to create a znode with lz4 compressed content.
+        """
+        compressed = lz4.frame.compress(bytes(value, "utf-8") if PYTHON3 else value)
         self.client.create(path, compressed, makepath=True)

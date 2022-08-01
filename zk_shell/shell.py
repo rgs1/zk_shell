@@ -13,6 +13,7 @@ import bisect
 import copy
 import difflib
 import json
+import lz4.frame
 import os
 import re
 import shlex
@@ -1082,6 +1083,13 @@ class Shell(XCmd):
         if value is not None:
             try:
                 value = zlib.decompress(value)
+            except:
+                pass
+
+        # maybe it's lz4 compressed?
+        if value is not None:
+            try:
+                value = lz4.frame.decompress(value)
             except:
                 pass
 

@@ -426,7 +426,7 @@ class FileProxy(Proxy):
             os.makedirs(parent_dir)
         except OSError:
             pass
-        with open(self.path, "w") as fph:
+        with open(self.path, "wb") as fph:
             fph.write(path_value.value)
 
     def children_of(self):
