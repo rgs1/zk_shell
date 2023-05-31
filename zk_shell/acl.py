@@ -22,6 +22,7 @@ class ACLReader(object):
         "host",
         "ip",
         "sasl",
+        "x509",
         "username_password",  # internal-only: gen digest from user:password
     ]
 
