@@ -87,9 +87,9 @@ class Netloc(namedtuple("Netloc", "host scheme credential")):
         return cls(host, scheme, credential)
 
 
-_empty = re.compile("\A\s*\Z")
-_valid_host_part = re.compile("(?!-)[a-z\d-]{1,63}(?<!-)$", re.IGNORECASE)
-_valid_ipv4 = re.compile("\A(\d+)\.(\d+)\.(\d+)\.(\d+)\Z")
+_empty = re.compile(r"\A\s*\Z")
+_valid_host_part = re.compile(r"(?!-)[a-z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+_valid_ipv4 = re.compile(r"\A(\d+)\.(\d+)\.(\d+)\.(\d+)\Z")
 
 
 def valid_port(port, start=1, end=65535):
